@@ -2,6 +2,7 @@ import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from './api';
 import { trackEvent } from './analytics';
+import { DARK_THEME_COLORS } from '../theme/ThemeProvider';
 
 // ============================================================================
 // Types
@@ -366,11 +367,11 @@ class MapViewService {
     switch (style) {
       case 'dark':
         return [
-          { elementType: 'geometry', stylers: [{ color: '#1a1a1a' }] },
-          { elementType: 'labels.text.fill', stylers: [{ color: '#8B5CF6' }] },
-          { elementType: 'labels.text.stroke', stylers: [{ color: '#0a0a0a' }] },
-          { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#2a2a2a' }] },
-          { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0f0f0f' }] },
+          { elementType: 'geometry', stylers: [{ color: DARK_THEME_COLORS.backgroundDarkest }] },
+          { elementType: 'labels.text.fill', stylers: [{ color: DARK_THEME_COLORS.accent }] },
+          { elementType: 'labels.text.stroke', stylers: [{ color: DARK_THEME_COLORS.background }] },
+          { featureType: 'road', elementType: 'geometry', stylers: [{ color: DARK_THEME_COLORS.border }] },
+          { featureType: 'water', elementType: 'geometry', stylers: [{ color: DARK_THEME_COLORS.backgroundSecondary }] },
         ];
       case 'satellite':
         return null; // Use default satellite style

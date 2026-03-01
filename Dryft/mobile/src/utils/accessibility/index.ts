@@ -1,6 +1,7 @@
 import { AccessibilityInfo, Platform, PixelRatio, Dimensions } from 'react-native';
 import { useEffect, useState, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { DARK_THEME_COLORS } from '../../theme/ThemeProvider';
 
 // Accessibility settings storage key
 const A11Y_SETTINGS_KEY = 'dryft_accessibility_settings';
@@ -211,30 +212,30 @@ export const colorBlindFilters = {
 
 // High contrast color palette
 export const highContrastColors = {
-  background: '#000000',
-  surface: '#1a1a1a',
-  primary: '#ffffff',
-  secondary: '#ffff00',
-  error: '#ff0000',
-  success: '#00ff00',
-  text: '#ffffff',
-  textSecondary: '#cccccc',
-  border: '#ffffff',
-  accent: '#00ffff',
+  background: 'black',
+  surface: 'dimgray',
+  primary: 'white',
+  secondary: 'yellow',
+  error: 'red',
+  success: 'lime',
+  text: 'white',
+  textSecondary: 'lightgray',
+  border: 'white',
+  accent: 'cyan',
 };
 
 // Standard color palette
 export const standardColors = {
-  background: '#0f0f23',
-  surface: '#1a1a2e',
-  primary: '#e94560',
-  secondary: '#8892b0',
-  error: '#ff6b6b',
-  success: '#2ecc71',
-  text: '#ffffff',
-  textSecondary: '#8892b0',
-  border: '#16213e',
-  accent: '#e94560',
+  background: DARK_THEME_COLORS.background,
+  surface: DARK_THEME_COLORS.surface,
+  primary: DARK_THEME_COLORS.primary,
+  secondary: DARK_THEME_COLORS.textSecondary,
+  error: DARK_THEME_COLORS.safetyWarning,
+  success: DARK_THEME_COLORS.success,
+  text: DARK_THEME_COLORS.text,
+  textSecondary: DARK_THEME_COLORS.textSecondary,
+  border: DARK_THEME_COLORS.backgroundSecondary,
+  accent: DARK_THEME_COLORS.primary,
 };
 
 // Get colors based on accessibility settings

@@ -1,4 +1,4 @@
-import React, { Component, ReactNode, ErrorInfo } from 'react';
+import React, { Component, ReactNode, ErrorInfo, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { analytics } from '../services/analytics';
+import { DARK_THEME_COLORS } from '../theme/ThemeProvider';
 
 // ============================================================================
 // Types
@@ -35,16 +36,7 @@ interface ErrorBoundaryState {
 // Default Theme Colors (fallback if theme context fails)
 // ============================================================================
 
-const defaultColors = {
-  background: '#0a0a0f',
-  surface: '#16161f',
-  text: '#ffffff',
-  textSecondary: '#8b8b9e',
-  textMuted: '#5a5a6e',
-  primary: '#e94560',
-  error: '#ff4444',
-  border: '#2a2a3e',
-};
+const defaultColors = DARK_THEME_COLORS;
 
 // ============================================================================
 // Error Boundary Component
@@ -211,7 +203,7 @@ function AppErrorScreen({ error, errorInfo, onRetry, showDetails }: AppErrorScre
             style={[styles.primaryButton, { backgroundColor: defaultColors.primary }]}
             onPress={onRetry}
           >
-            <Ionicons name="refresh" size={20} color="#fff" />
+            <Ionicons name="refresh" size={20} color={defaultColors.text} />
             <Text style={styles.primaryButtonText}>Try Again</Text>
           </TouchableOpacity>
         </View>
@@ -257,7 +249,7 @@ function ScreenErrorView({ error, onRetry, showDetails }: ScreenErrorViewProps) 
         style={[styles.retryButton, { backgroundColor: defaultColors.primary }]}
         onPress={onRetry}
       >
-        <Ionicons name="refresh" size={18} color="#fff" />
+        <Ionicons name="refresh" size={18} color={defaultColors.text} />
         <Text style={styles.retryButtonText}>Retry</Text>
       </TouchableOpacity>
     </View>
@@ -324,8 +316,6 @@ export function withErrorBoundary<P extends object>(
 // ============================================================================
 // Hook for error handling (for functional components)
 // ============================================================================
-
-import { useState, useCallback } from 'react';
 
 interface UseErrorHandlerReturn {
   error: Error | null;
@@ -410,7 +400,7 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#fff',
+    color: defaultColors.text,
   },
   errorIconContainer: {
     width: 96,
@@ -472,7 +462,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   primaryButtonText: {
-    color: '#fff',
+    color: defaultColors.text,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -523,7 +513,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   retryButtonText: {
-    color: '#fff',
+    color: defaultColors.text,
     fontSize: 15,
     fontWeight: '600',
   },

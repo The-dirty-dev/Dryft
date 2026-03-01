@@ -4,6 +4,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import * as FileSystem from 'expo-file-system';
 import { api } from './api';
 import { trackEvent } from './analytics';
+import { DARK_THEME_COLORS } from '../theme/ThemeProvider';
 
 // ============================================================================
 // Types
@@ -97,15 +98,29 @@ const MAX_STORY_VIDEO_SECONDS = 15;
 const STORY_IMAGE_SIZE = 1080;
 
 const TEXT_STYLES: StoryTextStyle[] = [
-  { fontFamily: 'System', fontSize: 32, color: '#FFFFFF', alignment: 'center' },
-  { fontFamily: 'System', fontSize: 28, color: '#000000', alignment: 'center', backgroundColor: '#FFFFFF' },
-  { fontFamily: 'System', fontSize: 36, color: '#FF6B6B', alignment: 'center' },
-  { fontFamily: 'System', fontSize: 24, color: '#FFFFFF', alignment: 'left' },
+  { fontFamily: 'System', fontSize: 32, color: DARK_THEME_COLORS.text, alignment: 'center' },
+  {
+    fontFamily: 'System',
+    fontSize: 28,
+    color: DARK_THEME_COLORS.textInverse,
+    alignment: 'center',
+    backgroundColor: DARK_THEME_COLORS.text,
+  },
+  { fontFamily: 'System', fontSize: 36, color: DARK_THEME_COLORS.safetyWarning, alignment: 'center' },
+  { fontFamily: 'System', fontSize: 24, color: DARK_THEME_COLORS.text, alignment: 'left' },
 ];
 
 const BACKGROUND_COLORS = [
-  '#8B5CF6', '#EC4899', '#EF4444', '#F59E0B', '#10B981',
-  '#3B82F6', '#6366F1', '#14B8A6', '#000000', '#1a1a1a',
+  DARK_THEME_COLORS.accent,
+  DARK_THEME_COLORS.accentPink,
+  DARK_THEME_COLORS.error,
+  DARK_THEME_COLORS.warning,
+  DARK_THEME_COLORS.success,
+  DARK_THEME_COLORS.info,
+  DARK_THEME_COLORS.accentSecondary,
+  DARK_THEME_COLORS.primaryLight,
+  DARK_THEME_COLORS.backgroundDarkest,
+  DARK_THEME_COLORS.surface,
 ];
 
 // ============================================================================

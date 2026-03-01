@@ -10,6 +10,7 @@ import {
   FaceDetectionResult,
   ChallengeType,
 } from '../services/livenessDetection';
+import { DARK_THEME_COLORS } from '../theme/ThemeProvider';
 
 // ============================================================================
 // useLivenessDetection - Main verification hook
@@ -464,9 +465,9 @@ export function useVerificationBadge() {
 
   const getBadgeColor = useCallback((type: VerificationBadge['type']) => {
     const colors: Record<VerificationBadge['type'], string> = {
-      verified: '#3B82F6', // Blue
-      verified_plus: '#8B5CF6', // Purple
-      trusted: '#10B981', // Green
+      verified: DARK_THEME_COLORS.info,
+      verified_plus: DARK_THEME_COLORS.accent,
+      trusted: DARK_THEME_COLORS.success,
     };
     return colors[type];
   }, []);

@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from './api';
 import { trackEvent } from './analytics';
+import { DARK_THEME_COLORS } from '../theme/ThemeProvider';
 
 // ============================================================================
 // Types
@@ -46,14 +47,14 @@ const MAX_FAVORITES = 100;
 const MAX_COLLECTIONS = 10;
 
 const DEFAULT_COLORS = [
-  '#EF4444', // Red
-  '#F59E0B', // Amber
-  '#10B981', // Green
-  '#3B82F6', // Blue
-  '#8B5CF6', // Purple
-  '#EC4899', // Pink
-  '#6366F1', // Indigo
-  '#14B8A6', // Teal
+  DARK_THEME_COLORS.error,
+  DARK_THEME_COLORS.warning,
+  DARK_THEME_COLORS.success,
+  DARK_THEME_COLORS.info,
+  DARK_THEME_COLORS.accent,
+  DARK_THEME_COLORS.accentPink,
+  DARK_THEME_COLORS.primaryLight,
+  DARK_THEME_COLORS.accentSecondary,
 ];
 
 // ============================================================================

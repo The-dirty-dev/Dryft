@@ -13,20 +13,13 @@ import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { useScreenSecurity, useScreenCaptureAlert } from '@hooks/useScreenSecurity';
 import { screenSecurity, ScreenCaptureEvent } from '@services/screenSecurity';
+import { DARK_THEME_COLORS } from '../theme/ThemeProvider';
 
 // =============================================================================
 // Theme Colors (matching app theme)
 // =============================================================================
 
-const colors = {
-  background: '#0a0a0f',
-  surface: '#16161f',
-  text: '#ffffff',
-  textSecondary: '#8b8b9e',
-  primary: '#e94560',
-  warning: '#ffaa00',
-  overlay: 'rgba(10, 10, 15, 0.95)',
-};
+const colors = DARK_THEME_COLORS;
 
 // =============================================================================
 // SecureScreen Wrapper Component
@@ -431,7 +424,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   modalButtonText: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',

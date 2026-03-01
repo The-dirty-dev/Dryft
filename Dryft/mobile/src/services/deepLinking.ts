@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useCallback, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { analytics, trackEvent } from './analytics';
+import { DARK_THEME_COLORS } from '../theme/ThemeProvider';
 
 /**
  * Deep link parsing, generation, and deferred link handling.
@@ -585,7 +586,7 @@ class DeepLinkService {
       await WebBrowser.openBrowserAsync(url, {
         dismissButtonStyle: 'close',
         presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET,
-        controlsColor: '#8B5CF6',
+        controlsColor: DARK_THEME_COLORS.accent,
       });
     } catch (error) {
       console.error('Failed to open in-app browser:', error);

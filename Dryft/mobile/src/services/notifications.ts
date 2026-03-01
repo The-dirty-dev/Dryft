@@ -4,6 +4,7 @@ import { Platform, Vibration } from 'react-native';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from './api';
+import { DARK_THEME_COLORS } from '../theme/ThemeProvider';
 
 /**
  * Notification service for push registration and in-app handling.
@@ -119,7 +120,7 @@ const ANDROID_CHANNELS = {
     importance: Notifications.AndroidImportance.HIGH,
     sound: 'message.wav',
     vibrationPattern: [0, 250, 250, 250],
-    lightColor: '#e94560',
+    lightColor: DARK_THEME_COLORS.primary,
     enableVibrate: true,
     enableLights: true,
   },
@@ -130,7 +131,7 @@ const ANDROID_CHANNELS = {
     importance: Notifications.AndroidImportance.HIGH,
     sound: 'match.wav',
     vibrationPattern: [0, 500, 250, 500],
-    lightColor: '#e94560',
+    lightColor: DARK_THEME_COLORS.primary,
     enableVibrate: true,
     enableLights: true,
   },
@@ -140,7 +141,7 @@ const ANDROID_CHANNELS = {
     description: 'Like and super like notifications',
     importance: Notifications.AndroidImportance.DEFAULT,
     sound: 'like.wav',
-    lightColor: '#ff6b9d',
+    lightColor: DARK_THEME_COLORS.accentPink,
     enableVibrate: true,
     enableLights: true,
   },
@@ -151,7 +152,7 @@ const ANDROID_CHANNELS = {
     importance: Notifications.AndroidImportance.HIGH,
     sound: 'vr_invite.wav',
     vibrationPattern: [0, 500, 250, 500],
-    lightColor: '#9b59b6',
+    lightColor: DARK_THEME_COLORS.accent,
     enableVibrate: true,
     enableLights: true,
   },
@@ -171,7 +172,7 @@ const ANDROID_CHANNELS = {
     importance: Notifications.AndroidImportance.MAX,
     sound: 'alert.wav',
     vibrationPattern: [0, 300, 200, 300, 200, 300],
-    lightColor: '#ff4444',
+    lightColor: DARK_THEME_COLORS.error,
     enableVibrate: true,
     enableLights: true,
     bypassDnd: true,

@@ -56,142 +56,204 @@ export interface ThemeColors {
   safetyWarning: string;
 }
 
-// Standard dark theme (default for Dryft)
-const darkTheme: ThemeColors = {
+const PALETTE = {
+  // Core dark palette
   background: '#0f0f23',
   backgroundSecondary: '#16213e',
   surface: '#1a1a2e',
   surfaceElevated: '#252542',
-
   primary: '#e94560',
   primaryLight: '#ff6b8a',
   primaryDark: '#c13050',
-
   text: '#ffffff',
   textSecondary: '#8892b0',
   textMuted: '#5c6580',
-  textInverse: '#0f0f23',
-
   success: '#2ecc71',
   warning: '#f39c12',
   error: '#e74c3c',
   info: '#3498db',
-
   border: '#2a2a4e',
   borderLight: '#3a3a5e',
   divider: '#1e1e38',
   overlay: 'rgba(0, 0, 0, 0.7)',
-
-  like: '#2ecc71',
-  superLike: '#3498db',
-  pass: '#e74c3c',
-
   accent: '#8B5CF6',
   accentSecondary: '#6B46C1',
   accentPink: '#EC4899',
   accentYellow: '#FCD34D',
-
   textTertiary: '#9CA3AF',
-
   backgroundDarkest: '#1a1a1a',
   surfaceSecondary: '#1F1F2E',
-
   panic: '#ff0000',
   safetyWarning: '#ff6b6b',
+
+  // High-contrast palette
+  black: '#000000',
+  nearBlack: '#0a0a0a',
+  darkSurface: '#1a1a1a',
+  darkerSurface: '#2a2a2a',
+  lightBorder: '#cccccc',
+  lightText: '#e0e0e0',
+  mutedLightText: '#b0b0b0',
+  contrastSuccess: '#00ff00',
+  contrastWarning: '#ffff00',
+  contrastInfo: '#00ffff',
+  contrastDivider: '#444444',
+  contrastOverlay: 'rgba(0, 0, 0, 0.9)',
+  contrastAccent: '#bb86fc',
+  contrastAccentSecondary: '#9966cc',
+  contrastAccentPink: '#ff69b4',
+  contrastSurfaceSecondary: '#111111',
+
+  // Color-blind-safe variants
+  cbBlue: '#0077bb',
+  cbBlueLight: '#33a1d8',
+  cbBlueDark: '#005588',
+  cbCyan: '#33bbee',
+  cbAmber: '#ee9922',
+  cbOrange: '#ee7733',
+  cbTeal: '#009988',
+  cbRed: '#cc3311',
+  cbPink: '#ee3377',
+  cbPinkLight: '#ff6699',
+  cbPinkDark: '#cc1155',
+} as const;
+
+// Standard dark theme (default for Dryft)
+export const DARK_THEME_COLORS: ThemeColors = {
+  background: PALETTE.background,
+  backgroundSecondary: PALETTE.backgroundSecondary,
+  surface: PALETTE.surface,
+  surfaceElevated: PALETTE.surfaceElevated,
+
+  primary: PALETTE.primary,
+  primaryLight: PALETTE.primaryLight,
+  primaryDark: PALETTE.primaryDark,
+
+  text: PALETTE.text,
+  textSecondary: PALETTE.textSecondary,
+  textMuted: PALETTE.textMuted,
+  textInverse: PALETTE.background,
+
+  success: PALETTE.success,
+  warning: PALETTE.warning,
+  error: PALETTE.error,
+  info: PALETTE.info,
+
+  border: PALETTE.border,
+  borderLight: PALETTE.borderLight,
+  divider: PALETTE.divider,
+  overlay: PALETTE.overlay,
+
+  like: PALETTE.success,
+  superLike: PALETTE.info,
+  pass: PALETTE.error,
+
+  accent: PALETTE.accent,
+  accentSecondary: PALETTE.accentSecondary,
+  accentPink: PALETTE.accentPink,
+  accentYellow: PALETTE.accentYellow,
+
+  textTertiary: PALETTE.textTertiary,
+
+  backgroundDarkest: PALETTE.backgroundDarkest,
+  surfaceSecondary: PALETTE.surfaceSecondary,
+
+  panic: PALETTE.panic,
+  safetyWarning: PALETTE.safetyWarning,
 };
 
 // High contrast theme for accessibility
 const highContrastTheme: ThemeColors = {
-  background: '#000000',
-  backgroundSecondary: '#0a0a0a',
-  surface: '#1a1a1a',
-  surfaceElevated: '#2a2a2a',
+  background: PALETTE.black,
+  backgroundSecondary: PALETTE.nearBlack,
+  surface: PALETTE.darkSurface,
+  surfaceElevated: PALETTE.darkerSurface,
 
-  primary: '#ffffff',
-  primaryLight: '#ffffff',
-  primaryDark: '#cccccc',
+  primary: PALETTE.text,
+  primaryLight: PALETTE.text,
+  primaryDark: PALETTE.lightBorder,
 
-  text: '#ffffff',
-  textSecondary: '#e0e0e0',
-  textMuted: '#b0b0b0',
-  textInverse: '#000000',
+  text: PALETTE.text,
+  textSecondary: PALETTE.lightText,
+  textMuted: PALETTE.mutedLightText,
+  textInverse: PALETTE.black,
 
-  success: '#00ff00',
-  warning: '#ffff00',
-  error: '#ff0000',
-  info: '#00ffff',
+  success: PALETTE.contrastSuccess,
+  warning: PALETTE.contrastWarning,
+  error: PALETTE.panic,
+  info: PALETTE.contrastInfo,
 
-  border: '#ffffff',
-  borderLight: '#cccccc',
-  divider: '#444444',
-  overlay: 'rgba(0, 0, 0, 0.9)',
+  border: PALETTE.text,
+  borderLight: PALETTE.lightBorder,
+  divider: PALETTE.contrastDivider,
+  overlay: PALETTE.contrastOverlay,
 
-  like: '#00ff00',
-  superLike: '#00ffff',
-  pass: '#ff0000',
+  like: PALETTE.contrastSuccess,
+  superLike: PALETTE.contrastInfo,
+  pass: PALETTE.panic,
 
-  accent: '#bb86fc',
-  accentSecondary: '#9966cc',
-  accentPink: '#ff69b4',
-  accentYellow: '#ffff00',
+  accent: PALETTE.contrastAccent,
+  accentSecondary: PALETTE.contrastAccentSecondary,
+  accentPink: PALETTE.contrastAccentPink,
+  accentYellow: PALETTE.contrastWarning,
 
-  textTertiary: '#cccccc',
+  textTertiary: PALETTE.lightBorder,
 
-  backgroundDarkest: '#000000',
-  surfaceSecondary: '#111111',
+  backgroundDarkest: PALETTE.black,
+  surfaceSecondary: PALETTE.contrastSurfaceSecondary,
 
-  panic: '#ff0000',
-  safetyWarning: '#ffff00',
+  panic: PALETTE.panic,
+  safetyWarning: PALETTE.contrastWarning,
 };
 
 // Color blind safe palettes
 const protanopiaTheme: ThemeColors = {
-  ...darkTheme,
+  ...DARK_THEME_COLORS,
   // Replace red-based colors with blue-yellow alternatives
-  primary: '#0077bb',
-  primaryLight: '#33a1d8',
-  primaryDark: '#005588',
-  success: '#33bbee',
-  warning: '#ee9922',
-  error: '#ee7733',
-  like: '#33bbee',
-  superLike: '#009988',
-  pass: '#ee7733',
-  panic: '#ee7733',
-  safetyWarning: '#ee9922',
+  primary: PALETTE.cbBlue,
+  primaryLight: PALETTE.cbBlueLight,
+  primaryDark: PALETTE.cbBlueDark,
+  success: PALETTE.cbCyan,
+  warning: PALETTE.cbAmber,
+  error: PALETTE.cbOrange,
+  like: PALETTE.cbCyan,
+  superLike: PALETTE.cbTeal,
+  pass: PALETTE.cbOrange,
+  panic: PALETTE.cbOrange,
+  safetyWarning: PALETTE.cbAmber,
 };
 
 const deuteranopiaTheme: ThemeColors = {
-  ...darkTheme,
+  ...DARK_THEME_COLORS,
   // Replace green-based colors with blue-yellow alternatives
-  primary: '#0077bb',
-  primaryLight: '#33a1d8',
-  primaryDark: '#005588',
-  success: '#33bbee',
-  warning: '#ee9922',
-  error: '#cc3311',
-  like: '#33bbee',
-  superLike: '#0077bb',
-  pass: '#cc3311',
-  panic: '#cc3311',
-  safetyWarning: '#ee9922',
+  primary: PALETTE.cbBlue,
+  primaryLight: PALETTE.cbBlueLight,
+  primaryDark: PALETTE.cbBlueDark,
+  success: PALETTE.cbCyan,
+  warning: PALETTE.cbAmber,
+  error: PALETTE.cbRed,
+  like: PALETTE.cbCyan,
+  superLike: PALETTE.cbBlue,
+  pass: PALETTE.cbRed,
+  panic: PALETTE.cbRed,
+  safetyWarning: PALETTE.cbAmber,
 };
 
 const tritanopiaTheme: ThemeColors = {
-  ...darkTheme,
+  ...DARK_THEME_COLORS,
   // Replace blue-based colors with red-green alternatives
-  primary: '#ee3377',
-  primaryLight: '#ff6699',
-  primaryDark: '#cc1155',
-  success: '#009988',
-  warning: '#ee9922',
-  error: '#cc3311',
-  info: '#009988',
-  like: '#009988',
-  superLike: '#ee3377',
-  pass: '#cc3311',
-  panic: '#cc3311',
-  safetyWarning: '#ee9922',
+  primary: PALETTE.cbPink,
+  primaryLight: PALETTE.cbPinkLight,
+  primaryDark: PALETTE.cbPinkDark,
+  success: PALETTE.cbTeal,
+  warning: PALETTE.cbAmber,
+  error: PALETTE.cbRed,
+  info: PALETTE.cbTeal,
+  like: PALETTE.cbTeal,
+  superLike: PALETTE.cbPink,
+  pass: PALETTE.cbRed,
+  panic: PALETTE.cbRed,
+  safetyWarning: PALETTE.cbAmber,
 };
 
 export type ColorBlindMode = 'none' | 'protanopia' | 'deuteranopia' | 'tritanopia';
@@ -304,7 +366,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
           colors = tritanopiaTheme;
           break;
         default:
-          colors = darkTheme;
+          colors = DARK_THEME_COLORS;
       }
     }
 

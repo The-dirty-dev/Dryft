@@ -11,6 +11,7 @@
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx}\"",
     "typecheck": "tsc --noEmit",
+    "lint:colors": "if rg -n \"#[0-9A-Fa-f]{3,8}|rgba?\\(\" src --glob '!src/theme/ThemeProvider.tsx' --glob '!**/__tests__/**'; then echo 'Hardcoded colors found outside ThemeProvider.tsx' && exit 1; else echo 'No hardcoded colors outside ThemeProvider.tsx'; fi",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",

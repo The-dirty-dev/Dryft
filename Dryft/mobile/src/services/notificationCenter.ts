@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from './api';
+import { DARK_THEME_COLORS } from '../theme/ThemeProvider';
 
 // ============================================================================
 // Types
@@ -415,28 +416,28 @@ class NotificationCenterService {
   getNotificationColor(type: NotificationType): string {
     switch (type) {
       case 'new_match':
-        return '#10B981';
+        return DARK_THEME_COLORS.success;
       case 'new_message':
-        return '#8B5CF6';
+        return DARK_THEME_COLORS.accent;
       case 'new_like':
-        return '#EC4899';
+        return DARK_THEME_COLORS.accentPink;
       case 'super_like':
-        return '#F59E0B';
+        return DARK_THEME_COLORS.warning;
       case 'profile_view':
-        return '#6366F1';
+        return DARK_THEME_COLORS.accentSecondary;
       case 'match_expiring':
-        return '#EF4444';
+        return DARK_THEME_COLORS.error;
       case 'date_reminder':
-        return '#06B6D4';
+        return DARK_THEME_COLORS.info;
       case 'safety_check':
-        return '#10B981';
+        return DARK_THEME_COLORS.success;
       case 'promotion':
-        return '#F97316';
+        return DARK_THEME_COLORS.primaryLight;
       case 'achievement':
-        return '#FBBF24';
+        return DARK_THEME_COLORS.accentYellow;
       case 'system':
       default:
-        return '#6B7280';
+        return DARK_THEME_COLORS.textMuted;
     }
   }
 }

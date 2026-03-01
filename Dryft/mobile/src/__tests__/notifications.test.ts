@@ -88,7 +88,7 @@ describe('Notification Types', () => {
         name: 'VR Sessions',
         importance: 4, // HIGH
         vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#E94560',
+        lightColor: 'red',
       };
 
       expect(channel.id).toBe('vr-sessions');
@@ -102,7 +102,7 @@ describe('Notification Types', () => {
         name: 'Haptic Alerts',
         importance: 5, // MAX
         vibrationPattern: [0, 100, 100, 100, 100, 100],
-        lightColor: '#FF6B6B',
+        lightColor: 'pink',
       };
 
       expect(channel.id).toBe('haptics');

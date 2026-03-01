@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from './api';
 import { trackEvent } from './analytics';
+import { DARK_THEME_COLORS } from '../theme/ThemeProvider';
 
 // ============================================================================
 // Types
@@ -583,10 +584,10 @@ class CreatorDashboardService {
 
   getTierColor(tier: CreatorTier): string {
     const colors: Record<CreatorTier, string> = {
-      standard: '#6B7280',
-      rising: '#3B82F6',
-      established: '#8B5CF6',
-      elite: '#F59E0B',
+      standard: DARK_THEME_COLORS.textMuted,
+      rising: DARK_THEME_COLORS.info,
+      established: DARK_THEME_COLORS.accent,
+      elite: DARK_THEME_COLORS.warning,
     };
     return colors[tier];
   }
