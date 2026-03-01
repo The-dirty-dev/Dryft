@@ -1,0 +1,38 @@
+{
+  "en": {
+    "short": "Meet real people in VR. Chat, match, and explore immersive dates.",
+    "long": "Dryft is a VR-first dating experience built for adults 18+. Create your profile, meet verified users, and connect through voice, video, and immersive worlds. Safety tools like reporting, blocking, and consent-first controls help keep you protected. Stay connected on mobile when you're not in VR."
+  },
+  "es": {
+    "short": "Conoce personas reales en VR. Chatea, haz match y explora citas inmersivas.",
+    "long": "Dryft es una experiencia de citas en VR para adultos de 18+. Crea tu perfil, conoce usuarios verificados y conecta con voz, video y mundos inmersivos. Herramientas de seguridad como reportar, bloquear y controles de consentimiento te protegen. Mantente conectado en móvil cuando no estés en VR."
+  },
+  "fr": {
+    "short": "Rencontrez de vraies personnes en VR. Discutez, matchez et vivez des rendez-vous immersifs.",
+    "long": "Dryft est une expérience de rencontres en VR pour adultes (18+). Créez votre profil, rencontrez des utilisateurs vérifiés et connectez-vous via la voix, la vidéo et des mondes immersifs. Des outils de sécurité (signalement, blocage, consentement) vous protègent. Restez connecté sur mobile quand vous n'êtes pas en VR."
+  },
+  "de": {
+    "short": "Triff echte Menschen in VR. Chatte, matche und erlebe immersive Dates.",
+    "long": "Dryft ist eine VR-Dating-Erfahrung für Erwachsene ab 18. Erstelle dein Profil, triff verifizierte Nutzer und verbinde dich per Voice, Video und in immersiven Welten. Sicherheitsfunktionen wie Melden, Blockieren und Einwilligung schützen dich. Bleib mobil verbunden, wenn du nicht in VR bist."
+  },
+  "ja": {
+    "short": "VRでリアルな出会い。チャット、マッチ、没入型デートを楽しもう。",
+    "long": "Dryftは18歳以上向けのVRデーティング体験です。プロフィールを作成し、認証済みユーザーと出会い、音声・ビデオ・没入型の世界でつながれます。通報、ブロック、同意重視の安全機能で安心。VR外でもモバイルでつながれます。"
+  },
+  "pt": {
+    "short": "Encontre pessoas reais em VR. Converse, dê match e explore encontros imersivos.",
+    "long": "Dryft é uma experiência de namoro em VR para maiores de 18 anos. Crie seu perfil, conheça usuários verificados e conecte-se por voz, vídeo e mundos imersivos. Ferramentas de segurança como denúncia, bloqueio e consentimento ajudam a proteger você. Fique conectado no celular quando não estiver em VR."
+  },
+  "it": {
+    "short": "Incontra persone reali in VR. Chatta, fai match e vivi appuntamenti immersivi.",
+    "long": "Dryft è un'esperienza di dating in VR per maggiorenni (18+). Crea il tuo profilo, incontra utenti verificati e connettiti con voce, video e mondi immersivi. Strumenti di sicurezza come segnalazione, blocco e consenso ti proteggono. Resta connesso sul mobile quando non sei in VR."
+  },
+  "ko": {
+    "short": "VR에서 진짜 사람들을 만나세요. 채팅하고 매치하고 몰입형 데이트를 즐기세요.",
+    "long": "Dryft는 18세 이상을 위한 VR 데이팅 경험입니다. 프로필을 만들고 인증된 사용자를 만나 음성, 영상, 몰입형 세계에서 연결하세요. 신고, 차단, 동의 중심의 안전 기능으로 보호받을 수 있습니다. VR이 아닐 때도 모바일로 연결하세요."
+  },
+  "zh-CN": {
+    "short": "在VR中遇见真实的人。聊天、匹配，体验沉浸式约会。",
+    "long": "Dryft 是面向 18 岁以上用户的 VR 约会体验。创建资料，结识已验证用户，通过语音、视频和沉浸式世界建立联系。举报、屏蔽和同意优先等安全功能为你保驾护航。不在 VR 时也可通过移动端保持连接。"
+  }
+}

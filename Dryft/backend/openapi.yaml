@@ -1,0 +1,5262 @@
+openapi: 3.0.3
+info:
+  title: Drift API
+  description: Backend API for the Drift social/dating application.
+  version: 1.0.0
+  contact:
+    name: Drift Team
+
+servers:
+  - url: https://api.drift.app
+    description: Production
+  - url: http://localhost:8080
+    description: Local development
+
+tags:
+  - name: Health
+    description: Service health checks
+  - name: Auth
+    description: Authentication and user profile
+  - name: Age Verification
+    description: Age gate / identity verification
+  - name: Discovery
+    description: Profile discovery and swiping
+  - name: Matches
+    description: Match management
+  - name: Chat
+    description: Conversations and messages
+  - name: Notifications
+    description: Push notifications and device registration
+  - name: Calls
+    description: Voice/video call signaling
+  - name: Haptic
+    description: Haptic device management and commands
+  - name: Sessions
+    description: Companion sessions
+  - name: Store
+    description: Marketplace store items
+  - name: Inventory
+    description: User inventory and equipped items
+  - name: Creators
+    description: Creator accounts and earnings
+  - name: Webhooks
+    description: External service webhooks
+  - name: Admin
+    description: Admin dashboard and moderation
+  - name: WebSocket
+    description: Real-time WebSocket connection
+
+security:
+  - BearerAuth: []
+
+paths:
+  # ---------------------------------------------------------------------------
+  # Health
+  # ---------------------------------------------------------------------------
+  /health:
+    get:
+      tags: [Health]
+      summary: Liveness check
+      description: Basic health check to verify the service is running. Used for liveness probes.
+      security: []
+      operationId: getHealth
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  database:
+                    type: string
+                    example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
+                  version:
+                    type: string
+                    example: v1
+        "503":
+          description: Service is degraded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: degraded
+                  database:
+                    type: string
+                    example: unreachable
+
+  /ready:
+    get:
+      tags: [Health]
+      summary: Readiness check
+      description: Checks if the service is ready to accept traffic. Verifies database and Redis connectivity. Used for Kubernetes readiness probes.
+      security: []
+      operationId: getReady
+      responses:
+        "200":
+          description: Service is ready to accept traffic
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ready:
+                    type: boolean
+                    example: true
+                  checks:
+                    type: object
+                    properties:
+                      database:
+                        type: string
+                        example: ok
+                      redis:
+                        type: string
+                        example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
+        "503":
+          description: Service is not ready - one or more dependencies unavailable
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ready:
+                    type: boolean
+                    example: false
+                  checks:
+                    type: object
+                    properties:
+                      database:
+                        type: string
+                        example: unreachable
+                      redis:
+                        type: string
+                        example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  # ---------------------------------------------------------------------------
+  # Auth
+  # ---------------------------------------------------------------------------
+  /v1/auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new account
+      security: []
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Account created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          description: Email already registered
+
+  /v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: Log in with email and password
+      security: []
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+
+  /v1/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh access token
+      security: []
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token:
+                  type: string
+      responses:
+        "200":
+          description: Tokens refreshed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenPair"
+        "401":
+          description: Invalid refresh token
+
+  /v1/users/me:
+    get:
+      tags: [Auth]
+      summary: Get current user profile
+      operationId: getCurrentUser
+      responses:
+        "200":
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    put:
+      tags: [Auth]
+      summary: Update current user profile
+      operationId: updateProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                display_name:
+                  type: string
+                bio:
+                  type: string
+      responses:
+        "200":
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ---------------------------------------------------------------------------
+  # Age Verification
+  # ---------------------------------------------------------------------------
+  /v1/age-gate/card/initiate:
+    post:
+      tags: [Age Verification]
+      summary: Initiate card-based age verification via Stripe
+      operationId: initiateCardVerification
+      responses:
+        "200":
+          description: Client secret for Stripe SetupIntent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  client_secret:
+                    type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/age-gate/card/confirm:
+    post:
+      tags: [Age Verification]
+      summary: Confirm card verification
+      operationId: confirmCardVerification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [setup_intent_id]
+              properties:
+                setup_intent_id:
+                  type: string
+      responses:
+        "200":
+          description: Verification confirmed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/age-gate/id/initiate:
+    post:
+      tags: [Age Verification]
+      summary: Initiate ID-based age verification via Jumio
+      operationId: initiateIDVerification
+      responses:
+        "200":
+          description: Redirect URL or SDK token for Jumio
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  redirect_url:
+                    type: string
+                  sdk_token:
+                    type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/age-gate/id/webhook:
+    post:
+      tags: [Webhooks]
+      summary: Jumio webhook for ID verification results
+      security: []
+      operationId: handleJumioWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Webhook processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+
+  /v1/age-gate/status:
+    get:
+      tags: [Age Verification]
+      summary: Get current verification status
+      operationId: getVerificationStatus
+      responses:
+        "200":
+          description: Verification status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerificationStatus"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/age-gate/retry:
+    post:
+      tags: [Age Verification]
+      summary: Retry a failed verification
+      operationId: retryVerification
+      responses:
+        "200":
+          description: Retry initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ---------------------------------------------------------------------------
+  # Discovery
+  # ---------------------------------------------------------------------------
+  /v1/discover:
+    get:
+      tags: [Discovery]
+      summary: Get discoverable profiles
+      operationId: getDiscoverProfiles
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: List of discoverable profiles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  profiles:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/DiscoverProfile"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/discover/swipe:
+    post:
+      tags: [Discovery]
+      summary: Swipe on a profile
+      operationId: swipe
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SwipeRequest"
+      responses:
+        "200":
+          description: Swipe result (may include match)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SwipeResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ---------------------------------------------------------------------------
+  # Matches
+  # ---------------------------------------------------------------------------
+  /v1/matches:
+    get:
+      tags: [Matches]
+      summary: Get user matches
+      operationId: getMatches
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: List of matches
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  matches:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/MatchWithUser"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/matches/{matchID}:
+    get:
+      tags: [Matches]
+      summary: Get a specific match
+      operationId: getMatch
+      parameters:
+        - name: matchID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Match details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatchWithUser"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [Matches]
+      summary: Unmatch a user
+      operationId: unmatch
+      parameters:
+        - name: matchID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Unmatched successfully
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /v1/matches/{matchID}/conversation:
+    get:
+      tags: [Chat]
+      summary: Get conversation for a match
+      operationId: getConversationByMatch
+      parameters:
+        - name: matchID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Conversation for this match
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conversation"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ---------------------------------------------------------------------------
+  # Chat
+  # ---------------------------------------------------------------------------
+  /v1/conversations:
+    get:
+      tags: [Chat]
+      summary: Get conversations
+      operationId: getConversations
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: List of conversations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conversations:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ConversationPreview"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/conversations/{conversationID}:
+    get:
+      tags: [Chat]
+      summary: Get a specific conversation
+      operationId: getConversation
+      parameters:
+        - name: conversationID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Conversation details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conversation"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /v1/conversations/{conversationID}/messages:
+    get:
+      tags: [Chat]
+      summary: Get messages in a conversation
+      operationId: getMessages
+      parameters:
+        - name: conversationID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Messages
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messages:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Message"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags: [Chat]
+      summary: Send a message
+      operationId: sendMessage
+      parameters:
+        - name: conversationID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendMessageRequest"
+      responses:
+        "201":
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/conversations/{conversationID}/read:
+    post:
+      tags: [Chat]
+      summary: Mark conversation as read
+      operationId: markConversationAsRead
+      parameters:
+        - name: conversationID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Marked as read
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ---------------------------------------------------------------------------
+  # Notifications
+  # ---------------------------------------------------------------------------
+  /v1/notifications/devices:
+    post:
+      tags: [Notifications]
+      summary: Register a push notification device
+      operationId: registerDevice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterDeviceRequest"
+      responses:
+        "200":
+          description: Device registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  device_id:
+                    type: string
+                  status:
+                    type: string
+
+  /v1/notifications/devices/{deviceId}:
+    delete:
+      tags: [Notifications]
+      summary: Unregister a push notification device
+      operationId: unregisterDevice
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Device unregistered
+
+  /v1/notifications/voip-devices:
+    post:
+      tags: [Notifications]
+      summary: Register a VoIP push device
+      operationId: registerVoIPDevice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterVoIPDeviceRequest"
+      responses:
+        "200":
+          description: VoIP device registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  device_id:
+                    type: string
+                  status:
+                    type: string
+    delete:
+      tags: [Notifications]
+      summary: Unregister a VoIP push device
+      operationId: unregisterVoIPDevice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token:
+                  type: string
+      responses:
+        "204":
+          description: VoIP device unregistered
+
+  /v1/notifications:
+    get:
+      tags: [Notifications]
+      summary: Get notifications
+      operationId: getNotifications
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Notifications
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  notifications:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Notification"
+                  unread_count:
+                    type: integer
+
+  /v1/notifications/unread-count:
+    get:
+      tags: [Notifications]
+      summary: Get unread notification count
+      operationId: getUnreadCount
+      responses:
+        "200":
+          description: Unread count
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+
+  /v1/notifications/{id}/read:
+    post:
+      tags: [Notifications]
+      summary: Mark a notification as read
+      operationId: markNotificationRead
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Notification marked as read
+
+  /v1/notifications/read-all:
+    post:
+      tags: [Notifications]
+      summary: Mark all notifications as read
+      operationId: markAllNotificationsRead
+      responses:
+        "204":
+          description: All notifications marked as read
+
+  # ---------------------------------------------------------------------------
+  # WebSocket
+  # ---------------------------------------------------------------------------
+  /v1/ws:
+    get:
+      tags: [WebSocket]
+      summary: Connect to real-time WebSocket
+      operationId: connectWebSocket
+      description: >
+        Upgrades to a WebSocket connection for real-time events including
+        presence updates, new messages, match notifications, call signaling,
+        and haptic commands. Pass the auth token as a query parameter.
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Bearer token for authentication
+      responses:
+        "101":
+          description: WebSocket upgrade
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ---------------------------------------------------------------------------
+  # Calls
+  # ---------------------------------------------------------------------------
+  /v1/calls/ws:
+    get:
+      tags: [Calls]
+      summary: Connect to calls WebSocket for signaling
+      operationId: connectCallsWebSocket
+      description: WebSocket connection for WebRTC signaling (SDP offers/answers, ICE candidates).
+      responses:
+        "101":
+          description: WebSocket upgrade
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/calls/initiate:
+    post:
+      tags: [Calls]
+      summary: Initiate a call
+      operationId: initiateCall
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [match_id]
+              properties:
+                match_id:
+                  type: string
+                  format: uuid
+                video_enabled:
+                  type: boolean
+                  default: false
+      responses:
+        "201":
+          description: Call initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  call_id:
+                    type: string
+                    format: uuid
+                  match_id:
+                    type: string
+                    format: uuid
+                  callee_id:
+                    type: string
+                    format: uuid
+                  video_enabled:
+                    type: boolean
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Not part of this match
+
+  /v1/calls/history:
+    get:
+      tags: [Calls]
+      summary: Get call history
+      operationId: getCallHistory
+      responses:
+        "200":
+          description: Call history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  calls:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ActiveCall"
+
+  /v1/calls/active:
+    get:
+      tags: [Calls]
+      summary: Get current active call
+      operationId: getActiveCall
+      responses:
+        "200":
+          description: Active call status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  active:
+                    type: boolean
+                  call:
+                    $ref: "#/components/schemas/ActiveCall"
+
+  /v1/calls/{id}/end:
+    post:
+      tags: [Calls]
+      summary: End a call
+      operationId: endCall
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Call ended
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ended
+
+  # ---------------------------------------------------------------------------
+  # Haptic Devices
+  # ---------------------------------------------------------------------------
+  /v1/haptic/devices:
+    post:
+      tags: [Haptic]
+      summary: Register a haptic device
+      operationId: registerHapticDevice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HapticDeviceRequest"
+      responses:
+        "201":
+          description: Device registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HapticDevice"
+    get:
+      tags: [Haptic]
+      summary: Get user's haptic devices
+      operationId: getHapticDevices
+      responses:
+        "200":
+          description: List of devices
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  devices:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/HapticDevice"
+
+  /v1/haptic/devices/{deviceId}:
+    get:
+      tags: [Haptic]
+      summary: Get a specific haptic device
+      operationId: getHapticDevice
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Device details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HapticDevice"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Haptic]
+      summary: Update a haptic device
+      operationId: updateHapticDevice
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                display_name:
+                  type: string
+                max_intensity:
+                  type: number
+                  format: float
+                  minimum: 0
+                  maximum: 1
+      responses:
+        "200":
+          description: Device updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HapticDevice"
+    delete:
+      tags: [Haptic]
+      summary: Delete a haptic device
+      operationId: deleteHapticDevice
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Device deleted
+
+  /v1/haptic/permissions:
+    post:
+      tags: [Haptic]
+      summary: Set haptic permission for a match
+      operationId: setHapticPermission
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetHapticPermissionRequest"
+      responses:
+        "200":
+          description: Permission set
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HapticPermission"
+    delete:
+      tags: [Haptic]
+      summary: Revoke haptic permission
+      operationId: revokeHapticPermission
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [controller_id, match_id]
+              properties:
+                controller_id:
+                  type: string
+                  format: uuid
+                match_id:
+                  type: string
+                  format: uuid
+      responses:
+        "204":
+          description: Permission revoked
+
+  /v1/haptic/permissions/match/{matchId}:
+    get:
+      tags: [Haptic]
+      summary: Get haptic permissions for a match
+      operationId: getMatchHapticPermissions
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Permissions for this match
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  permissions:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/HapticPermission"
+
+  /v1/haptic/command:
+    post:
+      tags: [Haptic]
+      summary: Send a haptic command
+      operationId: sendHapticCommand
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HapticCommand"
+      responses:
+        "200":
+          description: Command sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: sent
+
+  /v1/haptic/patterns:
+    get:
+      tags: [Haptic]
+      summary: Get available haptic patterns
+      operationId: getHapticPatterns
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: List of haptic patterns
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  patterns:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/HapticPattern"
+
+  /v1/haptic/patterns/{patternId}:
+    get:
+      tags: [Haptic]
+      summary: Get a specific haptic pattern
+      operationId: getHapticPattern
+      parameters:
+        - name: patternId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Pattern details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HapticPattern"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /v1/haptic/match/{matchId}/devices:
+    get:
+      tags: [Haptic]
+      summary: Get haptic devices available in a match
+      operationId: getMatchHapticDevices
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Devices visible in this match
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  devices:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/HapticDevicePublic"
+
+  # ---------------------------------------------------------------------------
+  # Companion Sessions
+  # ---------------------------------------------------------------------------
+  /v1/sessions:
+    post:
+      tags: [Sessions]
+      summary: Create a companion session
+      operationId: createSession
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "201":
+          description: Session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+
+  /v1/sessions/active:
+    get:
+      tags: [Sessions]
+      summary: Get active session
+      operationId: getActiveSession
+      responses:
+        "200":
+          description: Active session info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "404":
+          description: No active session
+
+  /v1/sessions/join:
+    post:
+      tags: [Sessions]
+      summary: Join a session by code
+      operationId: joinSession
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [session_code]
+              properties:
+                session_code:
+                  type: string
+                device_type:
+                  type: string
+      responses:
+        "200":
+          description: Joined session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "404":
+          description: Session not found
+
+  /v1/sessions/{sessionId}:
+    get:
+      tags: [Sessions]
+      summary: Get session details
+      operationId: getSession
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Session details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [Sessions]
+      summary: End a session
+      operationId: endSession
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Session ended
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ended
+
+  /v1/sessions/{sessionId}/leave:
+    post:
+      tags: [Sessions]
+      summary: Leave a session
+      operationId: leaveSession
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Left session
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: left
+
+  /v1/sessions/{sessionId}/haptic-permission:
+    post:
+      tags: [Sessions]
+      summary: Set haptic permission within a session
+      operationId: setSessionHapticPermission
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Permission set
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: permission_set
+
+  /v1/sessions/{sessionId}/chat:
+    post:
+      tags: [Sessions]
+      summary: Send a chat message in a session
+      operationId: sendSessionChat
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content:
+                  type: string
+      responses:
+        "200":
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: sent
+
+  /v1/sessions/{sessionId}/haptic:
+    post:
+      tags: [Sessions]
+      summary: Send haptic command in a session
+      operationId: sendSessionHaptic
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HapticCommand"
+      responses:
+        "200":
+          description: Haptic command sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: sent
+
+  # ---------------------------------------------------------------------------
+  # Store
+  # ---------------------------------------------------------------------------
+  /v1/store/items:
+    get:
+      tags: [Store]
+      summary: Browse store items
+      security:
+        - {}
+        - BearerAuth: []
+      operationId: getStoreItems
+      parameters:
+        - name: type
+          in: query
+          schema:
+            $ref: "#/components/schemas/ItemType"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum: [newest, popular, price_asc, price_desc]
+        - name: tags
+          in: query
+          schema:
+            type: string
+          description: Comma-separated tag list
+      responses:
+        "200":
+          description: Store items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/StoreItem"
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+
+  /v1/store/items/{itemID}:
+    get:
+      tags: [Store]
+      summary: Get a store item
+      security:
+        - {}
+        - BearerAuth: []
+      operationId: getStoreItem
+      parameters:
+        - name: itemID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Item details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StoreItem"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /v1/store/featured:
+    get:
+      tags: [Store]
+      summary: Get featured items
+      security:
+        - {}
+        - BearerAuth: []
+      operationId: getFeaturedItems
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Featured items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/StoreItem"
+
+  /v1/store/popular:
+    get:
+      tags: [Store]
+      summary: Get popular items
+      security:
+        - {}
+        - BearerAuth: []
+      operationId: getPopularItems
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Popular items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/StoreItem"
+
+  /v1/store/categories:
+    get:
+      tags: [Store]
+      summary: Get store categories
+      security:
+        - {}
+        - BearerAuth: []
+      operationId: getStoreCategories
+      responses:
+        "200":
+          description: Category list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  categories:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        slug:
+                          type: string
+                        name:
+                          type: string
+                        count:
+                          type: integer
+
+  /v1/store/categories/{slug}/items:
+    get:
+      tags: [Store]
+      summary: Get items in a category
+      security:
+        - {}
+        - BearerAuth: []
+      operationId: getItemsByCategory
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Items in category
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/StoreItem"
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+
+  /v1/store/search:
+    get:
+      tags: [Store]
+      summary: Search store items
+      security:
+        - {}
+        - BearerAuth: []
+      operationId: searchStoreItems
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/StoreItem"
+                  total:
+                    type: integer
+                  query:
+                    type: string
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+
+  /v1/store/purchase:
+    post:
+      tags: [Store]
+      summary: Initiate a purchase
+      operationId: initiatePurchase
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [item_id]
+              properties:
+                item_id:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          description: Purchase initiated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Purchase"
+
+  /v1/store/purchases:
+    get:
+      tags: [Store]
+      summary: Get purchase history
+      operationId: getPurchaseHistory
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Purchase history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  purchases:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Purchase"
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+
+  # ---------------------------------------------------------------------------
+  # Inventory
+  # ---------------------------------------------------------------------------
+  /v1/inventory:
+    get:
+      tags: [Inventory]
+      summary: Get user inventory
+      operationId: getInventory
+      parameters:
+        - name: type
+          in: query
+          schema:
+            $ref: "#/components/schemas/ItemType"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Inventory items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/StoreItem"
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+
+  /v1/inventory/equipped:
+    get:
+      tags: [Inventory]
+      summary: Get currently equipped items
+      operationId: getEquippedItems
+      responses:
+        "200":
+          description: Equipped items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/StoreItem"
+
+  /v1/inventory/equip:
+    post:
+      tags: [Inventory]
+      summary: Equip an inventory item
+      operationId: equipItem
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [item_id]
+              properties:
+                item_id:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          description: Item equipped
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: equipped
+
+  /v1/inventory/unequip:
+    post:
+      tags: [Inventory]
+      summary: Unequip an inventory item
+      operationId: unequipItem
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [item_id]
+              properties:
+                item_id:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          description: Item unequipped
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: unequipped
+
+  /v1/inventory/{itemID}/asset:
+    get:
+      tags: [Inventory]
+      summary: Get asset bundle for an owned item
+      operationId: getAssetBundle
+      parameters:
+        - name: itemID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Asset bundle data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  asset_bundle:
+                    type: object
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ---------------------------------------------------------------------------
+  # Creators
+  # ---------------------------------------------------------------------------
+  /v1/creators/featured:
+    get:
+      tags: [Creators]
+      summary: Get featured creators
+      security:
+        - {}
+        - BearerAuth: []
+      operationId: getFeaturedCreators
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Featured creators
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  creators:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/CreatorPublic"
+
+  /v1/creators/{creatorID}:
+    get:
+      tags: [Creators]
+      summary: Get a creator profile
+      security:
+        - {}
+        - BearerAuth: []
+      operationId: getCreator
+      parameters:
+        - name: creatorID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Creator profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreatorPublic"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /v1/creators/{creatorID}/items:
+    get:
+      tags: [Creators]
+      summary: Get a creator's published items
+      security:
+        - {}
+        - BearerAuth: []
+      operationId: getCreatorItems
+      parameters:
+        - name: creatorID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Creator's items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/StoreItem"
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+
+  /v1/creators:
+    post:
+      tags: [Creators]
+      summary: Become a creator
+      operationId: becomeCreator
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [store_name]
+              properties:
+                store_name:
+                  type: string
+                description:
+                  type: string
+      responses:
+        "201":
+          description: Creator account created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Creator"
+
+  /v1/creators/me:
+    get:
+      tags: [Creators]
+      summary: Get own creator account
+      operationId: getMyCreatorAccount
+      responses:
+        "200":
+          description: Creator account details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Creator"
+        "404":
+          description: Not a creator
+    patch:
+      tags: [Creators]
+      summary: Update own creator profile
+      operationId: updateCreatorProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                store_name:
+                  type: string
+                description:
+                  type: string
+      responses:
+        "200":
+          description: Creator profile updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Creator"
+
+  /v1/creators/onboarding-link:
+    post:
+      tags: [Creators]
+      summary: Get Stripe Connect onboarding link
+      operationId: getOnboardingLink
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [return_url, refresh_url]
+              properties:
+                return_url:
+                  type: string
+                refresh_url:
+                  type: string
+      responses:
+        "200":
+          description: Stripe onboarding URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+
+  /v1/creators/earnings:
+    get:
+      tags: [Creators]
+      summary: Get own earnings
+      operationId: getMyEarnings
+      responses:
+        "200":
+          description: Earnings data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Earnings"
+
+  /v1/creators/items:
+    get:
+      tags: [Creators]
+      summary: Get own items as a creator
+      operationId: getMyItems
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/ItemStatus"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Creator's own items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/StoreItem"
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+
+  # ---------------------------------------------------------------------------
+  # Webhooks
+  # ---------------------------------------------------------------------------
+  /v1/webhooks/stripe/marketplace:
+    post:
+      tags: [Webhooks]
+      summary: Stripe marketplace webhook
+      security: []
+      operationId: handleStripeMarketplaceWebhook
+      description: Handles payment_intent events for marketplace purchases. Verified via Stripe-Signature header.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Webhook processed
+
+  /v1/webhooks/stripe/connect:
+    post:
+      tags: [Webhooks]
+      summary: Stripe Connect webhook
+      security: []
+      operationId: handleStripeConnectWebhook
+      description: Handles account.updated and account.application.deauthorized events. Verified via Stripe-Signature header.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Webhook processed
+
+  # ---------------------------------------------------------------------------
+  # Admin
+  # ---------------------------------------------------------------------------
+  /v1/admin/dashboard:
+    get:
+      tags: [Admin]
+      summary: Get admin dashboard stats
+      operationId: getAdminDashboard
+      responses:
+        "200":
+          description: Dashboard statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_users:
+                    type: integer
+                  verified_users:
+                    type: integer
+                  active_today:
+                    type: integer
+                  pending_verifications:
+                    type: integer
+                  pending_reports:
+                    type: integer
+
+  /v1/admin/verifications:
+    get:
+      tags: [Admin]
+      summary: Get verifications (filterable)
+      operationId: getAdminVerifications
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, approved, rejected]
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Verification list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  verifications:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/VerificationRecord"
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+
+  /v1/admin/verifications/pending:
+    get:
+      tags: [Admin]
+      summary: Get pending verifications
+      operationId: getPendingVerifications
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Pending verifications
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  verifications:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/VerificationRecord"
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+
+  /v1/admin/verifications/{id}:
+    get:
+      tags: [Admin]
+      summary: Get a verification record
+      operationId: getAdminVerification
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Verification record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerificationRecord"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /v1/admin/verifications/{id}/approve:
+    post:
+      tags: [Admin]
+      summary: Approve a verification
+      operationId: approveVerification
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notes:
+                  type: string
+      responses:
+        "200":
+          description: Verification approved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: approved
+
+  /v1/admin/verifications/{id}/reject:
+    post:
+      tags: [Admin]
+      summary: Reject a verification
+      operationId: rejectVerification
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                notes:
+                  type: string
+      responses:
+        "200":
+          description: Verification rejected
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: rejected
+
+  /v1/admin/reports/pending:
+    get:
+      tags: [Admin]
+      summary: Get pending reports
+      operationId: getPendingReports
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Pending reports
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reports:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Report"
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+
+  /v1/admin/reports/{id}/review:
+    post:
+      tags: [Admin]
+      summary: Review a report
+      operationId: reviewReport
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action:
+                  type: string
+                  enum: [dismiss, warn, ban]
+                notes:
+                  type: string
+      responses:
+        "200":
+          description: Report reviewed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: reviewed
+                  action:
+                    type: string
+
+  /v1/admin/users/{id}:
+    get:
+      tags: [Admin]
+      summary: Get a user record (admin)
+      operationId: getAdminUser
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: User record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /v1/admin/users/{id}/ban:
+    post:
+      tags: [Admin]
+      summary: Ban a user
+      operationId: banUser
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                notes:
+                  type: string
+      responses:
+        "200":
+          description: User banned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: banned
+
+  /v1/admin/users/{id}/unban:
+    post:
+      tags: [Admin]
+      summary: Unban a user
+      operationId: unbanUser
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notes:
+                  type: string
+      responses:
+        "200":
+          description: User unbanned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: unbanned
+
+  # ---------------------------------------------------------------------------
+  # Profile
+  # ---------------------------------------------------------------------------
+  /v1/profile:
+    get:
+      tags: [Profile]
+      summary: Get own profile
+      operationId: getProfile
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+    patch:
+      tags: [Profile]
+      summary: Update own profile
+      operationId: updateOwnProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileRequest"
+      responses:
+        "200":
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+
+  /v1/profile/photos:
+    get:
+      tags: [Profile]
+      summary: Get profile photos
+      operationId: getProfilePhotos
+      responses:
+        "200":
+          description: Profile photos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  photos:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ProfilePhoto"
+    post:
+      tags: [Profile]
+      summary: Upload a profile photo
+      operationId: uploadProfilePhoto
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                photo:
+                  type: string
+                  format: binary
+                is_primary:
+                  type: boolean
+      responses:
+        "201":
+          description: Photo uploaded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfilePhoto"
+
+  /v1/profile/photos/{photoId}:
+    delete:
+      tags: [Profile]
+      summary: Delete a profile photo
+      operationId: deleteProfilePhoto
+      parameters:
+        - name: photoId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Photo deleted
+
+  /v1/profile/photos/{photoId}/primary:
+    post:
+      tags: [Profile]
+      summary: Set a photo as primary
+      operationId: setProfilePhotoPrimary
+      parameters:
+        - name: photoId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Photo set as primary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfilePhoto"
+
+  /v1/profile/photos/reorder:
+    post:
+      tags: [Profile]
+      summary: Reorder profile photos
+      operationId: reorderProfilePhotos
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [photo_ids]
+              properties:
+                photo_ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+      responses:
+        "200":
+          description: Photos reordered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  photos:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ProfilePhoto"
+
+  /v1/profile/preferences:
+    get:
+      tags: [Profile]
+      summary: Get matching preferences
+      operationId: getMatchingPreferences
+      responses:
+        "200":
+          description: Matching preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatchingPreferences"
+    put:
+      tags: [Profile]
+      summary: Update matching preferences
+      operationId: updateMatchingPreferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MatchingPreferences"
+      responses:
+        "200":
+          description: Preferences updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatchingPreferences"
+
+  /v1/profile/location:
+    put:
+      tags: [Profile]
+      summary: Update location
+      operationId: updateLocation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [latitude, longitude]
+              properties:
+                latitude:
+                  type: number
+                  format: double
+                longitude:
+                  type: number
+                  format: double
+      responses:
+        "200":
+          description: Location updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  city:
+                    type: string
+                  country:
+                    type: string
+
+  /v1/profile/interests:
+    get:
+      tags: [Profile]
+      summary: Get available interests
+      operationId: getAvailableInterests
+      responses:
+        "200":
+          description: Available interests
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  interests:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        category:
+                          type: string
+    put:
+      tags: [Profile]
+      summary: Update user interests
+      operationId: updateInterests
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [interest_ids]
+              properties:
+                interest_ids:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        "200":
+          description: Interests updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  interests:
+                    type: array
+                    items:
+                      type: string
+
+  /v1/users/{userId}:
+    get:
+      tags: [Profile]
+      summary: Get a user's public profile
+      operationId: getUserProfile
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: User public profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPublicProfile"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ---------------------------------------------------------------------------
+  # Safety
+  # ---------------------------------------------------------------------------
+  /v1/safety/report:
+    post:
+      tags: [Safety]
+      summary: Report a user
+      operationId: reportUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateReportRequest"
+      responses:
+        "201":
+          description: Report created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  report_id:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                    example: submitted
+
+  /v1/safety/block:
+    post:
+      tags: [Safety]
+      summary: Block a user
+      operationId: blockUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id]
+              properties:
+                user_id:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          description: User blocked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: blocked
+
+  /v1/safety/unblock:
+    post:
+      tags: [Safety]
+      summary: Unblock a user
+      operationId: unblockUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id]
+              properties:
+                user_id:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          description: User unblocked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: unblocked
+
+  /v1/safety/blocked:
+    get:
+      tags: [Safety]
+      summary: Get blocked users
+      operationId: getBlockedUsers
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Blocked users list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/BlockedUser"
+                  total:
+                    type: integer
+
+  /v1/safety/panic:
+    post:
+      tags: [Safety]
+      summary: Trigger panic button
+      operationId: triggerPanic
+      description: Immediately ends all active sessions, calls, and optionally shares location with emergency contacts.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                location:
+                  type: object
+                  properties:
+                    latitude:
+                      type: number
+                      format: double
+                    longitude:
+                      type: number
+                      format: double
+                message:
+                  type: string
+      responses:
+        "200":
+          description: Panic triggered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: triggered
+                  actions_taken:
+                    type: array
+                    items:
+                      type: string
+
+  /v1/safety/warnings:
+    get:
+      tags: [Safety]
+      summary: Get safety warnings
+      operationId: getSafetyWarnings
+      responses:
+        "200":
+          description: Safety warnings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  warnings:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SafetyWarning"
+
+  /v1/safety/warnings/{id}/acknowledge:
+    post:
+      tags: [Safety]
+      summary: Acknowledge a safety warning
+      operationId: acknowledgeSafetyWarning
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Warning acknowledged
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: acknowledged
+
+  /v1/safety/emergency-contacts:
+    get:
+      tags: [Safety]
+      summary: Get emergency contacts
+      operationId: getEmergencyContacts
+      responses:
+        "200":
+          description: Emergency contacts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  contacts:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/EmergencyContact"
+    post:
+      tags: [Safety]
+      summary: Add emergency contact
+      operationId: addEmergencyContact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, phone]
+              properties:
+                name:
+                  type: string
+                phone:
+                  type: string
+                email:
+                  type: string
+                  format: email
+      responses:
+        "201":
+          description: Contact added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmergencyContact"
+
+  /v1/safety/emergency-contacts/{id}:
+    delete:
+      tags: [Safety]
+      summary: Remove emergency contact
+      operationId: removeEmergencyContact
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Contact removed
+
+  # ---------------------------------------------------------------------------
+  # Settings
+  # ---------------------------------------------------------------------------
+  /v1/settings:
+    get:
+      tags: [Settings]
+      summary: Get user settings
+      operationId: getSettings
+      responses:
+        "200":
+          description: User settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserSettings"
+    patch:
+      tags: [Settings]
+      summary: Update user settings
+      operationId: updateSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSettingsRequest"
+      responses:
+        "200":
+          description: Settings updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserSettings"
+
+  /v1/settings/notifications:
+    get:
+      tags: [Settings]
+      summary: Get notification settings
+      operationId: getNotificationSettings
+      responses:
+        "200":
+          description: Notification settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationSettings"
+    patch:
+      tags: [Settings]
+      summary: Update notification settings
+      operationId: updateNotificationSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotificationSettings"
+      responses:
+        "200":
+          description: Settings updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationSettings"
+
+  /v1/settings/privacy:
+    get:
+      tags: [Settings]
+      summary: Get privacy settings
+      operationId: getPrivacySettings
+      responses:
+        "200":
+          description: Privacy settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivacySettings"
+    patch:
+      tags: [Settings]
+      summary: Update privacy settings
+      operationId: updatePrivacySettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PrivacySettings"
+      responses:
+        "200":
+          description: Settings updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivacySettings"
+
+  /v1/settings/haptic:
+    get:
+      tags: [Settings]
+      summary: Get haptic settings
+      operationId: getHapticSettings
+      responses:
+        "200":
+          description: Haptic settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HapticSettings"
+    patch:
+      tags: [Settings]
+      summary: Update haptic settings
+      operationId: updateHapticSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HapticSettings"
+      responses:
+        "200":
+          description: Settings updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HapticSettings"
+
+  /v1/settings/account/delete:
+    post:
+      tags: [Settings]
+      summary: Request account deletion
+      operationId: requestAccountDeletion
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                feedback:
+                  type: string
+      responses:
+        "200":
+          description: Deletion requested
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: deletion_scheduled
+                  scheduled_at:
+                    type: string
+                    format: date-time
+
+  /v1/settings/account/delete/confirm:
+    post:
+      tags: [Settings]
+      summary: Confirm account deletion
+      operationId: confirmAccountDeletion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token:
+                  type: string
+      responses:
+        "200":
+          description: Account deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: deleted
+
+  /v1/settings/account/delete/cancel:
+    post:
+      tags: [Settings]
+      summary: Cancel account deletion
+      operationId: cancelAccountDeletion
+      responses:
+        "200":
+          description: Deletion cancelled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: cancelled
+
+  /v1/settings/account/export:
+    post:
+      tags: [Settings]
+      summary: Request data export
+      operationId: requestDataExport
+      responses:
+        "200":
+          description: Export requested
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: processing
+                  estimated_completion:
+                    type: string
+                    format: date-time
+
+  /v1/settings/password:
+    put:
+      tags: [Settings]
+      summary: Change password
+      operationId: changePassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [current_password, new_password]
+              properties:
+                current_password:
+                  type: string
+                new_password:
+                  type: string
+                  minLength: 8
+      responses:
+        "200":
+          description: Password changed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: changed
+
+  # ---------------------------------------------------------------------------
+  # Avatar
+  # ---------------------------------------------------------------------------
+  /v1/avatars:
+    get:
+      tags: [Avatar]
+      summary: Get user avatars
+      operationId: getAvatars
+      responses:
+        "200":
+          description: User avatars
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  avatars:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Avatar"
+    post:
+      tags: [Avatar]
+      summary: Create a new avatar
+      operationId: createAvatar
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAvatarRequest"
+      responses:
+        "201":
+          description: Avatar created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Avatar"
+
+  /v1/avatars/{avatarId}:
+    get:
+      tags: [Avatar]
+      summary: Get an avatar
+      operationId: getAvatar
+      parameters:
+        - name: avatarId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Avatar details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Avatar"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Avatar]
+      summary: Update an avatar
+      operationId: updateAvatar
+      parameters:
+        - name: avatarId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAvatarRequest"
+      responses:
+        "200":
+          description: Avatar updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Avatar"
+    delete:
+      tags: [Avatar]
+      summary: Delete an avatar
+      operationId: deleteAvatar
+      parameters:
+        - name: avatarId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Avatar deleted
+
+  /v1/avatars/{avatarId}/equip:
+    post:
+      tags: [Avatar]
+      summary: Equip an item to avatar
+      operationId: equipAvatarItem
+      parameters:
+        - name: avatarId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [item_id]
+              properties:
+                item_id:
+                  type: string
+                  format: uuid
+                slot:
+                  type: string
+      responses:
+        "200":
+          description: Item equipped
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Avatar"
+
+  /v1/avatars/{avatarId}/unequip:
+    post:
+      tags: [Avatar]
+      summary: Unequip an item from avatar
+      operationId: unequipAvatarItem
+      parameters:
+        - name: avatarId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [item_id]
+              properties:
+                item_id:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          description: Item unequipped
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Avatar"
+
+  /v1/avatars/{avatarId}/colors:
+    patch:
+      tags: [Avatar]
+      summary: Update avatar colors
+      operationId: updateAvatarColors
+      parameters:
+        - name: avatarId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AvatarColors"
+      responses:
+        "200":
+          description: Colors updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Avatar"
+
+  /v1/avatars/active:
+    get:
+      tags: [Avatar]
+      summary: Get active avatar
+      operationId: getActiveAvatar
+      responses:
+        "200":
+          description: Active avatar
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Avatar"
+    put:
+      tags: [Avatar]
+      summary: Set active avatar
+      operationId: setActiveAvatar
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [avatar_id]
+              properties:
+                avatar_id:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          description: Active avatar set
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Avatar"
+
+  # ---------------------------------------------------------------------------
+  # Links
+  # ---------------------------------------------------------------------------
+  /v1/links:
+    post:
+      tags: [Links]
+      summary: Create a deep link
+      operationId: createLink
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLinkRequest"
+      responses:
+        "201":
+          description: Link created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeepLink"
+    get:
+      tags: [Links]
+      summary: Get user's links
+      operationId: getLinks
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [profile, vr_invite, referral, custom]
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: User's links
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  links:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/DeepLink"
+
+  /v1/links/{code}:
+    get:
+      tags: [Links]
+      summary: Resolve a link by code
+      security: []
+      operationId: resolveLink
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Link data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeepLink"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [Links]
+      summary: Delete a link
+      operationId: deleteLink
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Link deleted
+
+  /v1/links/vr-invite:
+    post:
+      tags: [Links]
+      summary: Create VR session invite
+      operationId: createVRInvite
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [session_id]
+              properties:
+                session_id:
+                  type: string
+                  format: uuid
+                expires_in_mins:
+                  type: integer
+                  default: 30
+      responses:
+        "201":
+          description: VR invite created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VRInvite"
+
+  /v1/links/vr-invite/{code}:
+    get:
+      tags: [Links]
+      summary: Get VR invite details
+      operationId: getVRInvite
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: VR invite details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VRInvite"
+
+  /v1/links/vr-invite/{code}/accept:
+    post:
+      tags: [Links]
+      summary: Accept VR invite
+      operationId: acceptVRInvite
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Invite accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+
+  /v1/links/vr-invite/{code}/decline:
+    post:
+      tags: [Links]
+      summary: Decline VR invite
+      operationId: declineVRInvite
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Invite declined
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: declined
+
+  /v1/links/referral:
+    get:
+      tags: [Links]
+      summary: Get or create referral link
+      operationId: getReferralLink
+      responses:
+        "200":
+          description: Referral link
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  url:
+                    type: string
+                  referral_count:
+                    type: integer
+                  rewards_earned:
+                    type: integer
+
+  /v1/links/referral/{code}/apply:
+    post:
+      tags: [Links]
+      summary: Apply a referral code
+      operationId: applyReferralCode
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Referral applied
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: applied
+                  reward:
+                    type: string
+
+  # ---------------------------------------------------------------------------
+  # Subscriptions
+  # ---------------------------------------------------------------------------
+  /v1/subscriptions/status:
+    get:
+      tags: [Subscriptions]
+      summary: Get subscription status
+      operationId: getSubscriptionStatus
+      responses:
+        "200":
+          description: Subscription status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionStatus"
+
+  /v1/subscriptions/entitlements:
+    get:
+      tags: [Subscriptions]
+      summary: Get current entitlements
+      operationId: getEntitlements
+      responses:
+        "200":
+          description: Current entitlements
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EntitlementsResponse"
+
+  /v1/subscriptions/plans:
+    get:
+      tags: [Subscriptions]
+      summary: Get available plans
+      security: []
+      operationId: getSubscriptionPlans
+      responses:
+        "200":
+          description: Available subscription plans
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  plans:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SubscriptionPlan"
+
+  /v1/subscriptions/verify-receipt:
+    post:
+      tags: [Subscriptions]
+      summary: Verify app store receipt
+      operationId: verifyReceipt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [receipt_data, platform]
+              properties:
+                receipt_data:
+                  type: string
+                platform:
+                  type: string
+                  enum: [ios, android]
+      responses:
+        "200":
+          description: Receipt verified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionStatus"
+
+  /v1/subscriptions/restore:
+    post:
+      tags: [Subscriptions]
+      summary: Restore purchases
+      operationId: restorePurchases
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [platform]
+              properties:
+                platform:
+                  type: string
+                  enum: [ios, android]
+      responses:
+        "200":
+          description: Purchases restored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionStatus"
+
+  /v1/subscriptions/cancel:
+    post:
+      tags: [Subscriptions]
+      summary: Cancel subscription
+      operationId: cancelSubscription
+      responses:
+        "200":
+          description: Subscription cancelled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: cancelled
+                  ends_at:
+                    type: string
+                    format: date-time
+
+  /v1/subscriptions/use-boost:
+    post:
+      tags: [Subscriptions]
+      summary: Use a profile boost
+      operationId: useBoost
+      responses:
+        "200":
+          description: Boost activated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: active
+                  expires_at:
+                    type: string
+                    format: date-time
+                  boosts_remaining:
+                    type: integer
+
+  /v1/subscriptions/use-super-like:
+    post:
+      tags: [Subscriptions]
+      summary: Use a super like
+      operationId: useSuperLike
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id]
+              properties:
+                user_id:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          description: Super like sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: sent
+                  matched:
+                    type: boolean
+                  super_likes_remaining:
+                    type: integer
+
+  # ---------------------------------------------------------------------------
+  # Analytics
+  # ---------------------------------------------------------------------------
+  /v1/analytics/events:
+    post:
+      tags: [Analytics]
+      summary: Track analytics events
+      operationId: trackEvents
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [events]
+              properties:
+                events:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/AnalyticsEvent"
+      responses:
+        "200":
+          description: Events tracked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accepted:
+                    type: integer
+
+  /v1/analytics/user:
+    get:
+      tags: [Analytics]
+      summary: Get user analytics
+      operationId: getUserAnalytics
+      responses:
+        "200":
+          description: User analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserAnalytics"
+
+  /v1/admin/analytics/overview:
+    get:
+      tags: [Admin]
+      summary: Get analytics overview
+      operationId: getAnalyticsOverview
+      parameters:
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Analytics overview
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_users:
+                    type: integer
+                  new_users:
+                    type: integer
+                  active_users:
+                    type: integer
+                  total_matches:
+                    type: integer
+                  total_messages:
+                    type: integer
+                  revenue:
+                    type: integer
+
+  /v1/admin/analytics/daily:
+    get:
+      tags: [Admin]
+      summary: Get daily metrics
+      operationId: getDailyMetrics
+      parameters:
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Daily metrics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  metrics:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/DailyMetrics"
+
+  /v1/admin/analytics/cohorts:
+    get:
+      tags: [Admin]
+      summary: Get cohort analysis
+      operationId: getCohortAnalysis
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [daily, weekly, monthly]
+            default: weekly
+      responses:
+        "200":
+          description: Cohort analysis
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cohorts:
+                    type: array
+                    items:
+                      type: object
+
+  /v1/admin/analytics/retention:
+    get:
+      tags: [Admin]
+      summary: Get retention metrics
+      operationId: getRetentionMetrics
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [7d, 14d, 30d, 90d]
+            default: 30d
+      responses:
+        "200":
+          description: Retention metrics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  day_1:
+                    type: number
+                    format: float
+                  day_7:
+                    type: number
+                    format: float
+                  day_14:
+                    type: number
+                    format: float
+                  day_30:
+                    type: number
+                    format: float
+
+  # ---------------------------------------------------------------------------
+  # Prometheus Metrics
+  # ---------------------------------------------------------------------------
+  /metrics:
+    get:
+      tags: [Health]
+      summary: Prometheus metrics endpoint
+      security: []
+      operationId: getMetrics
+      responses:
+        "200":
+          description: Prometheus metrics
+          content:
+            text/plain:
+              schema:
+                type: string
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        default: 20
+    Offset:
+      name: offset
+      in: query
+      schema:
+        type: integer
+        default: 0
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+
+    RegisterRequest:
+      type: object
+      required: [email, password, display_name]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        display_name:
+          type: string
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    TokenPair:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+
+    AuthTokens:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        expires_at:
+          type: integer
+          format: int64
+          description: Unix timestamp when access token expires
+      required:
+        - access_token
+        - refresh_token
+        - expires_at
+
+    AuthResponse:
+      type: object
+      properties:
+        tokens:
+          $ref: "#/components/schemas/AuthTokens"
+        user:
+          $ref: "#/components/schemas/User"
+      required:
+        - tokens
+        - user
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        display_name:
+          type: string
+        bio:
+          type: string
+        profile_photo:
+          type: string
+        verified:
+          type: boolean
+        verified_at:
+          type: string
+          format: date-time
+          nullable: true
+        preferences:
+          type: object
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    VerificationStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [none, pending, approved, rejected]
+        method:
+          type: string
+          enum: [card, id]
+        verified_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    DiscoverProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        display_name:
+          type: string
+        bio:
+          type: string
+        profile_photo_url:
+          type: string
+        verified:
+          type: boolean
+        distance_km:
+          type: number
+          format: float
+
+    SwipeRequest:
+      type: object
+      required: [user_id, direction]
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        direction:
+          type: string
+          enum: [like, pass]
+
+    SwipeResponse:
+      type: object
+      properties:
+        matched:
+          type: boolean
+        match:
+          $ref: "#/components/schemas/MatchWithUser"
+
+    MatchWithUser:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_a_id:
+          type: string
+          format: uuid
+        user_b_id:
+          type: string
+          format: uuid
+        matched_at:
+          type: string
+          format: date-time
+        unmatched_at:
+          type: string
+          format: date-time
+          nullable: true
+        other_user:
+          $ref: "#/components/schemas/User"
+
+    ConversationPreview:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        match_id:
+          type: string
+          format: uuid
+        other_user:
+          $ref: "#/components/schemas/User"
+        last_message:
+          $ref: "#/components/schemas/Message"
+        unread_count:
+          type: integer
+        last_message_at:
+          type: string
+          format: date-time
+
+    Conversation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        match_id:
+          type: string
+          format: uuid
+        participants:
+          type: array
+          items:
+            type: string
+            format: uuid
+        created_at:
+          type: string
+          format: date-time
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        conversation_id:
+          type: string
+          format: uuid
+        sender_id:
+          type: string
+          format: uuid
+        type:
+          $ref: "#/components/schemas/MessageType"
+        content:
+          type: string
+        read_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    MessageType:
+      type: string
+      enum: [text, image, gif]
+
+    SendMessageRequest:
+      type: object
+      required: [type, content]
+      properties:
+        type:
+          $ref: "#/components/schemas/MessageType"
+        content:
+          type: string
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+        title:
+          type: string
+        body:
+          type: string
+        data:
+          type: object
+        read:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    RegisterDeviceRequest:
+      type: object
+      required: [token, platform, device_id]
+      properties:
+        token:
+          type: string
+        platform:
+          type: string
+          enum: [ios, android, web]
+        device_id:
+          type: string
+        app_version:
+          type: string
+
+    RegisterVoIPDeviceRequest:
+      type: object
+      required: [token, bundle_id]
+      properties:
+        token:
+          type: string
+        bundle_id:
+          type: string
+
+    ActiveCall:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        caller_id:
+          type: string
+          format: uuid
+        callee_id:
+          type: string
+          format: uuid
+        match_id:
+          type: string
+          format: uuid
+        state:
+          type: string
+          enum: [ringing, connected, ended]
+        video_enabled:
+          type: boolean
+        started_at:
+          type: string
+          format: date-time
+        ended_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    HapticDevice:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        device_name:
+          type: string
+        can_vibrate:
+          type: boolean
+        can_rotate:
+          type: boolean
+        can_linear:
+          type: boolean
+        max_intensity:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        last_connected:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    HapticDevicePublic:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        device_name:
+          type: string
+        can_vibrate:
+          type: boolean
+        can_rotate:
+          type: boolean
+        can_linear:
+          type: boolean
+
+    HapticDeviceRequest:
+      type: object
+      required: [device_name]
+      properties:
+        device_name:
+          type: string
+        can_vibrate:
+          type: boolean
+          default: true
+        can_rotate:
+          type: boolean
+          default: false
+        can_linear:
+          type: boolean
+          default: false
+        max_intensity:
+          type: number
+          format: float
+          default: 1.0
+          minimum: 0
+          maximum: 1
+
+    HapticPermission:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        owner_id:
+          type: string
+          format: uuid
+        controller_id:
+          type: string
+          format: uuid
+        match_id:
+          type: string
+          format: uuid
+        permission_type:
+          type: string
+        max_intensity:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        granted_at:
+          type: string
+          format: date-time
+        revoked_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    SetHapticPermissionRequest:
+      type: object
+      required: [controller_id, match_id, permission_type, max_intensity]
+      properties:
+        controller_id:
+          type: string
+          format: uuid
+        match_id:
+          type: string
+          format: uuid
+        permission_type:
+          type: string
+        max_intensity:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+
+    HapticCommand:
+      type: object
+      required: [target_user_id, match_id, intensity, duration_ms]
+      properties:
+        target_user_id:
+          type: string
+          format: uuid
+        match_id:
+          type: string
+          format: uuid
+        intensity:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        duration_ms:
+          type: integer
+          minimum: 0
+          maximum: 30000
+        pattern_id:
+          type: string
+          format: uuid
+
+    HapticPattern:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        steps:
+          type: array
+          items:
+            type: object
+            properties:
+              intensity:
+                type: number
+                format: float
+              duration_ms:
+                type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    Session:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        session_code:
+          type: string
+        host_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [active, ended]
+        participants:
+          type: array
+          items:
+            type: object
+            properties:
+              user_id:
+                type: string
+                format: uuid
+              device_type:
+                type: string
+              joined_at:
+                type: string
+                format: date-time
+        created_at:
+          type: string
+          format: date-time
+        ended_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    StoreItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        creator_id:
+          type: string
+          format: uuid
+        type:
+          $ref: "#/components/schemas/ItemType"
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: integer
+          description: Price in cents
+        currency:
+          type: string
+          default: usd
+        thumbnail_url:
+          type: string
+        preview_url:
+          type: string
+        asset_bundle:
+          type: object
+        tags:
+          type: array
+          items:
+            type: string
+        purchase_count:
+          type: integer
+        rating:
+          type: number
+          format: float
+        is_featured:
+          type: boolean
+        status:
+          $ref: "#/components/schemas/ItemStatus"
+        created_at:
+          type: string
+          format: date-time
+
+    ItemType:
+      type: string
+      enum: [avatar, outfit, toy, effect, gesture]
+
+    ItemStatus:
+      type: string
+      enum: [draft, pending, approved, rejected, disabled]
+
+    Purchase:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        buyer_id:
+          type: string
+          format: uuid
+        item_id:
+          type: string
+          format: uuid
+        creator_id:
+          type: string
+          format: uuid
+        amount:
+          type: integer
+          description: Amount in cents
+        currency:
+          type: string
+        stripe_payment_id:
+          type: string
+        status:
+          type: string
+          enum: [pending, completed, refunded, failed]
+        created_at:
+          type: string
+          format: date-time
+
+    CreatorPublic:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        store_name:
+          type: string
+        description:
+          type: string
+        item_count:
+          type: integer
+        total_sales:
+          type: integer
+
+    Creator:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        store_name:
+          type: string
+        description:
+          type: string
+        stripe_account_id:
+          type: string
+        onboarding_complete:
+          type: boolean
+        item_count:
+          type: integer
+        total_sales:
+          type: integer
+        total_earnings:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    Earnings:
+      type: object
+      properties:
+        total_earnings:
+          type: integer
+          description: Total earnings in cents
+        pending_payout:
+          type: integer
+        last_payout_at:
+          type: string
+          format: date-time
+          nullable: true
+        sales_count:
+          type: integer
+
+    VerificationRecord:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        method:
+          type: string
+        status:
+          type: string
+        submitted_at:
+          type: string
+          format: date-time
+        reviewed_at:
+          type: string
+          format: date-time
+          nullable: true
+        reviewer_notes:
+          type: string
+
+    Report:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        reporter_id:
+          type: string
+          format: uuid
+        reported_user_id:
+          type: string
+          format: uuid
+        reason:
+          type: string
+        details:
+          type: string
+        status:
+          type: string
+          enum: [pending, reviewed]
+        created_at:
+          type: string
+          format: date-time
+
+    # Profile schemas
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        display_name:
+          type: string
+        bio:
+          type: string
+        age:
+          type: integer
+        photos:
+          type: array
+          items:
+            type: string
+        interests:
+          type: array
+          items:
+            type: string
+        verified:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    UserPublicProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        display_name:
+          type: string
+        bio:
+          type: string
+        age:
+          type: integer
+        profile_photo:
+          type: string
+        photos:
+          type: array
+          items:
+            type: string
+        interests:
+          type: array
+          items:
+            type: string
+        verified:
+          type: boolean
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        display_name:
+          type: string
+        bio:
+          type: string
+        interests:
+          type: array
+          items:
+            type: string
+
+    ProfilePhoto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        url:
+          type: string
+        is_primary:
+          type: boolean
+        order:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    MatchingPreferences:
+      type: object
+      properties:
+        min_age:
+          type: integer
+          minimum: 18
+        max_age:
+          type: integer
+          maximum: 100
+        max_distance_km:
+          type: integer
+        gender_preference:
+          type: string
+          enum: [male, female, all]
+        show_me_to:
+          type: string
+          enum: [male, female, all]
+
+    # Safety schemas
+    CreateReportRequest:
+      type: object
+      required: [reported_user_id, reason]
+      properties:
+        reported_user_id:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          enum: [harassment, inappropriate_content, spam, fake_profile, underage, scam, other]
+        description:
+          type: string
+        evidence_urls:
+          type: array
+          items:
+            type: string
+
+    BlockedUser:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        blocked_user_id:
+          type: string
+          format: uuid
+        blocked_user:
+          $ref: "#/components/schemas/UserPublicProfile"
+        blocked_at:
+          type: string
+          format: date-time
+
+    SafetyWarning:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        warning_type:
+          type: string
+        message:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        acknowledged_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    EmergencyContact:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+          format: email
+        created_at:
+          type: string
+          format: date-time
+
+    # Settings schemas
+    UserSettings:
+      type: object
+      properties:
+        notifications:
+          $ref: "#/components/schemas/NotificationSettings"
+        privacy:
+          $ref: "#/components/schemas/PrivacySettings"
+        haptic:
+          $ref: "#/components/schemas/HapticSettings"
+        appearance:
+          type: object
+          properties:
+            theme:
+              type: string
+              enum: [light, dark, system]
+            language:
+              type: string
+
+    UpdateSettingsRequest:
+      type: object
+      properties:
+        notifications:
+          $ref: "#/components/schemas/NotificationSettings"
+        privacy:
+          $ref: "#/components/schemas/PrivacySettings"
+        haptic:
+          $ref: "#/components/schemas/HapticSettings"
+        appearance:
+          type: object
+          properties:
+            theme:
+              type: string
+              enum: [light, dark, system]
+            language:
+              type: string
+
+    NotificationSettings:
+      type: object
+      properties:
+        push_enabled:
+          type: boolean
+        email_enabled:
+          type: boolean
+        new_matches:
+          type: boolean
+        new_messages:
+          type: boolean
+        new_likes:
+          type: boolean
+        promotions:
+          type: boolean
+
+    PrivacySettings:
+      type: object
+      properties:
+        show_online_status:
+          type: boolean
+        show_last_active:
+          type: boolean
+        show_distance:
+          type: boolean
+        allow_screenshots:
+          type: boolean
+        incognito_mode:
+          type: boolean
+
+    HapticSettings:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        max_intensity:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        default_permission:
+          type: string
+          enum: [always, request, never]
+
+    # Avatar schemas
+    Avatar:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        model_url:
+          type: string
+        thumbnail_url:
+          type: string
+        colors:
+          $ref: "#/components/schemas/AvatarColors"
+        equipped_items:
+          type: array
+          items:
+            type: string
+            format: uuid
+        visibility:
+          type: string
+          enum: [public, matches, private]
+        created_at:
+          type: string
+          format: date-time
+
+    AvatarColors:
+      type: object
+      properties:
+        skin:
+          type: string
+        hair:
+          type: string
+        eyes:
+          type: string
+        primary:
+          type: string
+        secondary:
+          type: string
+
+    CreateAvatarRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        colors:
+          $ref: "#/components/schemas/AvatarColors"
+
+    UpdateAvatarRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        colors:
+          $ref: "#/components/schemas/AvatarColors"
+        visibility:
+          type: string
+          enum: [public, matches, private]
+
+    # Links schemas
+    DeepLink:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        type:
+          type: string
+          enum: [profile, vr_invite, referral, custom]
+        data:
+          type: object
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        max_uses:
+          type: integer
+          nullable: true
+        use_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    CreateLinkRequest:
+      type: object
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [profile, vr_invite, referral, custom]
+        data:
+          type: object
+        expires_in_hours:
+          type: integer
+        max_uses:
+          type: integer
+
+    VRInvite:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        inviter_id:
+          type: string
+          format: uuid
+        invitee_id:
+          type: string
+          format: uuid
+          nullable: true
+        session_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, accepted, declined, expired, cancelled]
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+
+    # Subscription schemas
+    SubscriptionStatus:
+      type: object
+      properties:
+        tier:
+          type: string
+          enum: [free, plus, premium, vip]
+        is_active:
+          type: boolean
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        auto_renew:
+          type: boolean
+        platform:
+          type: string
+          enum: [ios, android, web]
+        entitlements:
+          type: array
+          items:
+            type: string
+
+    EntitlementsResponse:
+      type: object
+      properties:
+        entitlements:
+          type: array
+          items:
+            type: string
+        boosts_remaining:
+          type: integer
+        super_likes_remaining:
+          type: integer
+        likes_remaining:
+          type: integer
+          nullable: true
+        resets_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    SubscriptionPlan:
+      type: object
+      properties:
+        id:
+          type: string
+        tier:
+          type: string
+          enum: [plus, premium, vip]
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: integer
+          description: Price in cents
+        currency:
+          type: string
+        period:
+          type: string
+          enum: [monthly, yearly]
+        entitlements:
+          type: array
+          items:
+            type: string
+        ios_product_id:
+          type: string
+        android_product_id:
+          type: string
+
+    # Analytics schemas
+    AnalyticsEvent:
+      type: object
+      required: [event_type]
+      properties:
+        event_type:
+          type: string
+        properties:
+          type: object
+        timestamp:
+          type: string
+          format: date-time
+
+    UserAnalytics:
+      type: object
+      properties:
+        total_matches:
+          type: integer
+        total_messages_sent:
+          type: integer
+        total_messages_received:
+          type: integer
+        total_calls:
+          type: integer
+        avg_session_duration_mins:
+          type: number
+          format: float
+        last_active_at:
+          type: string
+          format: date-time
+
+    DailyMetrics:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        new_users:
+          type: integer
+        active_users:
+          type: integer
+        matches_created:
+          type: integer
+        messages_sent:
+          type: integer
+        calls_made:
+          type: integer
+        revenue:
+          type: integer

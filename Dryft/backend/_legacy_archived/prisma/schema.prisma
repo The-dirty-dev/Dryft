@@ -1,0 +1,1572 @@
+// Drift VR Dating Platform - Database Schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================================================
+// User & Authentication
+// =============================================================================
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  passwordHash  String    @map("password_hash")
+  displayName   String?   @map("display_name")
+  bio           String?
+  birthDate     DateTime? @map("birth_date")
+  gender        Gender?
+
+  // Profile
+  profilePhoto  String?   @map("profile_photo")
+  photos        String[]
+  interests     String[]
+
+  // Location
+  latitude      Float?
+  longitude     Float?
+  city          String?
+  country       String?
+
+  // Verification
+  verified      Boolean   @default(false)
+  verifiedAt    DateTime? @map("verified_at")
+  verificationStatus VerificationStatus @default(UNVERIFIED) @map("verification_status")
+
+  // Settings
+  isOnline      Boolean   @default(false) @map("is_online")
+  lastActive    DateTime  @default(now()) @map("last_active")
+
+  // VR
+  vrEnabled     Boolean   @default(false) @map("vr_enabled")
+  vrExperience  VRExperience @default(BEGINNER) @map("vr_experience")
+
+  // Subscription
+  subscriptionTier SubscriptionTier @default(FREE) @map("subscription_tier")
+  subscriptionEndsAt DateTime? @map("subscription_ends_at")
+  subscriptionId String? @map("subscription_id")
+  subscriptionStatus String? @map("subscription_status")
+  subscriptionPlan String? @map("subscription_plan")
+
+  // Stripe
+  stripeCustomerId String? @map("stripe_customer_id")
+  stripeConnectId String? @map("stripe_connect_id")
+
+  // Location tracking
+  lastLatitude Float? @map("last_latitude")
+  lastLongitude Float? @map("last_longitude")
+  lastLocationUpdate DateTime? @map("last_location_update")
+  lastSeen DateTime? @map("last_seen")
+
+  // Creator
+  isCreator     Boolean   @default(false) @map("is_creator")
+  creatorTier   CreatorTier? @map("creator_tier")
+
+  // Admin & Moderation
+  role          UserRole  @default(USER)
+  accountStatus AccountStatus @default(ACTIVE) @map("account_status")
+  bannedAt      DateTime? @map("banned_at")
+  bannedUntil   DateTime? @map("banned_until")
+  banReason     String?   @map("ban_reason")
+  bannedBy      String?   @map("banned_by")
+  warningCount  Int       @default(0) @map("warning_count")
+  verifiedBy    String?   @map("verified_by")
+  verificationPhotoUrl String? @map("verification_photo_url")
+  verificationSubmittedAt DateTime? @map("verification_submitted_at")
+  verificationRejectedReason String? @map("verification_rejected_reason")
+  subscriptionExpiresAt DateTime? @map("subscription_expires_at")
+
+  // Timestamps
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  // Relations
+  profile       Profile?
+  preferences   Preferences?
+  sessions      Session[]
+  sentSwipes    Swipe[]       @relation("SentSwipes")
+  receivedSwipes Swipe[]      @relation("ReceivedSwipes")
+  matchesAsUser1 Match[]      @relation("MatchUser1")
+  matchesAsUser2 Match[]      @relation("MatchUser2")
+  sentMessages  Message[]     @relation("SentMessages")
+  conversations ConversationParticipant[]
+  stories       Story[]
+  storyViews    StoryView[]
+  blockedUsers  Block[]       @relation("BlockingUser")
+  blockedBy     Block[]       @relation("BlockedUser")
+  reports       Report[]      @relation("ReportingUser")
+  reportedBy    Report[]      @relation("ReportedUser")
+  storeItems    StoreItem[]
+  inventory     InventoryItem[]
+  purchases     Purchase[]    @relation("BuyerPurchases")
+  sales         Purchase[]    @relation("SellerPurchases")
+  sentGifts     Gift[]        @relation("GiftSender")
+  receivedGifts Gift[]        @relation("GiftReceiver")
+  notifications Notification[]
+  pushTokens    PushToken[]
+
+  // Couples & Gamification
+  couplesAsPartner1    Couple[]              @relation("CouplePartner1")
+  couplesAsPartner2    Couple[]              @relation("CouplePartner2")
+  activityCompletions  CoupleActivityCompletion[]
+  quizAttempts         QuizAttempt[]
+  achievements         UserAchievement[]
+  sentDateInvites      DatePlan[]            @relation("DatePlanCreator")
+  receivedDateInvites  DatePlan[]            @relation("DatePlanPartner")
+  adminActions         AdminAction[]
+  userPhotos           UserPhoto[]
+  securityLogs         SecurityLog[]
+
+  // Indexes for common queries
+  @@index([isOnline, lastActive])
+  @@index([subscriptionTier])
+  @@index([verificationStatus])
+  @@index([createdAt])
+  @@index([gender])
+  @@index([city, country])
+  @@index([stripeCustomerId])
+  @@map("users")
+}
+
+model Profile {
+  id            String   @id @default(uuid())
+  userId        String   @unique @map("user_id")
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Extended profile
+  height        Int?     // in cm
+  occupation    String?
+  education     String?
+  languages     String[]
+  relationshipGoal RelationshipGoal? @map("relationship_goal")
+
+  // Prompts
+  prompts       Json?    // Array of {question, answer}
+
+  // Spotify/Music
+  spotifyConnected Boolean @default(false) @map("spotify_connected")
+  topArtists    String[] @map("top_artists")
+  anthem        String?  // Song URL or ID
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("profiles")
+}
+
+model Preferences {
+  id              String   @id @default(uuid())
+  userId          String   @unique @map("user_id")
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Discovery preferences
+  minAge          Int      @default(18) @map("min_age")
+  maxAge          Int      @default(50) @map("max_age")
+  maxDistance     Int      @default(50) @map("max_distance") // in miles
+  genderPreference Gender[] @map("gender_preference")
+
+  // Filters
+  onlineOnly      Boolean  @default(false) @map("online_only")
+  verifiedOnly    Boolean  @default(false) @map("verified_only")
+  vrReadyOnly     Boolean  @default(false) @map("vr_ready_only")
+
+  // Notifications
+  pushEnabled     Boolean  @default(true) @map("push_enabled")
+  matchNotif      Boolean  @default(true) @map("match_notif")
+  messageNotif    Boolean  @default(true) @map("message_notif")
+  likeNotif       Boolean  @default(true) @map("like_notif")
+
+  // Privacy
+  showOnlineStatus Boolean @default(true) @map("show_online_status")
+  showDistance    Boolean  @default(true) @map("show_distance")
+  showLastActive  Boolean  @default(true) @map("show_last_active")
+  showOnMap       Boolean  @default(true) @map("show_on_map")
+
+  // Renamed for API compatibility
+  ageMin          Int?     @map("age_min")
+  ageMax          Int?     @map("age_max")
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("preferences")
+}
+
+model Session {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  refreshToken  String   @unique @map("refresh_token")
+  deviceInfo    String?  @map("device_info")
+  ipAddress     String?  @map("ip_address")
+
+  expiresAt     DateTime @map("expires_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+// =============================================================================
+// Matching & Discovery
+// =============================================================================
+
+model Swipe {
+  id            String    @id @default(uuid())
+  swiperId      String    @map("swiper_id")
+  swiper        User      @relation("SentSwipes", fields: [swiperId], references: [id], onDelete: Cascade)
+  swipedId      String    @map("swiped_id")
+  swiped        User      @relation("ReceivedSwipes", fields: [swipedId], references: [id], onDelete: Cascade)
+
+  direction     SwipeDirection
+  isSuperLike   Boolean   @default(false) @map("is_super_like")
+
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  @@unique([swiperId, swipedId])
+  @@index([swipedId, direction])
+  @@index([createdAt])
+  @@map("swipes")
+}
+
+model Match {
+  id            String    @id @default(uuid())
+  user1Id       String    @map("user1_id")
+  user1         User      @relation("MatchUser1", fields: [user1Id], references: [id], onDelete: Cascade)
+  user2Id       String    @map("user2_id")
+  user2         User      @relation("MatchUser2", fields: [user2Id], references: [id], onDelete: Cascade)
+
+  conversation  Conversation?
+
+  matchedAt     DateTime  @default(now()) @map("matched_at")
+  expiresAt     DateTime? @map("expires_at") // For time-limited matches
+  unmatched     Boolean   @default(false)
+  unmatchedAt   DateTime? @map("unmatched_at")
+  unmatchedBy   String?   @map("unmatched_by")
+
+  @@unique([user1Id, user2Id])
+  @@index([user1Id, unmatched])
+  @@index([user2Id, unmatched])
+  @@index([matchedAt])
+  @@map("matches")
+}
+
+// =============================================================================
+// Chat & Messaging
+// =============================================================================
+
+model Conversation {
+  id            String    @id @default(uuid())
+  matchId       String?   @unique @map("match_id")
+  match         Match?    @relation(fields: [matchId], references: [id], onDelete: SetNull)
+
+  participants  ConversationParticipant[]
+  messages      Message[]
+
+  lastMessageAt DateTime? @map("last_message_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id              String       @id @default(uuid())
+  conversationId  String       @map("conversation_id")
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId          String       @map("user_id")
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  lastReadAt      DateTime?    @map("last_read_at")
+  isMuted         Boolean      @default(false) @map("is_muted")
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id              String       @id @default(uuid())
+  conversationId  String       @map("conversation_id")
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId        String       @map("sender_id")
+  sender          User         @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+
+  content         String
+  contentType     MessageType  @default(TEXT) @map("content_type")
+  mediaUrl        String?      @map("media_url")
+
+  replyToId       String?      @map("reply_to_id")
+  replyTo         Message?     @relation("MessageReplies", fields: [replyToId], references: [id])
+  replies         Message[]    @relation("MessageReplies")
+
+  readAt          DateTime?    @map("read_at")
+  deletedAt       DateTime?    @map("deleted_at")
+  createdAt       DateTime     @default(now()) @map("created_at")
+
+  @@index([conversationId, createdAt])
+  @@index([senderId, createdAt])
+  @@map("messages")
+}
+
+// =============================================================================
+// Stories
+// =============================================================================
+
+model Story {
+  id            String      @id @default(uuid())
+  userId        String      @map("user_id")
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  mediaType     StoryMediaType @map("media_type")
+  mediaUrl      String      @map("media_url")
+  thumbnailUrl  String?     @map("thumbnail_url")
+
+  text          String?
+  textStyle     Json?       @map("text_style")
+  backgroundColor String?   @map("background_color")
+  stickers      Json?       // Array of sticker objects
+
+  privacy       StoryPrivacy @default(EVERYONE)
+
+  viewCount     Int         @default(0) @map("view_count")
+  likeCount     Int         @default(0) @map("like_count")
+
+  // Moderation
+  isFlagged     Boolean     @default(false) @map("is_flagged")
+  flagReason    String?     @map("flag_reason")
+
+  expiresAt     DateTime    @map("expires_at")
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  views         StoryView[]
+
+  @@index([userId, createdAt])
+  @@index([expiresAt])
+  @@index([isFlagged])
+  @@map("stories")
+}
+
+model StoryView {
+  id          String   @id @default(uuid())
+  storyId     String   @map("story_id")
+  story       Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  viewerId    String   @map("viewer_id")
+  viewer      User     @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+
+  liked       Boolean  @default(false)
+  replied     Boolean  @default(false)
+
+  viewedAt    DateTime @default(now()) @map("viewed_at")
+
+  @@unique([storyId, viewerId])
+  @@map("story_views")
+}
+
+// =============================================================================
+// Moderation
+// =============================================================================
+
+model Block {
+  id            String   @id @default(uuid())
+  blockerId     String   @map("blocker_id")
+  blocker       User     @relation("BlockingUser", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedId     String   @map("blocked_id")
+  blocked       User     @relation("BlockedUser", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  reason        String?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@unique([blockerId, blockedId])
+  @@index([blockerId])
+  @@index([blockedId])
+  @@map("blocks")
+}
+
+model Report {
+  id            String       @id @default(uuid())
+  reporterId    String       @map("reporter_id")
+  reporter      User         @relation("ReportingUser", fields: [reporterId], references: [id], onDelete: Cascade)
+  reportedId    String       @map("reported_id")
+  reported      User         @relation("ReportedUser", fields: [reportedId], references: [id], onDelete: Cascade)
+
+  reportType    String?      @map("report_type")
+  reason        ReportReason
+  description   String?
+  details       String?
+  evidence      String[]     // URLs to screenshots
+  evidenceUrls  String[]     @map("evidence_urls")
+
+  status        ReportStatus @default(PENDING)
+  reviewedAt    DateTime?    @map("reviewed_at")
+  reviewedBy    String?      @map("reviewed_by")
+  resolution    String?
+  resolutionNotes String?    @map("resolution_notes")
+  resolvedAt    DateTime?    @map("resolved_at")
+  resolvedBy    String?      @map("resolved_by")
+
+  createdAt     DateTime     @default(now()) @map("created_at")
+
+  @@index([reporterId])
+  @@index([reportedId])
+  @@index([status, createdAt])
+  @@map("reports")
+}
+
+// =============================================================================
+// Marketplace
+// =============================================================================
+
+model StoreItem {
+  id            String      @id @default(uuid())
+  creatorId     String      @map("creator_id")
+  creator       User        @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  type          ItemType
+  name          String
+  description   String
+
+  price         Int         // In cents
+  currency      String      @default("usd")
+
+  thumbnailUrl  String?     @map("thumbnail_url")
+  previewUrl    String?     @map("preview_url")
+  assetUrl      String?     @map("asset_url")
+
+  tags          String[]
+
+  status        ItemStatus  @default(DRAFT)
+  isFeatured    Boolean     @default(false) @map("is_featured")
+
+  purchaseCount Int         @default(0) @map("purchase_count")
+  rating        Float       @default(0)
+  ratingCount   Int         @default(0) @map("rating_count")
+
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  inventory     InventoryItem[]
+  purchases     Purchase[]
+
+  @@index([creatorId])
+  @@index([status, isFeatured])
+  @@index([type, status])
+  @@map("store_items")
+}
+
+model InventoryItem {
+  id            String    @id @default(uuid())
+  userId        String    @map("user_id")
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itemId        String    @map("item_id")
+  item          StoreItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  purchaseId    String?   @map("purchase_id")
+
+  isEquipped    Boolean   @default(false) @map("is_equipped")
+  acquiredAt    DateTime  @default(now()) @map("acquired_at")
+
+  @@unique([userId, itemId])
+  @@index([userId])
+  @@map("inventory_items")
+}
+
+model Purchase {
+  id            String         @id @default(uuid())
+  buyerId       String         @map("buyer_id")
+  buyer         User           @relation("BuyerPurchases", fields: [buyerId], references: [id], onDelete: Cascade)
+  sellerId      String         @map("seller_id")
+  seller        User           @relation("SellerPurchases", fields: [sellerId], references: [id], onDelete: Cascade)
+  itemId        String         @map("item_id")
+  item          StoreItem      @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  amount        Int            // In cents
+  currency      String         @default("usd")
+
+  stripePaymentId String?      @map("stripe_payment_id")
+  status        PurchaseStatus @default(PENDING)
+
+  createdAt     DateTime       @default(now()) @map("created_at")
+  completedAt   DateTime?      @map("completed_at")
+
+  @@index([buyerId])
+  @@index([sellerId])
+  @@index([stripePaymentId])
+  @@index([status, createdAt])
+  @@map("purchases")
+}
+
+// =============================================================================
+// Gifts
+// =============================================================================
+
+model Gift {
+  id            String     @id @default(uuid())
+  senderId      String?    @map("sender_id")
+  sender        User?      @relation("GiftSender", fields: [senderId], references: [id], onDelete: SetNull)
+  receiverId    String     @map("receiver_id")
+  receiver      User       @relation("GiftReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  giftType      String     @map("gift_type")
+  message       String?
+  isAnonymous   Boolean    @default(false) @map("is_anonymous")
+
+  status        GiftStatus @default(PENDING)
+  viewedAt      DateTime?  @map("viewed_at")
+  thankedAt     DateTime?  @map("thanked_at")
+
+  createdAt     DateTime   @default(now()) @map("created_at")
+
+  @@index([senderId])
+  @@index([receiverId, status])
+  @@map("gifts")
+}
+
+// =============================================================================
+// Notifications
+// =============================================================================
+
+model Notification {
+  id            String           @id @default(uuid())
+  userId        String           @map("user_id")
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type          NotificationType
+  title         String
+  body          String
+  data          Json?
+
+  read          Boolean          @default(false)
+  readAt        DateTime?        @map("read_at")
+
+  createdAt     DateTime         @default(now()) @map("created_at")
+
+  @@index([userId, read, createdAt])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+// =============================================================================
+// Push Tokens
+// =============================================================================
+
+model PushToken {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  token         String
+  platform      String   // 'ios', 'android', 'web'
+  deviceId      String?  @map("device_id")
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, token])
+  @@map("push_tokens")
+}
+
+// =============================================================================
+// Couples & Relationships
+// =============================================================================
+
+model Couple {
+  id              String       @id @default(uuid())
+  partner1Id      String       @map("partner1_id")
+  partner1        User         @relation("CouplePartner1", fields: [partner1Id], references: [id], onDelete: Cascade)
+  partner2Id      String       @map("partner2_id")
+  partner2        User         @relation("CouplePartner2", fields: [partner2Id], references: [id], onDelete: Cascade)
+
+  // Relationship info
+  relationshipType RelationshipType @default(DATING) @map("relationship_type")
+  anniversary     DateTime?    // When they became a couple
+  nickname        String?      // Couple's nickname for their relationship
+
+  // Gamification
+  relationshipScore Int        @default(0) @map("relationship_score")
+  currentStreak   Int          @default(0) @map("current_streak")
+  longestStreak   Int          @default(0) @map("longest_streak")
+  lastActivityAt  DateTime?    @map("last_activity_at")
+  level           Int          @default(1)
+  xp              Int          @default(0)
+
+  // Couples Premium Subscription
+  premiumTier       CouplePremiumTier @default(FREE) @map("premium_tier")
+  subscriptionId    String?     @map("subscription_id")
+  subscriptionStatus String?    @map("subscription_status")
+  subscriptionEndsAt DateTime?  @map("subscription_ends_at")
+
+  // Status
+  status          CoupleStatus @default(ACTIVE)
+  inviteCode      String?      @unique @map("invite_code")
+  invitedAt       DateTime?    @map("invited_at")
+  acceptedAt      DateTime?    @map("accepted_at")
+
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  activities      CoupleActivityCompletion[]
+  quizAttempts    QuizAttempt[]
+  datePlans       DatePlan[]
+  milestones      CoupleMilestone[]
+  memories        CoupleMemory[]
+
+  @@unique([partner1Id, partner2Id])
+  @@index([partner1Id, status])
+  @@index([partner2Id, status])
+  @@index([xp])
+  @@index([currentStreak])
+  @@map("couples")
+}
+
+model CoupleMilestone {
+  id            String   @id @default(uuid())
+  coupleId      String   @map("couple_id")
+  couple        Couple   @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+
+  type          MilestoneType
+  title         String
+  description   String?
+  date          DateTime
+  photoUrl      String?  @map("photo_url")
+
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("couple_milestones")
+}
+
+model CoupleMemory {
+  id            String   @id @default(uuid())
+  coupleId      String   @map("couple_id")
+  couple        Couple   @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+
+  type          MemoryType
+  title         String?
+  content       String?
+  mediaUrl      String?  @map("media_url")
+  location      String?
+  mood          String?
+
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("couple_memories")
+}
+
+// =============================================================================
+// Activities & Challenges
+// =============================================================================
+
+model CoupleActivity {
+  id            String           @id @default(uuid())
+
+  // Activity info
+  title         String
+  description   String
+  instructions  String?
+  category      ActivityCategory
+  difficulty    ActivityDifficulty @default(EASY)
+
+  // Requirements
+  duration      Int              // Duration in minutes
+  isVirtual     Boolean          @default(true) @map("is_virtual")
+  requiresBoth  Boolean          @default(true) @map("requires_both")
+
+  // Rewards
+  xpReward      Int              @default(10) @map("xp_reward")
+  streakBonus   Boolean          @default(false) @map("streak_bonus")
+
+  // Media
+  iconUrl       String?          @map("icon_url")
+  imageUrl      String?          @map("image_url")
+
+  // Availability
+  isActive      Boolean          @default(true) @map("is_active")
+  isPremium     Boolean          @default(false) @map("is_premium")
+  isDaily       Boolean          @default(false) @map("is_daily")
+  isWeekly      Boolean          @default(false) @map("is_weekly")
+
+  createdAt     DateTime         @default(now()) @map("created_at")
+
+  completions   CoupleActivityCompletion[]
+
+  @@map("couple_activities")
+}
+
+model CoupleActivityCompletion {
+  id            String         @id @default(uuid())
+  coupleId      String         @map("couple_id")
+  couple        Couple         @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  activityId    String         @map("activity_id")
+  activity      CoupleActivity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  completedById String         @map("completed_by_id")
+  completedBy   User           @relation(fields: [completedById], references: [id], onDelete: Cascade)
+
+  // Completion details
+  status        CompletionStatus @default(IN_PROGRESS)
+  response      Json?           // User's response/submission
+  partnerResponse Json?         @map("partner_response")
+  rating        Int?            // 1-5 stars
+  notes         String?
+
+  // Rewards
+  xpEarned      Int             @default(0) @map("xp_earned")
+
+  startedAt     DateTime        @default(now()) @map("started_at")
+  completedAt   DateTime?       @map("completed_at")
+
+  @@map("couple_activity_completions")
+}
+
+// =============================================================================
+// Quizzes
+// =============================================================================
+
+model Quiz {
+  id            String       @id @default(uuid())
+
+  title         String
+  description   String
+  category      QuizCategory
+  difficulty    ActivityDifficulty @default(MEDIUM)
+
+  // Settings
+  timeLimit     Int?         @map("time_limit") // In seconds
+  questionCount Int          @default(10) @map("question_count")
+
+  // Rewards
+  xpReward      Int          @default(20) @map("xp_reward")
+
+  // Media
+  iconUrl       String?      @map("icon_url")
+  imageUrl      String?      @map("image_url")
+
+  // Availability
+  isActive      Boolean      @default(true) @map("is_active")
+  isPremium     Boolean      @default(false) @map("is_premium")
+
+  createdAt     DateTime     @default(now()) @map("created_at")
+
+  questions     QuizQuestion[]
+  attempts      QuizAttempt[]
+
+  @@map("quizzes")
+}
+
+model QuizQuestion {
+  id            String   @id @default(uuid())
+  quizId        String   @map("quiz_id")
+  quiz          Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  questionType  QuestionType @default(MULTIPLE_CHOICE) @map("question_type")
+  question      String
+  options       Json?        // Array of options for multiple choice
+  correctAnswer String?      @map("correct_answer") // For knowledge quizzes
+  explanation   String?
+
+  // For partner comparison quizzes
+  isAboutPartner Boolean     @default(false) @map("is_about_partner")
+
+  order         Int          @default(0)
+  points        Int          @default(1)
+
+  createdAt     DateTime     @default(now()) @map("created_at")
+
+  @@map("quiz_questions")
+}
+
+model QuizAttempt {
+  id            String   @id @default(uuid())
+  quizId        String   @map("quiz_id")
+  quiz          Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  coupleId      String   @map("couple_id")
+  couple        Couple   @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  userId        String   @map("user_id")
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Answers
+  answers       Json     // Array of {questionId, answer, isCorrect, partnerAnswer}
+
+  // Results
+  score         Int      @default(0)
+  maxScore      Int      @map("max_score")
+  matchPercent  Int?     @map("match_percent") // How well partners matched
+  xpEarned      Int      @default(0) @map("xp_earned")
+
+  // Timing
+  startedAt     DateTime @default(now()) @map("started_at")
+  completedAt   DateTime? @map("completed_at")
+  timeSpent     Int?     @map("time_spent") // In seconds
+
+  @@map("quiz_attempts")
+}
+
+// =============================================================================
+// Date Planning
+// =============================================================================
+
+model DatePlan {
+  id            String     @id @default(uuid())
+  coupleId      String     @map("couple_id")
+  couple        Couple     @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  createdById   String     @map("created_by_id")
+  createdBy     User       @relation("DatePlanCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  partnerId     String     @map("partner_id")
+  partner       User       @relation("DatePlanPartner", fields: [partnerId], references: [id], onDelete: Cascade)
+
+  // Date details
+  title         String
+  description   String?
+  dateType      DateType   @default(VIRTUAL) @map("date_type")
+  scheduledAt   DateTime   @map("scheduled_at")
+  duration      Int?       // In minutes
+  location      String?
+  meetingUrl    String?    @map("meeting_url") // For virtual dates
+
+  // Status
+  status        DateStatus @default(PENDING)
+  confirmedAt   DateTime?  @map("confirmed_at")
+  completedAt   DateTime?  @map("completed_at")
+  cancelledAt   DateTime?  @map("cancelled_at")
+
+  // Review
+  rating        Int?       // 1-5 stars
+  notes         String?
+  xpEarned      Int        @default(0) @map("xp_earned")
+
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+
+  @@map("date_plans")
+}
+
+// =============================================================================
+// Achievements & Rewards
+// =============================================================================
+
+model Achievement {
+  id            String          @id @default(uuid())
+
+  name          String
+  description   String
+  category      AchievementCategory
+
+  // Requirements
+  requirement   Json            // {type: 'streak', value: 7} or {type: 'activities', value: 10}
+  xpReward      Int             @default(50) @map("xp_reward")
+
+  // Display
+  iconUrl       String?         @map("icon_url")
+  badgeUrl      String?         @map("badge_url")
+  rarity        AchievementRarity @default(COMMON)
+
+  isActive      Boolean         @default(true) @map("is_active")
+
+  createdAt     DateTime        @default(now()) @map("created_at")
+
+  users         UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String      @id @default(uuid())
+  userId        String      @map("user_id")
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievementId String      @map("achievement_id")
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  earnedAt      DateTime    @default(now()) @map("earned_at")
+  progress      Int         @default(0) // For progressive achievements
+
+  @@unique([userId, achievementId])
+  @@map("user_achievements")
+}
+
+// =============================================================================
+// Enums
+// =============================================================================
+
+enum Gender {
+  MALE
+  FEMALE
+  NON_BINARY
+  OTHER
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  FAILED
+  EXPIRED
+}
+
+enum VRExperience {
+  BEGINNER
+  INTERMEDIATE
+  EXPERT
+}
+
+enum SubscriptionTier {
+  FREE
+  PLUS
+  PREMIUM
+  VIP
+}
+
+enum CreatorTier {
+  STANDARD
+  RISING
+  ESTABLISHED
+  ELITE
+}
+
+enum RelationshipGoal {
+  CASUAL
+  DATING
+  RELATIONSHIP
+  MARRIAGE
+  FRIENDSHIP
+  NOT_SURE
+}
+
+enum SwipeDirection {
+  LEFT
+  RIGHT
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  VOICE
+  GIF
+  HAPTIC
+  LINK
+}
+
+enum StoryMediaType {
+  IMAGE
+  VIDEO
+  TEXT
+}
+
+enum StoryPrivacy {
+  EVERYONE
+  MATCHES_ONLY
+  CLOSE_FRIENDS
+}
+
+enum ReportReason {
+  FAKE_PROFILE
+  INAPPROPRIATE_CONTENT
+  HARASSMENT
+  SPAM
+  UNDERAGE
+  SCAM
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWING
+  RESOLVED
+  DISMISSED
+}
+
+enum ItemType {
+  AVATAR
+  OUTFIT
+  TOY
+  EFFECT
+  GESTURE
+}
+
+enum ItemStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  DISABLED
+  DELETED
+}
+
+enum PurchaseStatus {
+  PENDING
+  COMPLETED
+  REFUNDED
+  FAILED
+}
+
+enum GiftStatus {
+  PENDING
+  DELIVERED
+  VIEWED
+  THANKED
+}
+
+enum NotificationType {
+  NEW_MATCH
+  NEW_MESSAGE
+  NEW_LIKE
+  SUPER_LIKE
+  PROFILE_VIEW
+  MATCH_EXPIRING
+  DATE_REMINDER
+  SAFETY_CHECK
+  PROMOTION
+  SYSTEM
+  ACHIEVEMENT
+  GIFT_RECEIVED
+  MESSAGE
+  VERIFICATION
+  COUPLE_INVITE
+  ACTIVITY_REMINDER
+  QUIZ_CHALLENGE
+  STREAK_WARNING
+  MILESTONE
+}
+
+// =============================================================================
+// Couples & Gamification Enums
+// =============================================================================
+
+enum RelationshipType {
+  DATING
+  ENGAGED
+  MARRIED
+  LONG_DISTANCE
+  OPEN
+  OTHER
+}
+
+enum CoupleStatus {
+  PENDING      // Invite sent
+  ACTIVE       // Both accepted
+  PAUSED       // Temporarily paused
+  ENDED        // Relationship ended
+}
+
+enum CouplePremiumTier {
+  FREE
+  PREMIUM
+}
+
+enum MilestoneType {
+  ANNIVERSARY
+  FIRST_DATE
+  FIRST_KISS
+  FIRST_TRIP
+  MOVED_IN
+  ENGAGED
+  MARRIED
+  CUSTOM
+}
+
+enum MemoryType {
+  PHOTO
+  VIDEO
+  NOTE
+  VOICE
+  LOCATION
+}
+
+enum ActivityCategory {
+  COMMUNICATION  // Questions, discussions
+  GAMES          // Fun games together
+  CREATIVE       // Art, music, writing
+  WELLNESS       // Meditation, exercise
+  LEARNING       // Learn together
+  ROMANCE        // Romantic activities
+  ADVENTURE      // Try new things
+  REFLECTION     // Look back together
+}
+
+enum ActivityDifficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum CompletionStatus {
+  IN_PROGRESS
+  WAITING_PARTNER
+  COMPLETED
+  EXPIRED
+  SKIPPED
+}
+
+enum QuizCategory {
+  KNOW_YOUR_PARTNER   // How well do you know them?
+  COMPATIBILITY       // Are you compatible?
+  COMMUNICATION       // Communication styles
+  LOVE_LANGUAGE       // Love languages
+  FUTURE_GOALS        // Future planning
+  INTIMACY            // Intimacy preferences
+  FUN                 // Fun/trivia
+  RELATIONSHIP_HEALTH // Relationship checkup
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  SCALE           // 1-10 rating
+  TEXT            // Free text
+  RANKING         // Rank options
+  PARTNER_GUESS   // Guess partner's answer
+}
+
+enum DateType {
+  VIRTUAL         // Video call date
+  IN_PERSON       // Physical date
+  WATCH_PARTY     // Watch together
+  GAME_NIGHT      // Play games
+  COOK_TOGETHER   // Cook same recipe
+  CUSTOM
+}
+
+enum DateStatus {
+  PENDING         // Waiting for partner confirmation
+  CONFIRMED       // Both confirmed
+  IN_PROGRESS     // Date happening now
+  COMPLETED       // Date finished
+  CANCELLED       // Date cancelled
+  MISSED          // Neither showed up
+}
+
+enum AchievementCategory {
+  STREAK          // Streak achievements
+  ACTIVITY        // Activity completions
+  QUIZ            // Quiz achievements
+  MILESTONE       // Relationship milestones
+  SOCIAL          // Social features
+  SPECIAL         // Special/seasonal
+}
+
+enum AchievementRarity {
+  COMMON
+  UNCOMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
+
+enum UserRole {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+  DELETED
+}
+
+// =============================================================================
+// Admin & Moderation
+// =============================================================================
+
+model AdminAction {
+  id          String   @id @default(uuid())
+  adminId     String   @map("admin_id")
+  admin       User     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  action      String   // BAN_USER, UNBAN_USER, WARN_USER, APPROVE_VERIFICATION, etc.
+  targetType  String   @map("target_type") // USER, REPORT, STORY, etc.
+  targetId    String   @map("target_id")
+  reason      String?
+  metadata    Json?
+
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("admin_actions")
+}
+
+model UserPhoto {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  photoUrl    String   @map("photo_url")
+  orderIndex  Int      @default(0) @map("order_index")
+  isVerification Boolean @default(false) @map("is_verification")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("user_photos")
+}
+
+model Payment {
+  id              String   @id @default(uuid())
+  userId          String   @map("user_id")
+  stripePaymentId String?  @map("stripe_payment_id")
+
+  amount          Int      // In cents
+  currency        String   @default("usd")
+  type            PaymentType
+  status          PaymentStatus @default(PENDING)
+
+  description     String?
+  metadata        Json?
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([stripePaymentId])
+  @@index([status, createdAt])
+  @@map("payments")
+}
+
+enum PaymentType {
+  SUBSCRIPTION
+  GIFT
+  MARKETPLACE
+  BOOST
+  SUPER_LIKE
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+// =============================================================================
+// Daily Rewards
+// =============================================================================
+
+model DailyReward {
+  id              String   @id @default(uuid())
+  userId          String   @map("user_id")
+
+  streakDay       Int      @map("streak_day")
+  xpEarned        Int      @map("xp_earned")
+  coinsEarned     Int      @default(0) @map("coins_earned")
+  milestoneReached String? @map("milestone_reached")
+
+  claimedAt       DateTime @default(now()) @map("claimed_at")
+
+  @@index([userId, claimedAt])
+  @@map("daily_rewards")
+}
+
+// =============================================================================
+// Tips
+// =============================================================================
+
+model Tip {
+  id              String     @id @default(uuid())
+  senderId        String     @map("sender_id")
+  recipientId     String     @map("recipient_id")
+
+  amount          Int        // In cents
+  currency        String     @default("usd")
+  message         String?
+  isAnonymous     Boolean    @default(false) @map("is_anonymous")
+
+  stripePaymentId String?    @map("stripe_payment_id")
+  status          TipStatus  @default(PENDING)
+
+  createdAt       DateTime   @default(now()) @map("created_at")
+  completedAt     DateTime?  @map("completed_at")
+
+  @@index([senderId, createdAt])
+  @@index([recipientId, createdAt])
+  @@map("tips")
+}
+
+enum TipStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+// =============================================================================
+// Shared Subscriptions
+// =============================================================================
+
+model SharedSubscription {
+  id              String                   @id @default(uuid())
+  ownerId         String                   @map("owner_id")
+
+  // The tier being shared (PREMIUM = 1 slot, VIP = 2 slots)
+  sharedTier      SubscriptionTier         @map("shared_tier")
+
+  // Status
+  status          SharedSubscriptionStatus @default(ACTIVE)
+
+  createdAt       DateTime                 @default(now()) @map("created_at")
+  updatedAt       DateTime                 @updatedAt @map("updated_at")
+
+  // Relations
+  members         SharedSubscriptionMember[]
+
+  @@unique([ownerId])
+  @@index([status])
+  @@map("shared_subscriptions")
+}
+
+model SharedSubscriptionMember {
+  id                    String                     @id @default(uuid())
+  sharedSubscriptionId  String                     @map("shared_subscription_id")
+  sharedSubscription    SharedSubscription         @relation(fields: [sharedSubscriptionId], references: [id], onDelete: Cascade)
+
+  // Invited user (null until accepted)
+  userId                String?                    @map("user_id")
+
+  // Invitation details
+  inviteEmail           String?                    @map("invite_email")
+  inviteCode            String?                    @unique @map("invite_code")
+  invitedAt             DateTime                   @default(now()) @map("invited_at")
+
+  // Acceptance
+  status                SharedMemberStatus         @default(PENDING)
+  acceptedAt            DateTime?                  @map("accepted_at")
+  revokedAt             DateTime?                  @map("revoked_at")
+
+  @@unique([sharedSubscriptionId, userId])
+  @@unique([sharedSubscriptionId, inviteEmail])
+  @@index([userId])
+  @@index([inviteCode])
+  @@index([inviteEmail])
+  @@map("shared_subscription_members")
+}
+
+enum SharedSubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+}
+
+enum SharedMemberStatus {
+  PENDING    // Invitation sent
+  ACCEPTED   // User accepted
+  REVOKED    // Owner revoked access
+  LEFT       // User left voluntarily
+  EXPIRED    // Subscription expired
+}
+
+// =============================================================================
+// Seasonal Pass
+// =============================================================================
+
+model Season {
+  id              String       @id @default(uuid())
+  name            String
+  description     String?
+  theme           String?      // e.g., "Summer Love", "Valentine's"
+
+  startsAt        DateTime     @map("starts_at")
+  endsAt          DateTime     @map("ends_at")
+
+  // Pass pricing
+  passPrice       Int          @default(999) @map("pass_price") // $9.99
+  premiumPassPrice Int         @default(1999) @map("premium_pass_price") // $19.99
+
+  isActive        Boolean      @default(false) @map("is_active")
+
+  createdAt       DateTime     @default(now()) @map("created_at")
+
+  tiers           SeasonTier[]
+  passes          SeasonPass[]
+
+  @@map("seasons")
+}
+
+model SeasonTier {
+  id              String       @id @default(uuid())
+  seasonId        String       @map("season_id")
+  season          Season       @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+
+  level           Int
+  xpRequired      Int          @map("xp_required")
+
+  // Free rewards
+  freeRewardType  String?      @map("free_reward_type") // XP, COINS, BADGE, ITEM
+  freeRewardValue String?      @map("free_reward_value")
+
+  // Premium rewards
+  premiumRewardType  String?   @map("premium_reward_type")
+  premiumRewardValue String?   @map("premium_reward_value")
+
+  @@unique([seasonId, level])
+  @@map("season_tiers")
+}
+
+model SeasonPass {
+  id              String       @id @default(uuid())
+  userId          String       @map("user_id")
+  seasonId        String       @map("season_id")
+  season          Season       @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+
+  passType        SeasonPassType @default(FREE) @map("pass_type")
+  currentXp       Int          @default(0) @map("current_xp")
+  currentLevel    Int          @default(1) @map("current_level")
+
+  claimedTiers    Int[]        @map("claimed_tiers") // Array of claimed tier levels
+
+  purchasedAt     DateTime?    @map("purchased_at")
+  createdAt       DateTime     @default(now()) @map("created_at")
+
+  @@unique([userId, seasonId])
+  @@map("season_passes")
+}
+
+enum SeasonPassType {
+  FREE
+  PREMIUM
+}
+
+// =============================================================================
+// Content Moderation
+// =============================================================================
+
+model ContentFlag {
+  id              String       @id @default(uuid())
+
+  contentType     ContentType  @map("content_type")
+  contentId       String       @map("content_id")
+  userId          String?      @map("user_id") // Content owner
+
+  // Detection info
+  source          FlagSource
+  confidence      Float?       // AI confidence score 0-1
+  categories      String[]     // e.g., ["nudity", "violence"]
+  details         Json?        // Raw AI response
+
+  // Review
+  status          FlagStatus   @default(PENDING)
+  reviewedBy      String?      @map("reviewed_by")
+  reviewedAt      DateTime?    @map("reviewed_at")
+  resolution      String?      // APPROVED, REMOVED, WARNING
+  notes           String?
+
+  createdAt       DateTime     @default(now()) @map("created_at")
+
+  @@index([contentType, contentId])
+  @@index([userId, status])
+  @@index([status, createdAt])
+  @@map("content_flags")
+}
+
+enum ContentType {
+  PROFILE_PHOTO
+  STORY
+  MESSAGE
+  BIO
+  PROMPT
+}
+
+enum FlagSource {
+  AI_AUTO       // Automatic AI detection
+  USER_REPORT   // User reported
+  ADMIN_MANUAL  // Admin flagged
+}
+
+enum FlagStatus {
+  PENDING
+  REVIEWING
+  RESOLVED
+  DISMISSED
+}
+
+// =============================================================================
+// Scam Detection
+// =============================================================================
+
+model ScamAlert {
+  id              String       @id @default(uuid())
+  userId          String       @map("user_id")
+
+  alertType       ScamAlertType @map("alert_type")
+  severity        AlertSeverity
+  confidence      Float        // 0-1 score
+
+  // Detection details
+  indicators      String[]     // What triggered the alert
+  evidence        Json?        // Supporting data
+  messageIds      String[]     @map("message_ids") // Related messages
+
+  // Resolution
+  status          AlertStatus  @default(ACTIVE)
+  resolvedBy      String?      @map("resolved_by")
+  resolvedAt      DateTime?    @map("resolved_at")
+  resolution      String?      // FALSE_POSITIVE, CONFIRMED, WARNING_SENT, BANNED
+
+  createdAt       DateTime     @default(now()) @map("created_at")
+
+  @@index([userId, status])
+  @@index([alertType, status])
+  @@map("scam_alerts")
+}
+
+enum ScamAlertType {
+  ROMANCE_SCAM       // Classic romance scam patterns
+  FINANCIAL_REQUEST  // Asking for money
+  EXTERNAL_LINK      // Suspicious external links
+  RAPID_ESCALATION   // Moving too fast (asking for personal info)
+  BOT_BEHAVIOR       // Automated/scripted messages
+  IMPERSONATION      // Fake profile indicators
+  CRYPTO_SCAM        // Cryptocurrency investment scams
+}
+
+enum AlertSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AlertStatus {
+  ACTIVE
+  INVESTIGATING
+  RESOLVED
+  FALSE_POSITIVE
+}
+
+// =============================================================================
+// Security Logging
+// =============================================================================
+
+model SecurityLog {
+  id              String       @id @default(uuid())
+  userId          String       @map("user_id")
+
+  eventType       SecurityEventType @map("event_type")
+  metadata        Json?        // Event-specific data (session codes, etc.)
+  ipAddress       String?      @map("ip_address")
+  userAgent       String?      @map("user_agent")
+
+  createdAt       DateTime     @default(now()) @map("created_at")
+
+  user            User         @relation(fields: [userId], references: [id])
+
+  @@index([userId, eventType])
+  @@index([eventType, createdAt])
+  @@map("security_logs")
+}
+
+enum SecurityEventType {
+  VR_RECORDING_DETECTED       // VR headset recording detected
+  MOBILE_CAPTURE_DETECTED     // Mobile screenshot/recording detected
+  SCREEN_SECURITY_ENABLED     // User enabled screen security
+  SCREEN_SECURITY_DISABLED    // User disabled screen security
+  SUSPICIOUS_LOGIN            // Login from unusual location/device
+  PASSWORD_RESET_REQUESTED    // Password reset initiated
+  ACCOUNT_LOCKED              // Account temporarily locked
+  FAILED_LOGIN_ATTEMPTS       // Multiple failed login attempts
+}

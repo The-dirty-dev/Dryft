@@ -1,0 +1,34 @@
+{
+  "title": "Dryft Websocket Overview",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "tags": ["dryft", "websocket"],
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Active Websocket Connections",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "websocket_connections_active",
+          "legendFormat": "connections"
+        }
+      ],
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 0 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Websocket Upgrade Requests",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{path=~\"/v1/ws.*\"}[5m]))",
+          "legendFormat": "upgrades"
+        }
+      ],
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 10 }
+    }
+  ]
+}

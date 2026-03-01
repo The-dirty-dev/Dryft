@@ -1,0 +1,76 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-error.log*
+yarn.lock
+package-lock.json
+
+# Expo
+.expo/
+dist/
+web-build/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# Native builds
+ios/
+android/
+*.hprof
+
+# Environment variables
+.env
+.env.local
+.env.development
+.env.staging
+.env.production
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Testing
+coverage/
+.jest/
+
+# Build outputs
+build/
+*.tsbuildinfo
+
+# Secrets and credentials
+google-services.json
+google-service-account.json
+GoogleService-Info.plist
+*.keystore
+secrets/
+credentials/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+*.log
+
+# Cache
+.cache/
+.turbo/
+*.cache
+
+# Metro bundler
+.metro-health-check*
+
+# EAS
+.easignore
+
+# Sentry
+.sentryclirc
+
+# Debug
+*.trace

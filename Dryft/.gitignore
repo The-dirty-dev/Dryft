@@ -1,0 +1,10 @@
+
+# Env files
+.env
+.env.*
+.env.prod
+env.prod
+
+# Node modules
+node_modules/
+**/node_modules/

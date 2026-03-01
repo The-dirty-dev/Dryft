@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.50.1
+    container_name: dryft-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./infra/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infra/monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+    ports:
+      - "127.0.0.1:9090:9090"
+    networks:
+      - drift
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: dryft-alertmanager
+    restart: unless-stopped
+    volumes:
+      - ./infra/monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    ports:
+      - "127.0.0.1:9093:9093"
+    networks:
+      - drift
+
+  loki:
+    image: grafana/loki:2.9.4
+    container_name: dryft-loki
+    restart: unless-stopped
+    volumes:
+      - ./infra/monitoring/loki.yml:/etc/loki/config.yml:ro
+      - loki_data:/loki
+    command: -config.file=/etc/loki/config.yml
+    ports:
+      - "127.0.0.1:3100:3100"
+    networks:
+      - drift
+
+  promtail:
+    image: grafana/promtail:2.9.4
+    container_name: drift-promtail
+    restart: unless-stopped
+    volumes:
+      - ./infra/monitoring/promtail.yml:/etc/promtail/config.yml:ro
+      - /var/log:/var/log:ro
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - drift
+
+  grafana:
+    image: grafana/grafana:10.4.1
+    container_name: drift-grafana
+    restart: unless-stopped
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-changeme}
+    volumes:
+      - ./infra/monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./infra/monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+    ports:
+      - "127.0.0.1:3001:3000"
+    networks:
+      - drift
+
+volumes:
+  loki_data:
+
+networks:
+  drift:
+    external: true
+    name: drift

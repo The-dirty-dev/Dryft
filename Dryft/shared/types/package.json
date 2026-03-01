@@ -1,0 +1,10 @@
+{
+  "name": "@dryft/shared-types",
+  "version": "1.0.0",
+  "description": "Shared TypeScript type definitions for the Dryft platform",
+  "types": "./src/index.ts",
+  "files": [
+    "src"
+  ],
+  "private": true
+}

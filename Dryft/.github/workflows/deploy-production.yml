@@ -1,0 +1,43 @@
+name: Deploy Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Docker image tag or SHA to deploy
+        required: true
+        type: string
+      dry_run:
+        description: Dry run (no production change)
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      PRODUCTION_HEALTHCHECK_URL: ${{ vars.PRODUCTION_HEALTHCHECK_URL != '' && vars.PRODUCTION_HEALTHCHECK_URL || 'https://api.dryft.site/health' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy backend image
+        run: |
+          if [ "${{ inputs.dry_run }}" = 'true' ]; then
+            echo "[DRY RUN] Deploy dryft-backend:${{ inputs.image_tag }} to production"
+          else
+            echo "Deploy dryft-backend:${{ inputs.image_tag }} to production"
+            # Configure your deployment target here.
+            # Example: kubectl set image deployment/dryft-api dryft-api=$REGISTRY_URL/dryft-backend:${{ inputs.image_tag }} -n production
+          fi
+
+      - name: Production smoke test
+        if: ${{ inputs.dry_run != true }}
+        run: curl -fsS "$PRODUCTION_HEALTHCHECK_URL"

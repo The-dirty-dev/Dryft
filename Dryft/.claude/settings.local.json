@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls \"/Volumes/Drive G/Dryft/\"*.md)",
+      "Bash(ls \"/Volumes/Drive G/Dryft/\"*TODO*)",
+      "Bash(ls \"/Volumes/Drive G/Dryft/\"*COLLAB*)",
+      "Bash(ls \"/Volumes/Drive G/Dryft/\"*todo*)",
+      "Bash(ls \"/Volumes/Drive G/Dryft/\"*collab*)",
+      "Bash(ls \"/Volumes/Drive G/Dryft/\"*branding*)",
+      "Bash(ls \"/Volumes/Drive G/Dryft/\"*BRANDING*)",
+      "Bash(ls -d \"/Volumes/Drive G/Dryft/backend/cmd/\"*/)",
+      "Bash(ls \"/Volumes/Drive G/Dryft/vr-drift/Assets/Scripts/Core/\"*Realtime*)",
+      "Bash(ls \"/Volumes/Drive G/Dryft/vr-drift/Assets/Scripts/Networking/\"*Realtime*)",
+      "Bash(ls \"/Volumes/Drive G/Dryft/infra/monitoring/\"*drift*)",
+      "Bash(ls \"/Volumes/Drive G/Dryft/infra/monitoring/\"*.json)",
+      "Bash(go test ./internal/auth/... -count=1 -v)",
+      "Bash(go test ./internal/subscription/... -count=1 -v)",
+      "Bash(go test ./internal/links/... -count=1 -v)",
+      "Bash(go test ./... -count=1)",
+      "Bash(go test ./internal/config/... -count=1 -v -run TestLoad_Defaults)",
+      "Bash(go build ./cmd/dryft-api)"
+    ]
+  }
+}

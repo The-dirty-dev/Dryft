@@ -1,0 +1,46 @@
+{
+  "title": "Dryft Business Signals",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "tags": ["dryft", "business"],
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Signups (Register Requests)",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{path=\"/v1/auth/register\",status=~\"2..\"}[5m]))",
+          "legendFormat": "signups"
+        }
+      ],
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 0 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Matches (Requests)",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{path=~\"/v1/matches.*\",status=~\"2..\"}[5m]))",
+          "legendFormat": "matches"
+        }
+      ],
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 10 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Messages (Requests)",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{path=~\"/v1/conversations/.*/messages\",status=~\"2..\"}[5m]))",
+          "legendFormat": "messages"
+        }
+      ],
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 20 }
+    }
+  ]
+}

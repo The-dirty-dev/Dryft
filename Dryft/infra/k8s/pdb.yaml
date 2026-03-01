@@ -1,0 +1,21 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: dryft-api-pdb
+  namespace: dryft
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: dryft-api
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: dryft-postgres-pdb
+  namespace: dryft
+spec:
+  maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: dryft-postgres

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!--
+    Content Security Policy for the renderer shell.
+    - default-src 'self': only allow local resources by default
+    - script-src 'self': only local scripts (no inline)
+    - style-src 'self' 'unsafe-inline': local styles + inline for dynamic status
+    - connect-src 'self' http://localhost:* https://app.drift.app https://*.drift.app ws://127.0.0.1:*: allow API and Intiface connections
+    - img-src 'self' data: https:: allow images from HTTPS sources
+    - font-src 'self' data:: allow local and data: fonts
+    - frame-src http://localhost:* https://app.drift.app https://*.drift.app: webview allowed origins
+  -->
+  <meta
+    http-equiv="Content-Security-Policy"
+    content="
+      default-src 'self';
+      script-src 'self';
+      style-src 'self' 'unsafe-inline';
+      connect-src 'self' http://localhost:* https://app.drift.app https://*.drift.app ws://127.0.0.1:*;
+      img-src 'self' data: https:;
+      font-src 'self' data:;
+      frame-src http://localhost:* https://app.drift.app https://*.drift.app;
+    "
+  />
+
+  <title>Drift</title>
+  <link rel="stylesheet" href="./src/styles.css" />
+</head>
+<body>
+  <!-- Title Bar / Navigation Shell -->
+  <div id="titlebar" class="titlebar">
+    <!-- Drag region (macOS traffic lights sit here) -->
+    <div class="titlebar-drag">
+      <div class="titlebar-title">Drift</div>
+    </div>
+
+    <!-- Navigation Controls -->
+    <div class="nav-controls">
+      <button id="btn-back" class="nav-btn" title="Go back" disabled>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M10 12L6 8L10 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <button id="btn-forward" class="nav-btn" title="Go forward" disabled>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M6 4L10 8L6 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <button id="btn-reload" class="nav-btn" title="Reload">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M13.5 8A5.5 5.5 0 1 1 8 2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M8 1L8 4L11 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <button id="btn-home" class="nav-btn" title="Home">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M2 8L8 2.5L14 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M4 7V13H6.5V10H9.5V13H12V7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Status Indicators -->
+    <div class="status-area">
+      <!-- Connection status -->
+      <div id="connection-status" class="status-indicator" title="Connection status">
+        <span class="status-dot status-dot--connected"></span>
+        <span class="status-label">Connected</span>
+      </div>
+
+      <!-- Update indicator (hidden by default) -->
+      <button id="update-indicator" class="update-btn hidden" title="Update available">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+          <path d="M8 2V10M8 10L5 7M8 10L11 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M3 13H13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <span>Update</span>
+      </button>
+    </div>
+
+    <!-- Window Controls (Windows/Linux) -->
+    <div id="window-controls" class="window-controls">
+      <button id="btn-minimize" class="window-btn" title="Minimize">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <rect x="2" y="5.5" width="8" height="1" fill="currentColor"/>
+        </svg>
+      </button>
+      <button id="btn-maximize" class="window-btn" title="Maximize">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <rect x="2" y="2" width="8" height="8" rx="1" stroke="currentColor" stroke-width="1" fill="none"/>
+        </svg>
+      </button>
+      <button id="btn-close" class="window-btn window-btn--close" title="Close">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <path d="M3 3L9 9M9 3L3 9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Offline Banner -->
+  <div id="offline-banner" class="offline-banner hidden">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M8 5V8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      <circle cx="8" cy="11" r="0.75" fill="currentColor"/>
+    </svg>
+    <span>You are offline. Some features may be unavailable.</span>
+    <button id="btn-retry" class="retry-btn">Retry</button>
+  </div>
+
+  <!-- Loading Screen (shown while webview loads) -->
+  <div id="loading-screen" class="loading-screen">
+    <div class="loading-content">
+      <div class="loading-logo">Drift</div>
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Loading...</div>
+    </div>
+  </div>
+
+  <!-- Error Screen (shown on connection failure) -->
+  <div id="error-screen" class="error-screen hidden">
+    <div class="error-content">
+      <div class="error-icon">
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+          <circle cx="24" cy="24" r="20" stroke="currentColor" stroke-width="2"/>
+          <path d="M24 14V28" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="24" cy="34" r="1.5" fill="currentColor"/>
+        </svg>
+      </div>
+      <h2 class="error-title">Unable to connect</h2>
+      <p class="error-message">Could not reach the Drift server. Make sure the web app is running.</p>
+      <p id="error-detail" class="error-detail"></p>
+      <button id="btn-error-retry" class="error-retry-btn">Try Again</button>
+    </div>
+  </div>
+
+  <!-- Web App Container -->
+  <div id="webview-container" class="webview-container">
+    <!-- The webview element is created dynamically by the renderer script -->
+  </div>
+
+  <script type="module" src="./src/main.ts"></script>
+</body>
+</html>

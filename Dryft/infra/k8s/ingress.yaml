@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dryft-api
+  namespace: dryft
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "120"
+    nginx.ingress.kubernetes.io/websocket-services: "dryft-api"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - api.dryft.site
+      secretName: dryft-api-tls
+  rules:
+    - host: api.dryft.site
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: dryft-api
+                port:
+                  number: 80

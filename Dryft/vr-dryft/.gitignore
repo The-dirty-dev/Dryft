@@ -1,0 +1,86 @@
+# Unity generated
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+
+# Memory Profiler snapshots
+/MemoryCaptures/
+
+# Asset meta files (keep .meta files)
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# Unity3D specific
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# Crashlytics generated
+crashlytics-build.properties
+
+# Builds
+*.apk
+*.aab
+*.unitypackage
+*.app
+
+# OS-specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Visual Studio
+.vs/
+*.csproj
+*.sln
+
+# JetBrains Rider
+.idea/
+*.dotSettings
+
+# Plastic SCM
+*.ignore
+*.private
+*.private.meta
+
+# Gradle (Android)
+.gradle/
+build/
+local.properties
+
+# Normcore credentials (never commit)
+NormcoreAppSettings.asset
+
+# API keys and secrets
+**/secrets.json
+**/credentials.json
+*.keystore
+
+# Logs
+*.log
+
+# Addressables
+/[Aa]ddressables/
+/[Ss]erver[Dd]ata/
+
+# Recorder
+/Recordings/

@@ -1,0 +1,84 @@
+groups:
+  - name: dryft-api.rules
+    rules:
+      - alert: DryftHighErrorRate
+        expr: sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m])) > 0.01
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate detected"
+          description: "5xx error rate is above 1% for 10m on Dryft API."
+
+      - alert: DryftHighLatencyP99
+        expr: histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API latency"
+          description: "P99 latency above 500ms for 10m on Dryft API."
+
+      - alert: DryftLowDiskSpace
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) < 0.1
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Low disk space"
+          description: "Node filesystem available space below 10%."
+
+      - alert: DryftServiceDown
+        expr: up{job="dryft-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Dryft API is down"
+          description: "Dryft API has been unreachable for more than 1 minute."
+
+      - alert: DryftWebSocketConnectionsDrop
+        expr: delta(websocket_connections_active[5m]) < -100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "WebSocket connections dropping"
+          description: "WebSocket connections dropped by more than 100 in 5 minutes."
+
+      - alert: DryftHighRateLimiting
+        expr: sum(rate(http_requests_total{status="429"}[5m])) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High rate limiting"
+          description: "More than 10 requests/sec being rate limited."
+
+      - alert: DryftHighAuthFailures
+        expr: sum(rate(http_requests_total{status="401"}[5m])) > 50
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High auth failure rate"
+          description: "More than 50 authentication failures per second - possible attack."
+
+      - alert: DryftDatabaseConnectionsHigh
+        expr: db_connections_active > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High database connections"
+          description: "Database connection count is above 80 (typical pool size is 100)."
+
+  - name: dryft-test-alerts
+    rules:
+      - alert: DryftTestCriticalAlert
+        expr: vector(1)
+        labels:
+          severity: critical
+        annotations:
+          summary: "Test critical alert for Slack wiring"
+          description: "This is a manual test alert to verify Alertmanager -> Slack integration."

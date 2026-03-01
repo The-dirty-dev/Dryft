@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  # PostgreSQL database
+  postgres:
+    image: postgres:16-alpine
+    container_name: drift-postgres
+    environment:
+      POSTGRES_USER: drift
+      POSTGRES_PASSWORD: drift
+      POSTGRES_DB: drift
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./internal/database/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U drift -d drift"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis for sessions and caching
+  redis:
+    image: redis:7-alpine
+    container_name: drift-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Drift API server
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: drift-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - ENVIRONMENT=development
+      - DATABASE_URL=postgres://drift:drift@postgres:5432/drift?sslmode=disable
+      - REDIS_URL=redis://redis:6379
+      - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
+      # Add these in .env file for real testing
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-sk_test_placeholder}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-pk_test_placeholder}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-whsec_placeholder}
+      - JUMIO_API_TOKEN=${JUMIO_API_TOKEN:-}
+      - JUMIO_API_SECRET=${JUMIO_API_SECRET:-}
+      - JUMIO_WEBHOOK_SECRET=${JUMIO_WEBHOOK_SECRET:-}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-12345678901234567890123456789012}
+    volumes:
+      - ./:/app
+    command: ["go", "run", "./cmd/dryft-api/main.go"]
+
+volumes:
+  postgres_data:
+  redis_data:
