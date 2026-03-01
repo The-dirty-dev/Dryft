@@ -1,16 +1,41 @@
-Secrets.rtf
-drift-9fa41-firebase-adminsdk-fbsvc-89c5a23273.json
-.fseventsd/fseventsd-uuid
-.fseventsd/00000000094c94d6
-.fseventsd/00000000094c94d5
-.env.prod
+# === OS files ===
 .DS_Store
-Dryft/.DS_Store
-Dryft/.DS_Store
-Dryft/desktop/.DS_Store
-Dryft/docs/.DS_Store
-Dryft/infra/.DS_Store
-Dryft/infra/monitoring/.DS_Store
-Dryft/shared/.DS_Store
-Dryft/shared/types/.DS_Store
-Dryft/web/.DS_Store
+**/.DS_Store
+.fseventsd/
+.Spotlight-V100/
+.TemporaryItems/
+.DocumentRevisions-V100/
+Thumbs.db
+
+# === Secrets & credentials ===
+Secrets.rtf
+.env
+.env.*
+!.env.example
+drift-9fa41-firebase-adminsdk-fbsvc-89c5a23273.json
+*.p8
+*.p12
+
+# === Dependencies ===
+**/node_modules/
+
+# === Build output ===
+Dryft/web/.next/
+Dryft/desktop/out/
+Dryft/desktop/dist/
+Dryft/backend/dryft-api
+Dryft/backend/bin/
+
+# === IDE / Editor ===
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# === Logs ===
+*.log
+npm-debug.log*
+
+# === Misc ===
+.claude/

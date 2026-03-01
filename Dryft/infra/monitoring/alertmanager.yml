@@ -18,7 +18,7 @@ route:
 receivers:
   - name: default
     slack_configs:
-      - api_url: 'https://hooks.slack.com/services/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'
+      - api_url: '${SLACK_WEBHOOK_URL}'
         channel: '#dryft-prod-alerts'
         send_resolved: true
         title: '[DRIFT][{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
@@ -31,7 +31,7 @@ receivers:
 
   - name: slack-critical
     slack_configs:
-      - api_url: 'https://hooks.slack.com/services/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'
+      - api_url: '${SLACK_WEBHOOK_URL}'
         channel: '#dryft-prod-alerts'
         send_resolved: true
         title: ':rotating_light: [DRIFT][{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
@@ -44,7 +44,7 @@ receivers:
 
   - name: slack-warning
     slack_configs:
-      - api_url: 'https://hooks.slack.com/services/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'
+      - api_url: '${SLACK_WEBHOOK_URL}'
         channel: '#dryft-prod-alerts'
         send_resolved: true
         title: ':warning: [DRIFT][{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
