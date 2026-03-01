@@ -8,3 +8,6 @@ env.prod
 # Node modules
 node_modules/
 **/node_modules/
+
+# Local secrets file outside repo root
+../Secrets.rtf
