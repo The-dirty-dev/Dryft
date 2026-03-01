@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Logo from '@/components/ui/Logo';
 import Button from '@/components/ui/Button';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Input from '@/components/ui/Input';
@@ -112,9 +113,7 @@ export default function HapticDevicesPage() {
       {/* Header */}
       <header className="border-b border-border">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="text-2xl font-bold text-primary">
-            Dryft
-          </Link>
+          <Logo />
           <nav className="flex items-center gap-6">
             <Link href="/profile" className="text-muted hover:text-white transition-colors">
               Profile

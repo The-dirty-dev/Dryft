@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import Logo from '@/components/ui/Logo';
 import Button from '@/components/ui/Button';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import apiClient from '@/lib/api';
@@ -101,9 +102,7 @@ export default function ItemDetailPage() {
       {/* Header */}
       <header className="border-b border-border">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="text-2xl font-bold text-primary">
-            Dryft
-          </Link>
+          <Logo />
           <nav className="flex items-center gap-6">
             <Link href="/store" className="text-muted hover:text-white transition-colors">
               Store

@@ -53,4 +53,50 @@ describe('AdminUsersPage', () => {
       expect(screen.getAllByText('user@dryft.site').length).toBeGreaterThanOrEqual(2);
     });
   });
+
+  it('requires confirmation before resetting verification and calls reset endpoint on confirm', async () => {
+    mockApiClient.get.mockResolvedValue({
+      success: true,
+      data: {
+        users: [
+          {
+            id: 'user-1',
+            email: 'verified@dryft.site',
+            display_name: 'Verified User',
+            verified: true,
+            verified_at: new Date().toISOString(),
+            is_banned: false,
+            role: 'user',
+            created_at: new Date().toISOString(),
+            stats: {
+              inventory_count: 2,
+              total_spent: 4999,
+              total_purchases: 3,
+            },
+          },
+        ],
+        total: 1,
+      },
+    });
+    mockApiClient.post.mockResolvedValue({ success: true });
+
+    render(<AdminUsersPage />);
+
+    await screen.findByText('Verified User');
+    fireEvent.click(screen.getByRole('button', { name: 'View' }));
+
+    await screen.findByRole('button', { name: 'Reset Verification' });
+    fireEvent.click(screen.getByRole('button', { name: 'Reset Verification' }));
+
+    await screen.findByText('Reset Verification?');
+    const resetButtons = screen.getAllByRole('button', { name: 'Reset Verification' });
+    fireEvent.click(resetButtons[resetButtons.length - 1]);
+
+    await waitFor(() => {
+      expect(mockApiClient.post).toHaveBeenCalledWith(
+        '/v1/admin/users/user-1/reset-verification',
+        {}
+      );
+    });
+  });
 });

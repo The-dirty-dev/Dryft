@@ -60,15 +60,8 @@ function createWindow(): void {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'));
   }
 
-  // Handle window close
-  mainWindow.on('close', (event) => {
-    if (process.platform === 'darwin') {
-      // On macOS, hide instead of quit
-      event.preventDefault();
-      mainWindow?.hide();
-    }
-  });
-
+  // On macOS the app stays alive in the tray after the window closes.
+  // Quit via the tray menu "Quit" item or Cmd+Q.
   mainWindow.on('closed', () => {
     mainWindow = null;
   });

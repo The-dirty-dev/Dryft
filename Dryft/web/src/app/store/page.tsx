@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import Logo from '@/components/ui/Logo';
 import { useSearchParams } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
@@ -106,9 +107,7 @@ function StoreContent() {
       {/* Header */}
       <header className="border-b border-border">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="text-2xl font-bold text-primary">
-            Dryft
-          </Link>
+          <Logo />
           <nav className="flex items-center gap-6">
             <Link href="/store" className="text-white font-medium">
               Store

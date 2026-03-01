@@ -12,3 +12,4 @@ export { default as Tabs } from './Tabs';
 export { default as Toast } from './Toast';
 export { default as Tooltip } from './Tooltip';
 export { default as Textarea } from './Textarea';
+export { default as Logo } from './Logo';

@@ -60,8 +60,8 @@ webview.setAttribute('allowpopups', 'false');
 
 webview.setAttribute('webpreferences', 'contextIsolation=yes,nodeIntegration=no');
 
-webview.src = appUrl;
-webviewContainer.appendChild(webview);
+// NOTE: src is assigned AFTER event listeners are registered (below) and after
+// the element is in the DOM, so no events are missed due to ordering.
 
 // --------------------------------------------------------------------------
 // Navigation helpers
@@ -93,6 +93,8 @@ function hideLoading(): void {
 
 function showError(description?: string): void {
   hideLoading();
+  statusDot.className    = 'status-dot status-dot--offline';
+  statusLabel.textContent = 'Disconnected';
   errorDetail.textContent = description ?? '';
   errorScreen.classList.remove('hidden');
 }
@@ -133,12 +135,36 @@ setOnlineState(navigator.onLine);
 // Webview event listeners
 // --------------------------------------------------------------------------
 
+// Fallback: if did-fail-load never fires (e.g. Electron webview quirk), show error
+// after 12 seconds so the UI never stays on a perpetual loading screen.
+let loadingTimer: ReturnType<typeof setTimeout> | null = null;
+
+function startLoadingTimer(): void {
+  clearLoadingTimer();
+  loadingTimer = setTimeout(() => {
+    if (!loadingScreen.classList.contains('hidden')) {
+      showError('Connection timed out. In development, run the web app first: cd web && npm run dev');
+    }
+  }, 12_000);
+}
+
+function clearLoadingTimer(): void {
+  if (loadingTimer !== null) {
+    clearTimeout(loadingTimer);
+    loadingTimer = null;
+  }
+}
+
+webviewContainer.appendChild(webview);
+
 webview.addEventListener('did-start-loading', () => {
   statusDot.className = 'status-dot status-dot--loading';
   showLoading();
+  startLoadingTimer();
 });
 
 webview.addEventListener('did-finish-load', () => {
+  clearLoadingTimer();
   statusDot.className = 'status-dot status-dot--connected';
   hideLoading();
   hideError();
@@ -146,13 +172,21 @@ webview.addEventListener('did-finish-load', () => {
 });
 
 webview.addEventListener('did-fail-load', (event: any) => {
-  // Error -3 is ERR_ABORTED — happens on redirects, safe to ignore
+  clearLoadingTimer();
+  // ERR_ABORTED (-3): fired when a redirect cancels the previous navigation.
+  // Ignore it — the new navigation will fire its own events.
   if (event.errorCode === -3) {
-    hideLoading();
     return;
   }
-  showError(event.errorDescription ?? '');
+  const desc = event.errorDescription ?? '';
+  const hint = appUrl.includes('localhost')
+    ? ' (Is the web app running? cd web && npm run dev)'
+    : '';
+  showError(desc + hint);
 });
+
+// Assign src last — all listeners are registered and the element is in the DOM.
+webview.src = appUrl;
 
 webview.addEventListener('did-navigate', () => {
   updateNavState();

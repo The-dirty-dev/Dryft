@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import Logo from '@/components/ui/Logo';
 import apiClient from '@/lib/api';
 import { AuthResponse } from '@/types';
 
@@ -54,10 +55,8 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-background flex items-center justify-center px-6 py-12">
       <div className="w-full max-w-md">
         <div className="text-center mb-10">
-          <Link href="/" className="text-4xl font-bold text-primary">
-            Dryft
-          </Link>
-          <p className="text-muted mt-2">Create your account</p>
+          <Logo size={64} className="justify-center gap-3 text-4xl" />
+          <p className="text-muted mt-3">Create your account</p>
         </div>
 
         {error && (

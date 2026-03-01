@@ -4,8 +4,10 @@ import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { MessageCircle } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import Logo from '@/components/ui/Logo';
 import { useChatSocket } from '@/hooks/useChatSocket';
 import apiClient from '@/lib/api';
 
@@ -131,9 +133,7 @@ export default function MessagesPage() {
       <header className="border-b border-border sticky top-0 bg-background z-10">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/" className="text-2xl font-bold text-primary">
-              Dryft
-            </Link>
+            <Logo />
             <span className="text-muted">/</span>
             <h1 className="text-xl font-semibold text-white">Messages</h1>
           </div>
@@ -166,7 +166,9 @@ export default function MessagesPage() {
           </div>
         ) : matches.length === 0 ? (
           <div className="text-center py-20">
-            <div className="text-6xl mb-4">💬</div>
+            <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6">
+              <MessageCircle className="w-8 h-8 text-primary" />
+            </div>
             <h2 className="text-2xl font-semibold text-white mb-2">No matches yet</h2>
             <p className="text-muted mb-6">Start swiping to find your connections</p>
             <Link href="/discover" className="btn-primary">

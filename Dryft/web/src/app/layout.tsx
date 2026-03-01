@@ -7,7 +7,12 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Dryft - Marketplace',
-  description: 'Shop avatars, outfits, and more',
+  description: 'Shop avatars, outfits, toys, and more for VR',
+  icons: {
+    icon: '/favicon.png',
+    apple: '/apple-touch-icon.png',
+  },
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({

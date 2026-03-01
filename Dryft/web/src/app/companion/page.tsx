@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import Logo from '@/components/ui/Logo';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
@@ -134,9 +135,7 @@ export default function CompanionPage() {
         {/* Header */}
         <header className="border-b border-border">
           <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-            <Link href="/" className="text-2xl font-bold text-primary">
-              Dryft
-            </Link>
+            <Logo />
             <span className="text-muted">Companion Mode</span>
           </div>
         </header>
@@ -223,7 +222,7 @@ export default function CompanionPage() {
       <header className="border-b border-border">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="text-xl font-bold text-primary">Dryft</span>
+            <Logo />
             <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
               Session: {session.session.session_code}
             </span>

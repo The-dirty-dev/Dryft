@@ -19,36 +19,53 @@ body {
   min-height: 100vh;
 }
 
+/* ------------------------------------------------------------------ */
+/* Component layer                                                     */
+/* ------------------------------------------------------------------ */
+
 @layer components {
+  /* Buttons */
   .btn {
-    @apply px-6 py-3 rounded-xl font-semibold transition-colors disabled:opacity-50
+    @apply px-6 py-3 rounded-xl font-semibold transition-all duration-200 disabled:opacity-50
            inline-flex items-center justify-center gap-2;
   }
 
   .btn-primary {
-    @apply btn bg-primary text-white hover:bg-primary/90;
+    @apply btn bg-primary text-white hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20
+           active:scale-[0.98];
   }
 
   .btn-secondary {
-    @apply btn bg-surface border border-border text-white hover:bg-border;
+    @apply btn bg-surface border border-border text-white hover:bg-border
+           active:scale-[0.98];
   }
 
   .btn-ghost {
     @apply btn bg-transparent text-muted hover:text-white;
   }
 
+  /* Inputs */
   .input {
     @apply bg-surface border border-border rounded-xl px-4 py-3 text-white
            placeholder:text-muted focus:outline-none focus:border-primary
-           transition-colors;
+           focus:ring-1 focus:ring-primary/30 transition-all duration-200;
   }
 
+  /* Cards */
   .card {
-    @apply bg-surface border border-border rounded-2xl overflow-hidden;
+    @apply bg-surface border border-border rounded-2xl overflow-hidden
+           transition-all duration-200;
+  }
+
+  .card:hover {
+    @apply border-border/80;
   }
 }
 
-/* Electron window drag regions */
+/* ------------------------------------------------------------------ */
+/* Electron window drag regions                                        */
+/* ------------------------------------------------------------------ */
+
 .app-drag {
   -webkit-app-region: drag;
 }
@@ -57,7 +74,11 @@ body {
   -webkit-app-region: no-drag;
 }
 
-/* Toast animations */
+/* ------------------------------------------------------------------ */
+/* Animations                                                          */
+/* ------------------------------------------------------------------ */
+
+/* Toast slide-in */
 @keyframes slide-in-right {
   from {
     transform: translateX(100%);
@@ -71,4 +92,56 @@ body {
 
 .animate-slide-in-right {
   animation: slide-in-right 0.3s ease-out;
+}
+
+/* Skeleton shimmer — replaces plain animate-pulse with a gliding effect */
+@keyframes shimmer {
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
+}
+
+.animate-pulse {
+  background: linear-gradient(
+    90deg,
+    #16213e 0%,
+    #1e2d4a 40%,
+    #16213e 80%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+/* Subtle fade-in for page content */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s ease-out both;
+}
+
+/* ------------------------------------------------------------------ */
+/* Scrollbar (webkit — keeps things tidy on dark backgrounds)          */
+/* ------------------------------------------------------------------ */
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #16213e;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #1e2d4a;
 }

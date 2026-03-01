@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Logo from '@/components/ui/Logo';
 import { loadStripe } from '@stripe/stripe-js';
 import {
   Elements,
@@ -88,9 +89,7 @@ function CheckoutContent() {
       {/* Header */}
       <header className="border-b border-border">
         <div className="max-w-4xl mx-auto px-6 py-4">
-          <Link href="/" className="text-2xl font-bold text-primary">
-            Dryft
-          </Link>
+          <Logo />
         </div>
       </header>
 

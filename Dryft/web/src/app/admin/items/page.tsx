@@ -449,7 +449,7 @@ export default function AdminItemsPage() {
       <ConfirmDialog
         open={disableTarget !== null}
         title="Disable Item"
-        message={`Are you sure you want to disable "${disableTarget?.title ?? 'this item'}"? It will be removed from the store.`}
+        message={`Are you sure you want to disable "${disableTarget?.name ?? 'this item'}"? It will be removed from the store.`}
         confirmLabel="Disable"
         variant="danger"
         loading={actionLoading}

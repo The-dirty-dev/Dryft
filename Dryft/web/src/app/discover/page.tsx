@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import Logo from '@/components/ui/Logo';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
@@ -112,9 +113,7 @@ export default function DiscoverPage() {
       {/* Header */}
       <header className="border-b border-border sticky top-0 bg-background z-10">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="text-2xl font-bold text-primary">
-            Dryft
-          </Link>
+          <Logo />
           <nav className="flex items-center gap-6">
             <Link href="/discover" className="text-white font-medium">
               Discover

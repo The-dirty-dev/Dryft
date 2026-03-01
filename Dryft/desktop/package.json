@@ -2,7 +2,7 @@
   "name": "dryft-desktop",
   "version": "1.0.0",
   "description": "Dryft Desktop App",
-  "main": "dist/main/index.js",
+  "main": "out/main/index.js",
   "author": "Dryft",
   "license": "UNLICENSED",
   "private": true,
@@ -35,7 +35,7 @@
       "output": "release"
     },
     "files": [
-      "dist/**/*"
+      "out/**/*"
     ],
     "mac": {
       "target": ["dmg", "zip"],

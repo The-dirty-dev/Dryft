@@ -1,0 +1,97 @@
+{
+  "images" : [
+    {
+      "filename" : "icon~watch@2x.png",
+      "idiom" : "watch",
+      "scale" : "2x"
+    },
+    {
+      "filename" : "icon~watch@2x.png",
+      "idiom" : "watch",
+      "scale" : "2x",
+      "screenWidth" : "<=145"
+    },
+    {
+      "filename" : "icon~watch@2x.png",
+      "idiom" : "watch",
+      "scale" : "2x",
+      "screenWidth" : ">161"
+    },
+    {
+      "filename" : "icon~watch@2x.png",
+      "idiom" : "watch",
+      "scale" : "2x",
+      "screenWidth" : ">145"
+    },
+    {
+      "filename" : "icon~watch@2x.png",
+      "idiom" : "watch",
+      "scale" : "2x",
+      "screenWidth" : ">183"
+    },
+    {
+      "filename" : "icon~iphone@1x.png",
+      "idiom" : "iphone",
+      "scale" : "1x"
+    },
+    {
+      "filename" : "icon~iphone@2x.png",
+      "idiom" : "iphone",
+      "scale" : "2x"
+    },
+    {
+      "filename" : "icon~iphone@3x.png",
+      "idiom" : "iphone",
+      "scale" : "3x"
+    },
+    {
+      "filename" : "icon~tv@1x.png",
+      "idiom" : "tv",
+      "scale" : "1x"
+    },
+    {
+      "filename" : "icon~tv@2x.png",
+      "idiom" : "tv",
+      "scale" : "2x"
+    },
+    {
+      "filename" : "icon~mac@1x.png",
+      "idiom" : "mac",
+      "scale" : "1x"
+    },
+    {
+      "filename" : "icon~mac@2x.png",
+      "idiom" : "mac",
+      "scale" : "2x"
+    },
+    {
+      "filename" : "icon~universal@1x.png",
+      "idiom" : "universal",
+      "scale" : "1x"
+    },
+    {
+      "filename" : "icon~universal@2x.png",
+      "idiom" : "universal",
+      "scale" : "2x"
+    },
+    {
+      "filename" : "icon~universal@3x.png",
+      "idiom" : "universal",
+      "scale" : "3x"
+    },
+    {
+      "filename" : "icon~ipad@1x.png",
+      "idiom" : "ipad",
+      "scale" : "1x"
+    },
+    {
+      "filename" : "icon~ipad@2x.png",
+      "idiom" : "ipad",
+      "scale" : "2x"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}
