@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -12,11 +12,15 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { useOnboardingStore, getStepProgress } from '../../store/onboardingStore';
+import { ThemeColors, useColors } from '../../theme/ThemeProvider';
 
 const PHOTO_SLOTS = 6;
 const MIN_PHOTOS = 1;
+const withAlpha = (color: string, alphaHex: string): string => `${color}${alphaHex}`;
 
 export default function ProfilePhotoScreen() {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { profileData, setProfilePhoto, removeProfilePhoto, completeStep } = useOnboardingStore();
   const progress = getStepProgress('profile_photo');
   const [isUploading, setIsUploading] = useState(false);
@@ -154,7 +158,7 @@ export default function ProfilePhotoScreen() {
 
   return (
     <LinearGradient
-      colors={['#1a1a2e', '#16213e', '#0f0f23']}
+      colors={[colors.surface, colors.backgroundSecondary, colors.background]}
       style={styles.container}
     >
       <View style={styles.header}>
@@ -216,7 +220,7 @@ export default function ProfilePhotoScreen() {
           activeOpacity={0.8}
         >
           <LinearGradient
-            colors={['#e94560', '#c73e54']}
+            colors={[colors.primary, colors.primaryDark]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.buttonGradient}
@@ -229,7 +233,7 @@ export default function ProfilePhotoScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -243,13 +247,13 @@ const styles = StyleSheet.create({
   progressBar: {
     flex: 1,
     height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: withAlpha(colors.text, '1A'),
     borderRadius: 2,
     marginRight: 16,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#e94560',
+    backgroundColor: colors.primary,
     borderRadius: 2,
   },
   skipButton: {
@@ -258,7 +262,7 @@ const styles = StyleSheet.create({
   },
   skipText: {
     fontSize: 14,
-    color: '#8892b0',
+    color: colors.textSecondary,
   },
   content: {
     flex: 1,
@@ -267,12 +271,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.text,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#8892b0',
+    color: colors.textSecondary,
     marginBottom: 24,
   },
   photoGrid: {
@@ -297,11 +301,11 @@ const styles = StyleSheet.create({
     height: 96,
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: withAlpha(colors.text, '1A'),
   },
   emptySlot: {
     borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: withAlpha(colors.text, '33'),
     borderStyle: 'dashed',
     justifyContent: 'center',
     alignItems: 'center',
@@ -314,19 +318,19 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(233, 69, 96, 0.2)',
+    backgroundColor: withAlpha(colors.primary, '33'),
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 4,
   },
   addIconText: {
     fontSize: 20,
-    color: '#e94560',
+    color: colors.primary,
     fontWeight: '600',
   },
   addText: {
     fontSize: 11,
-    color: '#8892b0',
+    color: colors.textSecondary,
     textAlign: 'center',
     marginTop: 4,
   },
@@ -337,38 +341,38 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: withAlpha(colors.background, '99'),
     justifyContent: 'center',
     alignItems: 'center',
   },
   removeButtonText: {
     fontSize: 18,
-    color: '#fff',
+    color: colors.text,
     fontWeight: '600',
   },
   mainBadge: {
     position: 'absolute',
     bottom: 8,
     left: 8,
-    backgroundColor: '#e94560',
+    backgroundColor: colors.primary,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
   },
   mainBadgeText: {
     fontSize: 10,
-    color: '#fff',
+    color: colors.text,
     fontWeight: '600',
   },
   tipsCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: withAlpha(colors.text, '0D'),
     borderRadius: 16,
     padding: 16,
   },
   tipsTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
     marginBottom: 12,
   },
   tipItem: {
@@ -378,13 +382,13 @@ const styles = StyleSheet.create({
   },
   tipIcon: {
     fontSize: 14,
-    color: '#2ecc71',
+    color: colors.success,
     marginRight: 8,
     width: 16,
   },
   tipText: {
     fontSize: 13,
-    color: '#8892b0',
+    color: colors.textSecondary,
   },
   bottomSection: {
     paddingHorizontal: 24,
@@ -392,7 +396,7 @@ const styles = StyleSheet.create({
   },
   photoCount: {
     fontSize: 14,
-    color: '#8892b0',
+    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 16,
   },
@@ -407,6 +411,6 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
   },
 });

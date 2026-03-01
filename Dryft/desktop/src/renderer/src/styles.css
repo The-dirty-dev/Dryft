@@ -1,0 +1,364 @@
+/* =============================================================================
+   Dryft Desktop Shell — Renderer Styles
+   Styles for the native chrome: titlebar, nav buttons, status indicators,
+   offline banner, loading screen, error screen, and webview container.
+   The web app content lives inside the <webview> and is unstyled here.
+============================================================================= */
+
+/* --------------------------------------------------------------------------
+   Reset & base
+-------------------------------------------------------------------------- */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: #0f0f23;
+  color: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* --------------------------------------------------------------------------
+   Title bar
+-------------------------------------------------------------------------- */
+.titlebar {
+  height: 40px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  background: #12122a;
+  border-bottom: 1px solid #1a1a3a;
+  position: relative;
+  z-index: 100;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Drag region — fills the space between traffic lights and nav buttons */
+.titlebar-drag {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  /* paddingLeft gives room for macOS traffic lights (70px) */
+  padding-left: 76px;
+  padding-right: 8px;
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+
+.titlebar-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #44446a;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+/* Nav buttons area — must NOT be draggable */
+.nav-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 6px;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+.nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  color: #5555aa;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+  flex-shrink: 0;
+}
+
+.nav-btn:hover:not(:disabled) {
+  background: #1e1e44;
+  color: #9999cc;
+}
+
+.nav-btn:active:not(:disabled) {
+  background: #28284e;
+}
+
+.nav-btn:disabled {
+  opacity: 0.28;
+  cursor: default;
+}
+
+/* --------------------------------------------------------------------------
+   Status area (connection dot, update button)
+-------------------------------------------------------------------------- */
+.status-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background 0.3s ease;
+}
+
+.status-dot--connected { background: #22cc88; }
+.status-dot--offline   { background: #cc4444; }
+.status-dot--loading   { background: #ccaa22; }
+
+.status-label {
+  font-size: 11px;
+  color: #44446a;
+}
+
+/* Update available button */
+.update-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  border-radius: 5px;
+  color: #a5b4fc;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.update-btn:hover {
+  background: rgba(99, 102, 241, 0.25);
+}
+
+/* --------------------------------------------------------------------------
+   Window controls (Windows / Linux only — hidden on macOS via JS)
+-------------------------------------------------------------------------- */
+.window-controls {
+  display: flex;
+  align-items: center;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+.window-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 40px;
+  background: none;
+  border: none;
+  color: #5555aa;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.window-btn:hover {
+  background: #1e1e44;
+  color: #9999cc;
+}
+
+.window-btn--close:hover {
+  background: #c0334a;
+  color: #ffffff;
+}
+
+/* --------------------------------------------------------------------------
+   Offline banner
+-------------------------------------------------------------------------- */
+.offline-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  background: #2a1a00;
+  border-bottom: 1px solid #5a3800;
+  color: #ffbb44;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.retry-btn {
+  margin-left: auto;
+  padding: 2px 10px;
+  background: transparent;
+  border: 1px solid #ffbb44;
+  border-radius: 4px;
+  color: #ffbb44;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.retry-btn:hover {
+  background: rgba(255, 187, 68, 0.12);
+}
+
+/* --------------------------------------------------------------------------
+   Loading screen
+-------------------------------------------------------------------------- */
+.loading-screen {
+  position: absolute;
+  inset: 40px 0 0 0; /* below titlebar */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0f0f23;
+  z-index: 50;
+}
+
+.loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+.loading-logo {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.loading-spinner {
+  width: 22px;
+  height: 22px;
+  border: 2px solid #22224a;
+  border-top-color: #a855f7;
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 12px;
+  color: #44446a;
+}
+
+/* --------------------------------------------------------------------------
+   Error screen
+-------------------------------------------------------------------------- */
+.error-screen {
+  position: absolute;
+  inset: 40px 0 0 0; /* below titlebar */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0f0f23;
+  z-index: 50;
+}
+
+.error-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  max-width: 380px;
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.error-icon {
+  color: #44446a;
+  margin-bottom: 4px;
+}
+
+.error-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: #ccccee;
+}
+
+.error-message {
+  font-size: 13px;
+  color: #7777aa;
+  line-height: 1.6;
+}
+
+.error-detail {
+  font-size: 11px;
+  color: #44446a;
+  font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+  max-width: 100%;
+  overflow-wrap: break-word;
+}
+
+.error-retry-btn {
+  margin-top: 8px;
+  padding: 9px 22px;
+  background: #a855f7;
+  border: none;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.error-retry-btn:hover {
+  background: #9333ea;
+}
+
+.error-retry-btn:active {
+  background: #7c22d4;
+}
+
+/* --------------------------------------------------------------------------
+   Webview container — fills all remaining vertical space
+-------------------------------------------------------------------------- */
+.webview-container {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+  background: #0f0f23;
+}
+
+.webview-container webview {
+  width: 100%;
+  height: 100%;
+  border: none;
+}

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -15,14 +15,18 @@ import { Audio } from 'expo-av';
 import { callSignalingService } from '../../services/callSignaling';
 import { RootStackParamList } from '../../navigation';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { ThemeColors, useColors } from '../../theme/ThemeProvider';
 
 type IncomingCallRouteProp = RouteProp<RootStackParamList, 'IncomingCall'>;
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+const withAlpha = (color: string, alphaHex: string): string => `${color}${alphaHex}`;
 
 export function IncomingCallScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<IncomingCallRouteProp>();
   const insets = useSafeAreaInsets();
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const { callId, callerId, callerName, callerPhoto, videoEnabled, matchId } = route.params;
 
@@ -160,7 +164,7 @@ export function IncomingCallScreen() {
             <Image source={{ uri: callerPhoto }} style={styles.avatar} />
           ) : (
             <View style={styles.avatarPlaceholder}>
-              <Ionicons name="person" size={60} color="#666" />
+              <Ionicons name="person" size={60} color={colors.textMuted} />
             </View>
           )}
         </Animated.View>
@@ -181,11 +185,11 @@ export function IncomingCallScreen() {
               },
             ]}
           >
-            <Ionicons name="chevron-up" size={24} color="rgba(255,255,255,0.5)" />
+            <Ionicons name="chevron-up" size={24} color={withAlpha(colors.text, '80')} />
             <Ionicons
               name="chevron-up"
               size={24}
-              color="rgba(255,255,255,0.5)"
+              color={withAlpha(colors.text, '80')}
               style={{ marginTop: -12 }}
             />
           </Animated.View>
@@ -199,7 +203,7 @@ export function IncomingCallScreen() {
             <Ionicons
               name="call"
               size={32}
-              color="#fff"
+              color={colors.text}
               style={{ transform: [{ rotate: '135deg' }] }}
             />
           </View>
@@ -208,7 +212,7 @@ export function IncomingCallScreen() {
 
         <TouchableOpacity style={styles.acceptButton} onPress={handleAccept}>
           <View style={styles.acceptButtonInner}>
-            <Ionicons name="call" size={32} color="#fff" />
+            <Ionicons name="call" size={32} color={colors.text} />
           </View>
           <Text style={styles.buttonLabel}>Accept</Text>
         </TouchableOpacity>
@@ -217,12 +221,12 @@ export function IncomingCallScreen() {
       {/* Additional options */}
       <View style={styles.optionsContainer}>
         <TouchableOpacity style={styles.optionButton}>
-          <Ionicons name="chatbubble" size={20} color="#fff" />
+          <Ionicons name="chatbubble" size={20} color={colors.text} />
           <Text style={styles.optionText}>Message</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.optionButton}>
-          <Ionicons name="alarm" size={20} color="#fff" />
+          <Ionicons name="alarm" size={20} color={colors.text} />
           <Text style={styles.optionText}>Remind me</Text>
         </TouchableOpacity>
       </View>
@@ -230,14 +234,14 @@ export function IncomingCallScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surface,
   },
   backgroundGradient: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surface,
     opacity: 0.9,
   },
   callerSection: {
@@ -254,27 +258,27 @@ const styles = StyleSheet.create({
     height: 140,
     borderRadius: 70,
     borderWidth: 4,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: withAlpha(colors.text, '33'),
   },
   avatarPlaceholder: {
     width: 140,
     height: 140,
     borderRadius: 70,
-    backgroundColor: '#333',
+    backgroundColor: colors.surfaceElevated,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 4,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: withAlpha(colors.text, '33'),
   },
   callerName: {
     fontSize: 28,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
     marginBottom: 8,
   },
   callType: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: withAlpha(colors.text, '99'),
   },
   slideHintContainer: {
     marginTop: 40,
@@ -296,10 +300,10 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: '#e94560',
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#e94560',
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 8,
@@ -312,10 +316,10 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: '#4CAF50',
+    backgroundColor: colors.success,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#4CAF50',
+    shadowColor: colors.success,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 8,
@@ -324,7 +328,7 @@ const styles = StyleSheet.create({
   buttonLabel: {
     marginTop: 12,
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: withAlpha(colors.text, 'CC'),
     fontWeight: '500',
   },
   optionsContainer: {
@@ -333,7 +337,7 @@ const styles = StyleSheet.create({
     gap: 40,
     paddingVertical: 20,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    borderTopColor: withAlpha(colors.text, '1A'),
   },
   optionButton: {
     flexDirection: 'row',
@@ -343,7 +347,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   optionText: {
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: withAlpha(colors.text, 'B3'),
     fontSize: 14,
   },
 });

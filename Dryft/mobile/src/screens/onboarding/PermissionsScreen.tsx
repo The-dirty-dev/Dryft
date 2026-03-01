@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,9 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { Audio } from 'expo-av';
 import { useOnboardingStore, getStepProgress } from '../../store/onboardingStore';
+import { ThemeColors, useColors } from '../../theme/ThemeProvider';
+
+const withAlpha = (color: string, alphaHex: string): string => `${color}${alphaHex}`;
 
 interface Permission {
   id: keyof ReturnType<typeof useOnboardingStore.getState>['permissionsGranted'];
@@ -55,6 +58,8 @@ const PERMISSIONS: Permission[] = [
 ];
 
 export default function PermissionsScreen() {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { permissionsGranted, setPermission, completeStep } = useOnboardingStore();
   const progress = getStepProgress('permissions');
   const [isChecking, setIsChecking] = useState(true);
@@ -183,7 +188,7 @@ export default function PermissionsScreen() {
   if (isChecking) {
     return (
       <LinearGradient
-        colors={['#1a1a2e', '#16213e', '#0f0f23']}
+        colors={[colors.surface, colors.backgroundSecondary, colors.background]}
         style={styles.container}
       >
         <View style={styles.loadingContainer}>
@@ -195,7 +200,7 @@ export default function PermissionsScreen() {
 
   return (
     <LinearGradient
-      colors={['#1a1a2e', '#16213e', '#0f0f23']}
+      colors={[colors.surface, colors.backgroundSecondary, colors.background]}
       style={styles.container}
     >
       <View style={styles.header}>
@@ -277,7 +282,7 @@ export default function PermissionsScreen() {
           disabled={!allRequiredGranted}
         >
           <LinearGradient
-            colors={allRequiredGranted ? ['#e94560', '#c73e54'] : ['#4a4a5a', '#3a3a4a']}
+            colors={allRequiredGranted ? [colors.primary, colors.primaryDark] : [colors.borderLight, colors.border]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.buttonGradient}
@@ -294,7 +299,7 @@ export default function PermissionsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -305,7 +310,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: '#8892b0',
+    color: colors.textSecondary,
   },
   header: {
     flexDirection: 'row',
@@ -317,13 +322,13 @@ const styles = StyleSheet.create({
   progressBar: {
     flex: 1,
     height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: withAlpha(colors.text, '1A'),
     borderRadius: 2,
     marginRight: 16,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#e94560',
+    backgroundColor: colors.primary,
     borderRadius: 2,
   },
   skipButton: {
@@ -332,7 +337,7 @@ const styles = StyleSheet.create({
   },
   skipText: {
     fontSize: 14,
-    color: '#8892b0',
+    color: colors.textSecondary,
   },
   skipDisabled: {
     opacity: 0.3,
@@ -344,12 +349,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.text,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#8892b0',
+    color: colors.textSecondary,
     marginBottom: 32,
   },
   permissionsList: {
@@ -358,7 +363,7 @@ const styles = StyleSheet.create({
   permissionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: withAlpha(colors.text, '0D'),
     borderRadius: 16,
     padding: 16,
   },
@@ -366,7 +371,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: withAlpha(colors.text, '1A'),
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -386,44 +391,44 @@ const styles = StyleSheet.create({
   permissionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
     marginRight: 8,
   },
   requiredBadge: {
-    backgroundColor: 'rgba(233, 69, 96, 0.2)',
+    backgroundColor: withAlpha(colors.primary, '33'),
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
   },
   requiredText: {
     fontSize: 10,
-    color: '#e94560',
+    color: colors.primary,
     fontWeight: '600',
   },
   permissionDescription: {
     fontSize: 13,
-    color: '#8892b0',
+    color: colors.textSecondary,
     lineHeight: 18,
   },
   permissionButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: 'rgba(233, 69, 96, 0.2)',
+    backgroundColor: withAlpha(colors.primary, '33'),
     borderWidth: 1,
-    borderColor: '#e94560',
+    borderColor: colors.primary,
   },
   permissionGranted: {
-    backgroundColor: 'rgba(46, 204, 113, 0.2)',
-    borderColor: '#2ecc71',
+    backgroundColor: withAlpha(colors.success, '33'),
+    borderColor: colors.success,
   },
   permissionButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#e94560',
+    color: colors.primary,
   },
   permissionGrantedText: {
-    color: '#2ecc71',
+    color: colors.success,
   },
   allowAllButton: {
     marginTop: 24,
@@ -431,7 +436,7 @@ const styles = StyleSheet.create({
   },
   allowAllText: {
     fontSize: 14,
-    color: '#e94560',
+    color: colors.primary,
     fontWeight: '500',
   },
   bottomSection: {
@@ -453,11 +458,11 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
   },
   privacyNote: {
     fontSize: 12,
-    color: '#8892b0',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 18,
   },

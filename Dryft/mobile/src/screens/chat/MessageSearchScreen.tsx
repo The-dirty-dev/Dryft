@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import apiClient from '../../api/client';
 import { Input } from '../../components/common';
+import { ThemeColors, useColors } from '../../theme/ThemeProvider';
+
+const withAlpha = (color: string, alphaHex: string): string => `${color}${alphaHex}`;
 
 interface SearchResult {
   id: string;
@@ -42,6 +45,8 @@ type MessageSearchRouteProp = RouteProp<
 
 export default function MessageSearchScreen() {
   const navigation = useNavigation<any>();
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const route = useRoute<MessageSearchRouteProp>();
   const { conversationId, matchId, userName } = route.params || {};
 
@@ -203,7 +208,7 @@ export default function MessageSearchScreen() {
                 ? `Search in ${userName || 'conversation'}...`
                 : 'Search all messages...'
             }
-            placeholderTextColor="#6B7280"
+            placeholderTextColor={colors.textMuted}
             value={query}
             onChangeText={handleQueryChange}
             autoCapitalize="none"
@@ -229,7 +234,7 @@ export default function MessageSearchScreen() {
       {/* Results */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#EC4899" />
+          <ActivityIndicator size="large" color={colors.accentPink} />
           <Text style={styles.loadingText}>Searching...</Text>
         </View>
       ) : error ? (
@@ -297,10 +302,10 @@ function formatDate(dateString: string): string {
 // Styles
 // =============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F0F1A',
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -308,21 +313,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#1F1F2E',
+    borderBottomColor: colors.surfaceSecondary,
   },
   backButton: {
     padding: 8,
     marginRight: 8,
   },
   backButtonText: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 24,
   },
   searchContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1F1F2E',
+    backgroundColor: colors.surfaceSecondary,
     borderRadius: 12,
     paddingHorizontal: 12,
     height: 44,
@@ -333,7 +338,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    color: '#fff',
+    color: colors.text,
     fontSize: 16,
     height: '100%',
   },
@@ -341,7 +346,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   clearButtonText: {
-    color: '#6B7280',
+    color: colors.textMuted,
     fontSize: 16,
   },
   loadingContainer: {
@@ -350,7 +355,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    color: '#9CA3AF',
+    color: colors.textTertiary,
     marginTop: 12,
   },
   errorContainer: {
@@ -360,7 +365,7 @@ const styles = StyleSheet.create({
     padding: 32,
   },
   errorText: {
-    color: '#F87171',
+    color: colors.error,
     fontSize: 16,
     textAlign: 'center',
   },
@@ -375,13 +380,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   hintTitle: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 8,
   },
   hintText: {
-    color: '#9CA3AF',
+    color: colors.textTertiary,
     fontSize: 14,
     textAlign: 'center',
     lineHeight: 22,
@@ -397,13 +402,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   emptyTitle: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 8,
   },
   emptyText: {
-    color: '#9CA3AF',
+    color: colors.textTertiary,
     fontSize: 14,
     textAlign: 'center',
   },
@@ -411,13 +416,13 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   resultsCount: {
-    color: '#9CA3AF',
+    color: colors.textTertiary,
     fontSize: 14,
     paddingHorizontal: 16,
     marginBottom: 16,
   },
   resultCard: {
-    backgroundColor: '#1F1F2E',
+    backgroundColor: colors.surfaceSecondary,
     marginHorizontal: 16,
     marginBottom: 12,
     padding: 16,
@@ -435,12 +440,12 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   resultAvatarPlaceholder: {
-    backgroundColor: '#6B46C1',
+    backgroundColor: colors.accentSecondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   resultAvatarText: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 14,
     fontWeight: 'bold',
   },
@@ -451,22 +456,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   resultName: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 14,
     fontWeight: '600',
   },
   resultDate: {
-    color: '#6B7280',
+    color: colors.textMuted,
     fontSize: 12,
   },
   resultContent: {
-    color: '#D1D5DB',
+    color: colors.textSecondary,
     fontSize: 14,
     lineHeight: 20,
   },
   highlightedText: {
-    backgroundColor: 'rgba(236, 72, 153, 0.3)',
-    color: '#EC4899',
+    backgroundColor: withAlpha(colors.accentPink, '4D'),
+    color: colors.accentPink,
     fontWeight: '600',
   },
 });

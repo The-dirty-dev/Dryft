@@ -255,7 +255,7 @@ export default function LockScreen({ onUnlock, onLogout }: LockScreenProps) {
         {/* Logo/Header */}
         <View style={styles.header}>
           <View style={[styles.logoContainer, { backgroundColor: theme.colors.primary }]}>
-            <Text style={styles.logoText}>D</Text>
+            <Text style={[styles.logoText, { color: theme.colors.text }]}>D</Text>
           </View>
           <Text style={[styles.title, { color: theme.colors.text }]}>
             Welcome Back
@@ -337,7 +337,6 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: 36,
     fontWeight: '700',
-    color: '#fff',
   },
   title: {
     fontSize: 24,

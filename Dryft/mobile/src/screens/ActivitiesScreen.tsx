@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useActivities, useDailyActivity } from '../hooks/useCouples';
 import type { Activity } from '../services/couples';
+import { ThemeColors, useColors } from '../theme/ThemeProvider';
+
+const withAlpha = (color: string, alphaHex: string): string => `${color}${alphaHex}`;
 
 const CATEGORIES = [
   { id: 'all', label: 'All', icon: '✨' },
@@ -25,6 +28,8 @@ const CATEGORIES = [
 
 export default function ActivitiesScreen() {
   const navigation = useNavigation<any>();
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [selectedCategory, setSelectedCategory] = useState('all');
 
   const { activity: dailyActivity, refresh: refreshDaily } = useDailyActivity();
@@ -158,7 +163,7 @@ export default function ActivitiesScreen() {
         columnWrapperStyle={styles.row}
         contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={handleRefresh} tintColor="#fff" />
+          <RefreshControl refreshing={loading} onRefresh={handleRefresh} tintColor={colors.text} />
         }
         ListEmptyComponent={
           <View style={styles.empty}>
@@ -170,10 +175,10 @@ export default function ActivitiesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F0F1A',
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -183,16 +188,16 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   backButton: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 24,
   },
   headerTitle: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 20,
     fontWeight: 'bold',
   },
   dailyBanner: {
-    backgroundColor: '#4C1D95',
+    backgroundColor: withAlpha(colors.accentSecondary, '80'),
     marginHorizontal: 16,
     marginBottom: 16,
     borderRadius: 16,
@@ -211,29 +216,29 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   dailyBannerTitle: {
-    color: 'rgba(255,255,255,0.7)',
+    color: colors.textSecondary,
     fontSize: 12,
     textTransform: 'uppercase',
   },
   dailyBannerName: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 16,
     fontWeight: 'bold',
   },
   dailyBannerXp: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: withAlpha(colors.text, '33'),
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
   },
   dailyBannerXpText: {
-    color: '#FCD34D',
+    color: colors.accentYellow,
     fontSize: 18,
     fontWeight: 'bold',
   },
   dailyBannerXpLabel: {
-    color: '#FCD34D',
+    color: colors.accentYellow,
     fontSize: 10,
   },
   categories: {
@@ -246,25 +251,25 @@ const styles = StyleSheet.create({
   categoryChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1F1F2E',
+    backgroundColor: colors.surfaceSecondary,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
     marginHorizontal: 4,
   },
   categoryChipActive: {
-    backgroundColor: '#6B46C1',
+    backgroundColor: colors.accentSecondary,
   },
   categoryIcon: {
     fontSize: 16,
     marginRight: 6,
   },
   categoryLabel: {
-    color: '#9CA3AF',
+    color: colors.textTertiary,
     fontSize: 14,
   },
   categoryLabelActive: {
-    color: '#fff',
+    color: colors.text,
   },
   listContent: {
     padding: 12,
@@ -273,7 +278,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   activityCard: {
-    backgroundColor: '#1F1F2E',
+    backgroundColor: colors.surfaceSecondary,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
@@ -292,49 +297,49 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   dailyBadge: {
-    backgroundColor: '#FCD34D',
+    backgroundColor: colors.accentYellow,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
     marginLeft: 'auto',
   },
   dailyBadgeText: {
-    color: '#000',
+    color: colors.textInverse,
     fontSize: 10,
     fontWeight: 'bold',
   },
   premiumBadge: {
-    backgroundColor: '#EC4899',
+    backgroundColor: colors.accentPink,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
     marginLeft: 4,
   },
   premiumBadgeText: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 10,
     fontWeight: 'bold',
   },
   completedBadge: {
-    backgroundColor: '#10B981',
+    backgroundColor: colors.success,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
     marginLeft: 'auto',
   },
   completedBadgeText: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 10,
     fontWeight: 'bold',
   },
   activityTitle: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 14,
     fontWeight: 'bold',
     marginBottom: 4,
   },
   activityDesc: {
-    color: '#9CA3AF',
+    color: colors.textTertiary,
     fontSize: 12,
     marginBottom: 12,
     lineHeight: 18,
@@ -354,7 +359,7 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   metaText: {
-    color: '#9CA3AF',
+    color: colors.textTertiary,
     fontSize: 12,
   },
   difficultyBadge: {
@@ -363,28 +368,28 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   difficultyEASY: {
-    backgroundColor: '#D1FAE5',
+    backgroundColor: withAlpha(colors.success, '33'),
   },
   difficultyMEDIUM: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: withAlpha(colors.warning, '33'),
   },
   difficultyHARD: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: withAlpha(colors.error, '33'),
   },
   difficultyText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#374151',
+    color: colors.textInverse,
     textTransform: 'capitalize',
   },
   requiresBoth: {
     marginTop: 8,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#2D2D3D',
+    borderTopColor: colors.border,
   },
   requiresBothText: {
-    color: '#9CA3AF',
+    color: colors.textTertiary,
     fontSize: 11,
   },
   empty: {
@@ -392,7 +397,7 @@ const styles = StyleSheet.create({
     padding: 32,
   },
   emptyText: {
-    color: '#9CA3AF',
+    color: colors.textTertiary,
     fontSize: 16,
   },
 });

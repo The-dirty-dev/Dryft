@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useBlockedUsers } from '../../hooks/useModeration';
 import { BlockedUser, BLOCK_REASONS } from '../../services/moderation';
+import { ThemeColors, useColors } from '../../theme/ThemeProvider';
+
+const withAlpha = (color: string, alphaHex: string): string => `${color}${alphaHex}`;
 
 // ============================================================================
 // Types
@@ -35,6 +38,9 @@ interface BlockedUserItemProps {
 }
 
 function BlockedUserItem({ user, onUnblock, isUnblocking }: BlockedUserItemProps) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
@@ -67,7 +73,7 @@ function BlockedUserItem({ user, onUnblock, isUnblocking }: BlockedUserItemProps
           <Image source={{ uri: user.userPhoto }} style={styles.userPhoto} />
         ) : (
           <View style={styles.userPhotoPlaceholder}>
-            <Ionicons name="person" size={24} color="#6B7280" />
+            <Ionicons name="person" size={24} color={colors.textMuted} />
           </View>
         )}
 
@@ -90,7 +96,7 @@ function BlockedUserItem({ user, onUnblock, isUnblocking }: BlockedUserItemProps
         disabled={isUnblocking}
       >
         {isUnblocking ? (
-          <ActivityIndicator size="small" color="#8B5CF6" />
+          <ActivityIndicator size="small" color={colors.accent} />
         ) : (
           <Text style={styles.unblockButtonText}>Unblock</Text>
         )}
@@ -104,10 +110,13 @@ function BlockedUserItem({ user, onUnblock, isUnblocking }: BlockedUserItemProps
 // ============================================================================
 
 function EmptyState() {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <View style={styles.emptyState}>
       <View style={styles.emptyIcon}>
-        <Ionicons name="ban-outline" size={48} color="#4B5563" />
+        <Ionicons name="ban-outline" size={48} color={colors.borderLight} />
       </View>
       <Text style={styles.emptyTitle}>No Blocked Users</Text>
       <Text style={styles.emptyMessage}>
@@ -123,6 +132,8 @@ function EmptyState() {
 // ============================================================================
 
 export function BlockedUsersScreen({ onBack }: BlockedUsersScreenProps) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const { blockedUsers, blockedCount, isLoading, unblockUser } = useBlockedUsers();
   const [unblockingId, setUnblockingId] = useState<string | null>(null);
@@ -163,14 +174,14 @@ export function BlockedUsersScreen({ onBack }: BlockedUsersScreenProps) {
         <View style={styles.header}>
           {onBack && (
             <TouchableOpacity style={styles.backButton} onPress={onBack}>
-              <Ionicons name="arrow-back" size={24} color="#fff" />
+              <Ionicons name="arrow-back" size={24} color={colors.text} />
             </TouchableOpacity>
           )}
           <Text style={styles.headerTitle}>Blocked Users</Text>
           <View style={styles.headerSpacer} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#8B5CF6" />
+          <ActivityIndicator size="large" color={colors.accent} />
         </View>
       </View>
     );
@@ -182,7 +193,7 @@ export function BlockedUsersScreen({ onBack }: BlockedUsersScreenProps) {
       <View style={styles.header}>
         {onBack && (
           <TouchableOpacity style={styles.backButton} onPress={onBack}>
-            <Ionicons name="arrow-back" size={24} color="#fff" />
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
         )}
         <Text style={styles.headerTitle}>Blocked Users</Text>
@@ -192,7 +203,7 @@ export function BlockedUsersScreen({ onBack }: BlockedUsersScreenProps) {
       {/* Count Badge */}
       {blockedCount > 0 && (
         <View style={styles.countBadge}>
-          <Ionicons name="ban" size={16} color="#EF4444" />
+          <Ionicons name="ban" size={16} color={colors.error} />
           <Text style={styles.countText}>
             {blockedCount} {blockedCount === 1 ? 'user' : 'users'} blocked
           </Text>
@@ -201,7 +212,7 @@ export function BlockedUsersScreen({ onBack }: BlockedUsersScreenProps) {
 
       {/* Info Banner */}
       <View style={styles.infoBanner}>
-        <Ionicons name="information-circle" size={20} color="#8B5CF6" />
+        <Ionicons name="information-circle" size={20} color={colors.accent} />
         <Text style={styles.infoBannerText}>
           Blocked users cannot see your profile, send you messages, or match
           with you.
@@ -222,7 +233,7 @@ export function BlockedUsersScreen({ onBack }: BlockedUsersScreenProps) {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor="#8B5CF6"
+            tintColor={colors.accent}
           />
         }
         showsVerticalScrollIndicator={false}
@@ -235,10 +246,10 @@ export function BlockedUsersScreen({ onBack }: BlockedUsersScreenProps) {
 // Styles
 // ============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0a',
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -247,7 +258,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#1a1a1a',
+    borderBottomColor: colors.backgroundDarkest,
   },
   backButton: {
     width: 40,
@@ -258,7 +269,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#fff',
+    color: colors.text,
   },
   headerSpacer: {
     width: 40,
@@ -272,19 +283,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    backgroundColor: withAlpha(colors.error, '1A'),
     paddingVertical: 12,
     gap: 8,
   },
   countText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#EF4444',
+    color: colors.error,
   },
   infoBanner: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.backgroundDarkest,
     margin: 16,
     padding: 16,
     borderRadius: 12,
@@ -293,7 +304,7 @@ const styles = StyleSheet.create({
   infoBannerText: {
     flex: 1,
     fontSize: 14,
-    color: '#9CA3AF',
+    color: colors.textTertiary,
     lineHeight: 20,
   },
   listContent: {
@@ -307,7 +318,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.backgroundDarkest,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -326,7 +337,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#2a2a2a',
+    backgroundColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -337,20 +348,20 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
     marginBottom: 4,
   },
   blockedDate: {
     fontSize: 13,
-    color: '#6B7280',
+    color: colors.textMuted,
   },
   blockReason: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: colors.textTertiary,
     marginTop: 2,
   },
   unblockButton: {
-    backgroundColor: 'rgba(139, 92, 246, 0.2)',
+    backgroundColor: withAlpha(colors.accent, '33'),
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
@@ -360,7 +371,7 @@ const styles = StyleSheet.create({
   unblockButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#8B5CF6',
+    color: colors.accent,
   },
   emptyState: {
     flex: 1,
@@ -372,7 +383,7 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.backgroundDarkest,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 24,
@@ -380,12 +391,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#fff',
+    color: colors.text,
     marginBottom: 12,
   },
   emptyMessage: {
     fontSize: 15,
-    color: '#6B7280',
+    color: colors.textMuted,
     textAlign: 'center',
     lineHeight: 22,
   },

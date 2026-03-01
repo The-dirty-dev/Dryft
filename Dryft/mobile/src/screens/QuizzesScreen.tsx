@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -13,32 +13,38 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { useQuizzes } from '../hooks/useCouples';
 import type { Quiz } from '../services/couples';
+import { ThemeColors, useColors } from '../theme/ThemeProvider';
 
-const CATEGORY_COLORS: Record<string, string[]> = {
-  KNOW_YOUR_PARTNER: ['#6B46C1', '#9333EA'],
-  COMPATIBILITY: ['#EC4899', '#F472B6'],
-  COMMUNICATION: ['#3B82F6', '#60A5FA'],
-  LOVE_LANGUAGE: ['#EF4444', '#F87171'],
-  FUTURE_GOALS: ['#10B981', '#34D399'],
-  FUN: ['#F59E0B', '#FBBF24'],
-  RELATIONSHIP_HEALTH: ['#8B5CF6', '#A78BFA'],
-};
+const withAlpha = (color: string, alphaHex: string): string => `${color}${alphaHex}`;
+
+const getCategoryGradients = (colors: ThemeColors): Record<string, [string, string]> => ({
+  KNOW_YOUR_PARTNER: [colors.accentSecondary, colors.accent],
+  COMPATIBILITY: [colors.accentPink, colors.primaryLight],
+  COMMUNICATION: [colors.info, colors.superLike],
+  LOVE_LANGUAGE: [colors.error, colors.primary],
+  FUTURE_GOALS: [colors.success, colors.like],
+  FUN: [colors.warning, colors.accentYellow],
+  RELATIONSHIP_HEALTH: [colors.accent, colors.primaryLight],
+});
 
 export default function QuizzesScreen() {
   const navigation = useNavigation<any>();
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const categoryGradients = useMemo(() => getCategoryGradients(colors), [colors]);
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>();
 
   const { quizzes, categories, loading, refresh } = useQuizzes(selectedCategory);
 
   const renderQuiz = ({ item }: { item: Quiz }) => {
-    const colors = CATEGORY_COLORS[item.category] || ['#6B46C1', '#9333EA'];
+    const gradientColors = categoryGradients[item.category] || [colors.accentSecondary, colors.accent];
 
     return (
       <TouchableOpacity
         style={styles.quizCard}
         onPress={() => navigation.navigate('QuizDetail', { quizId: item.id })}
       >
-        <LinearGradient colors={colors} style={styles.quizGradient}>
+        <LinearGradient colors={gradientColors} style={styles.quizGradient}>
           <View style={styles.quizHeader}>
             <Text style={styles.quizIcon}>{item.icon_url || '🧠'}</Text>
             {item.is_attempted && (
@@ -123,7 +129,7 @@ export default function QuizzesScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={refresh} tintColor="#fff" />
+          <RefreshControl refreshing={loading} onRefresh={refresh} tintColor={colors.text} />
         }
         ListHeaderComponent={
           selectedCategory ? (
@@ -148,10 +154,10 @@ export default function QuizzesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F0F1A',
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -161,11 +167,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   backButton: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 24,
   },
   headerTitle: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 20,
     fontWeight: 'bold',
   },
@@ -178,7 +184,7 @@ const styles = StyleSheet.create({
   },
   categoryCard: {
     alignItems: 'center',
-    backgroundColor: '#1F1F2E',
+    backgroundColor: colors.surfaceSecondary,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12,
@@ -186,14 +192,14 @@ const styles = StyleSheet.create({
     minWidth: 80,
   },
   categoryCardActive: {
-    backgroundColor: '#6B46C1',
+    backgroundColor: colors.accentSecondary,
   },
   categoryIcon: {
     fontSize: 24,
     marginBottom: 4,
   },
   categoryName: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 12,
     textAlign: 'center',
   },
@@ -207,11 +213,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   filterText: {
-    color: '#9CA3AF',
+    color: colors.textTertiary,
     fontSize: 14,
   },
   clearFilter: {
-    color: '#EC4899',
+    color: colors.accentPink,
     fontSize: 14,
   },
   quizCard: {
@@ -231,37 +237,37 @@ const styles = StyleSheet.create({
     fontSize: 32,
   },
   attemptedBadge: {
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: withAlpha(colors.text, '4D'),
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
     marginLeft: 'auto',
   },
   attemptedText: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 12,
     fontWeight: '600',
   },
   premiumBadge: {
-    backgroundColor: '#FCD34D',
+    backgroundColor: colors.accentYellow,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
     marginLeft: 8,
   },
   premiumText: {
-    color: '#000',
+    color: colors.textInverse,
     fontSize: 12,
     fontWeight: '600',
   },
   quizTitle: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 8,
   },
   quizDesc: {
-    color: 'rgba(255,255,255,0.8)',
+    color: colors.textSecondary,
     fontSize: 14,
     lineHeight: 20,
     marginBottom: 16,
@@ -274,18 +280,18 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   metaText: {
-    color: 'rgba(255,255,255,0.7)',
+    color: colors.textSecondary,
     fontSize: 13,
   },
   xpBadge: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: withAlpha(colors.text, '33'),
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
     marginLeft: 'auto',
   },
   xpText: {
-    color: '#FCD34D',
+    color: colors.accentYellow,
     fontSize: 14,
     fontWeight: 'bold',
   },
@@ -298,7 +304,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   emptyText: {
-    color: '#9CA3AF',
+    color: colors.textTertiary,
     fontSize: 16,
   },
 });

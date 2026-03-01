@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { useMarketplaceStore } from '../../store/marketplaceStore';
 import ItemCard from '../../components/ItemCard';
 import { ItemType, StoreItem } from '../../types';
 import { Button, Input } from '../../components/common';
+import { ThemeColors, useColors } from '../../theme/ThemeProvider';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -29,6 +30,8 @@ const ITEM_TYPES: { label: string; value: ItemType | null }[] = [
 
 export default function StoreScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<ItemType | null>(null);
 
@@ -83,7 +86,7 @@ export default function StoreScreen() {
           <Input
             style={styles.searchInput}
             placeholder="Search items..."
-            placeholderTextColor="#8892b0"
+            placeholderTextColor={colors.textSecondary}
             value={searchQuery}
             onChangeText={setSearchQuery}
             onSubmitEditing={handleSearch}
@@ -127,7 +130,7 @@ export default function StoreScreen() {
 
       {isLoadingStore && items.length === 0 ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#e94560" />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : items.length === 0 ? (
         <View style={styles.emptyContainer}>
@@ -155,7 +158,7 @@ export default function StoreScreen() {
             isLoadingStore ? (
               <ActivityIndicator
                 style={styles.loadingMore}
-                color="#e94560"
+                color={colors.primary}
               />
             ) : null
           }
@@ -165,20 +168,20 @@ export default function StoreScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f0f23',
+    backgroundColor: colors.background,
   },
   header: {
     padding: 20,
     paddingTop: 60,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surface,
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.text,
     marginBottom: 16,
   },
   searchContainer: {
@@ -187,22 +190,22 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    backgroundColor: '#0f0f23',
+    backgroundColor: colors.background,
     borderRadius: 12,
     padding: 12,
     fontSize: 16,
-    color: '#fff',
+    color: colors.text,
     borderWidth: 1,
-    borderColor: '#16213e',
+    borderColor: colors.border,
   },
   searchButton: {
-    backgroundColor: '#e94560',
+    backgroundColor: colors.primary,
     borderRadius: 12,
     paddingHorizontal: 20,
     justifyContent: 'center',
   },
   searchButtonText: {
-    color: '#fff',
+    color: colors.text,
     fontWeight: '600',
   },
   typeFilter: {
@@ -217,21 +220,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#0f0f23',
+    backgroundColor: colors.background,
     borderWidth: 1,
-    borderColor: '#16213e',
+    borderColor: colors.border,
   },
   typeChipActive: {
-    backgroundColor: '#e94560',
-    borderColor: '#e94560',
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   typeChipText: {
-    color: '#8892b0',
+    color: colors.textSecondary,
     fontSize: 14,
     fontWeight: '500',
   },
   typeChipTextActive: {
-    color: '#fff',
+    color: colors.text,
   },
   loadingContainer: {
     flex: 1,
@@ -247,11 +250,11 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#8892b0',
+    color: colors.textSecondary,
     marginTop: 8,
   },
   grid: {

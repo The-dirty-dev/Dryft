@@ -205,7 +205,7 @@ export default function NotificationSettingsScreen() {
               value={settings.enabled}
               onValueChange={(value) => updateCategorySetting(config.key, { enabled: value })}
               trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
-              thumbColor="#fff"
+              thumbColor={theme.colors.text}
             />
             <Ionicons
               name={isExpanded ? 'chevron-up' : 'chevron-down'}
@@ -224,7 +224,7 @@ export default function NotificationSettingsScreen() {
                 value={settings.sound}
                 onValueChange={(value) => updateCategorySetting(config.key, { sound: value })}
                 trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
-                thumbColor="#fff"
+                thumbColor={theme.colors.text}
               />
             </View>
             <View style={styles.detailRow}>
@@ -233,7 +233,7 @@ export default function NotificationSettingsScreen() {
                 value={settings.vibration}
                 onValueChange={(value) => updateCategorySetting(config.key, { vibration: value })}
                 trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
-                thumbColor="#fff"
+                thumbColor={theme.colors.text}
               />
             </View>
             <View style={styles.detailRow}>
@@ -242,7 +242,7 @@ export default function NotificationSettingsScreen() {
                 value={settings.showPreview}
                 onValueChange={(value) => updateCategorySetting(config.key, { showPreview: value })}
                 trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
-                thumbColor="#fff"
+                thumbColor={theme.colors.text}
               />
             </View>
           </View>
@@ -295,7 +295,7 @@ export default function NotificationSettingsScreen() {
                 value={quietHours.enabled}
                 onValueChange={(value) => updateQuietHours({ enabled: value })}
                 trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
-                thumbColor="#fff"
+                thumbColor={theme.colors.text}
               />
             </View>
 

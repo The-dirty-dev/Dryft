@@ -15,6 +15,7 @@ import { useTheme } from '../theme/ThemeProvider';
 import { useSubscriptionStore, Entitlements, SubscriptionTier } from '../store/subscriptionStore';
 
 const { width } = Dimensions.get('window');
+const withAlpha = (color: string, alphaHex: string): string => `${color}${alphaHex}`;
 
 interface PaywallProps {
   feature: keyof Entitlements;
@@ -62,7 +63,7 @@ export function Paywall({
 
       {/* Overlay */}
       <View style={[styles.overlay, { backgroundColor: theme.colors.background + 'E6' }]}>
-        <View style={styles.lockIcon}>
+        <View style={[styles.lockIcon, { backgroundColor: withAlpha(theme.colors.primary, '1A') }]}>
           <Ionicons name="lock-closed" size={48} color={theme.colors.primary} />
         </View>
 
@@ -81,8 +82,8 @@ export function Paywall({
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
-            <Ionicons name="diamond" size={20} color="#fff" />
-            <Text style={styles.upgradeButtonText}>Upgrade Now</Text>
+            <Ionicons name="diamond" size={20} color={theme.colors.text} />
+            <Text style={[styles.upgradeButtonText, { color: theme.colors.text }]}>Upgrade Now</Text>
           </LinearGradient>
         </TouchableOpacity>
 
@@ -135,7 +136,7 @@ export function PaywallModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.modalOverlay}>
+      <View style={[styles.modalOverlay, { backgroundColor: theme.colors.overlay }]}>
         <View style={[styles.modalContent, { backgroundColor: theme.colors.surface }]}>
           <TouchableOpacity onPress={onClose} style={styles.modalCloseButton}>
             <Ionicons name="close" size={24} color={theme.colors.textSecondary} />
@@ -180,7 +181,7 @@ export function PaywallModal({
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
             >
-              <Text style={styles.modalUpgradeText}>View Plans</Text>
+              <Text style={[styles.modalUpgradeText, { color: theme.colors.text }]}>View Plans</Text>
             </LinearGradient>
           </TouchableOpacity>
 
@@ -240,14 +241,14 @@ export function PremiumBadge({ size = 'medium', showLabel = true }: PremiumBadge
 
   return (
     <LinearGradient
-      colors={['#f59e0b', '#d97706']}
+      colors={[theme.colors.warning, theme.colors.primaryDark]}
       style={[styles.premiumBadge, { padding: s.padding }]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
     >
-      <Ionicons name="diamond" size={s.icon} color="#fff" />
+      <Ionicons name="diamond" size={s.icon} color={theme.colors.text} />
       {showLabel && (
-        <Text style={[styles.premiumBadgeText, { fontSize: s.fontSize }]}>
+        <Text style={[styles.premiumBadgeText, { fontSize: s.fontSize, color: theme.colors.text }]}>
           PREMIUM
         </Text>
       )}
@@ -281,7 +282,7 @@ export function UpgradePrompt({ title, subtitle, compact = false }: UpgradePromp
         colors={[theme.colors.primary, theme.colors.primaryDark]}
         style={styles.upgradePromptIcon}
       >
-        <Ionicons name="diamond" size={compact ? 16 : 20} color="#fff" />
+        <Ionicons name="diamond" size={compact ? 16 : 20} color={theme.colors.text} />
       </LinearGradient>
 
       <View style={styles.upgradePromptText}>
@@ -324,7 +325,6 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: 'rgba(233, 69, 96, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
@@ -350,7 +350,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   upgradeButtonText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -364,7 +363,6 @@ const styles = StyleSheet.create({
   // Modal styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
@@ -423,7 +421,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalUpgradeText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -439,7 +436,6 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   premiumBadgeText: {
-    color: '#fff',
     fontWeight: '700',
   },
   // Upgrade prompt

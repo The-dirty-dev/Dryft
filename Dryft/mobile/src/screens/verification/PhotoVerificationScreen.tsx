@@ -16,6 +16,8 @@ import { useTheme } from '../../theme/ThemeProvider';
 import { useVerificationStore } from '../../store/verificationStore';
 import { AccessibleButton } from '../../components/AccessibleComponents';
 
+const withAlpha = (color: string, alphaHex: string): string => `${color}${alphaHex}`;
+
 type PoseType = 'front' | 'left' | 'right' | 'smile';
 
 interface PoseInstruction {
@@ -162,7 +164,7 @@ export default function PhotoVerificationScreen({ navigation }: any) {
             onPress={() => navigation.goBack()}
             style={[styles.button, { backgroundColor: theme.colors.primary }]}
           >
-            <Text style={styles.buttonText}>Go Back</Text>
+            <Text style={[styles.buttonText, { color: theme.colors.text }]}>Go Back</Text>
           </AccessibleButton>
         </View>
       </SafeAreaView>
@@ -195,7 +197,7 @@ export default function PhotoVerificationScreen({ navigation }: any) {
               <View key={pose.type} style={styles.photoItem}>
                 <Image
                   source={{ uri: capturedPhotos[pose.type] || undefined }}
-                  style={styles.reviewPhoto}
+                  style={[styles.reviewPhoto, { backgroundColor: theme.colors.surfaceElevated }]}
                 />
                 <Text style={[styles.photoLabel, { color: theme.colors.textSecondary }]}>
                   {pose.title}
@@ -221,9 +223,11 @@ export default function PhotoVerificationScreen({ navigation }: any) {
               style={[styles.submitButton, { backgroundColor: theme.colors.primary }]}
             >
               {isLoading ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={theme.colors.text} />
               ) : (
-                <Text style={styles.submitButtonText}>Submit for Verification</Text>
+                <Text style={[styles.submitButtonText, { color: theme.colors.text }]}>
+                  Submit for Verification
+                </Text>
               )}
             </AccessibleButton>
 
@@ -286,7 +290,7 @@ export default function PhotoVerificationScreen({ navigation }: any) {
 
       {/* Pose instructions */}
       <View style={[styles.instructionContainer, { backgroundColor: theme.colors.surface }]}>
-        <View style={styles.instructionIcon}>
+        <View style={[styles.instructionIcon, { backgroundColor: withAlpha(theme.colors.primary, '1A') }]}>
           <Ionicons
             name={currentPose.icon as any}
             size={32}
@@ -400,7 +404,6 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: 'rgba(233, 69, 96, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -472,7 +475,6 @@ const styles = StyleSheet.create({
     borderRadius: 24,
   },
   buttonText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -504,7 +506,6 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 3 / 4,
     borderRadius: 12,
-    backgroundColor: '#333',
   },
   photoLabel: {
     fontSize: 12,
@@ -531,7 +532,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   submitButtonText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },

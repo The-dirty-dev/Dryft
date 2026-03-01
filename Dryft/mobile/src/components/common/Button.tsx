@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   TouchableOpacity,
   Text,
@@ -8,6 +8,7 @@ import {
   TextStyle,
   GestureResponderEvent,
 } from 'react-native';
+import { ThemeColors, useColors } from '../../theme/ThemeProvider';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
 
@@ -30,6 +31,9 @@ export default function Button({
   style,
   textStyle,
 }: ButtonProps) {
+  const colors = useColors();
+  const stylesByVariant = useMemo(() => getVariantStyles(colors), [colors]);
+  const textByVariant = useMemo(() => getTextVariantStyles(colors), [colors]);
   const isDisabled = disabled || loading;
 
   return (
@@ -45,7 +49,7 @@ export default function Button({
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'primary' ? '#fff' : '#e94560'} />
+        <ActivityIndicator color={variant === 'primary' ? colors.text : colors.primary} />
       ) : (
         <Text style={[styles.text, textByVariant[variant], textStyle]}>{title}</Text>
       )}
@@ -71,36 +75,36 @@ const styles = StyleSheet.create({
   },
 });
 
-const stylesByVariant: Record<ButtonVariant, ViewStyle> = {
+const getVariantStyles = (colors: ThemeColors): Record<ButtonVariant, ViewStyle> => ({
   primary: {
-    backgroundColor: '#e94560',
+    backgroundColor: colors.primary,
   },
   secondary: {
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#16213e',
+    borderColor: colors.backgroundSecondary,
   },
   outline: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: '#e94560',
+    borderColor: colors.primary,
   },
   ghost: {
     backgroundColor: 'transparent',
   },
-};
+});
 
-const textByVariant: Record<ButtonVariant, TextStyle> = {
+const getTextVariantStyles = (colors: ThemeColors): Record<ButtonVariant, TextStyle> => ({
   primary: {
-    color: '#fff',
+    color: colors.text,
   },
   secondary: {
-    color: '#fff',
+    color: colors.text,
   },
   outline: {
-    color: '#e94560',
+    color: colors.primary,
   },
   ghost: {
-    color: '#e94560',
+    color: colors.primary,
   },
-};
+});

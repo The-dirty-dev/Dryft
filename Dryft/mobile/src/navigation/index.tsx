@@ -10,6 +10,7 @@ import { UserPublicProfile } from '../types';
 import { ToastProvider } from '../components/Toast';
 import { GlobalNotifications } from '../components/GlobalNotifications';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import { useColors } from '../theme/ThemeProvider';
 
 // Onboarding Screens
 import {
@@ -249,11 +250,13 @@ function OnboardingNavigator() {
 }
 
 function VerificationNavigator() {
+  const colors = useColors();
+
   return (
     <VerificationStack.Navigator
       screenOptions={{
-        headerStyle: { backgroundColor: '#1a1a2e' },
-        headerTintColor: '#fff',
+        headerStyle: { backgroundColor: colors.surface },
+        headerTintColor: colors.text,
       }}
     >
       <VerificationStack.Screen
@@ -289,16 +292,18 @@ function AuthNavigator() {
 }
 
 function MainTabNavigator() {
+  const colors = useColors();
+
   return (
     <MainTab.Navigator
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#1a1a2e',
-          borderTopColor: '#16213e',
+          backgroundColor: colors.surface,
+          borderTopColor: colors.backgroundSecondary,
         },
-        tabBarActiveTintColor: '#e94560',
-        tabBarInactiveTintColor: '#8892b0',
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textSecondary,
       }}
     >
       <MainTab.Screen
@@ -341,14 +346,16 @@ function MainTabNavigator() {
 }
 
 function RootNavigator({ isVerified }: { isVerified: boolean }) {
+  const colors = useColors();
+
   return (
     <RootStack.Navigator
       initialRouteName={isVerified ? 'MainTabs' : 'Verification'}
       screenOptions={{
         headerStyle: {
-          backgroundColor: '#1a1a2e',
+          backgroundColor: colors.surface,
         },
-        headerTintColor: '#fff',
+        headerTintColor: colors.text,
       }}
     >
       <RootStack.Screen
@@ -450,6 +457,7 @@ function RootNavigator({ isVerified }: { isVerified: boolean }) {
 export default function Navigation() {
   const { isAuthenticated, isLoading, isVerified, initialize } = useAuthStore();
   const { hasCompletedOnboarding } = useOnboardingStore();
+  const colors = useColors();
 
   React.useEffect(() => {
     initialize();
@@ -457,8 +465,8 @@ export default function Navigation() {
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0f0f23' }}>
-        <ActivityIndicator size="large" color="#e94560" />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }

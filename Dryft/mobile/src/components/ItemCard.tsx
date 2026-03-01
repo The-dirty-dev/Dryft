@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import { StoreItem, formatPrice } from '../types';
+import { ThemeColors, useColors } from '../theme/ThemeProvider';
 
 interface ItemCardProps {
   item: StoreItem;
@@ -10,6 +11,9 @@ interface ItemCardProps {
 }
 
 export default function ItemCard({ item, onPress, compact = false }: ItemCardProps) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <TouchableOpacity
       style={[styles.card, compact && styles.cardCompact]}
@@ -58,14 +62,14 @@ export default function ItemCard({ item, onPress, compact = false }: ItemCardPro
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   card: {
     width: 160,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#16213e',
+    borderColor: colors.backgroundSecondary,
   },
   cardCompact: {
     width: '100%',
@@ -76,7 +80,7 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: 120,
-    backgroundColor: '#16213e',
+    backgroundColor: colors.backgroundSecondary,
   },
   imageCompact: {
     height: 100,
@@ -85,13 +89,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     left: 8,
-    backgroundColor: '#e94560',
+    backgroundColor: colors.primary,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
   },
   featuredText: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 10,
     fontWeight: '600',
   },
@@ -99,13 +103,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     right: 8,
-    backgroundColor: '#10b981',
+    backgroundColor: colors.success,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
   },
   ownedText: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 10,
     fontWeight: '600',
   },
@@ -115,11 +119,11 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
   },
   creator: {
     fontSize: 12,
-    color: '#8892b0',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   footer: {
@@ -131,13 +135,13 @@ const styles = StyleSheet.create({
   price: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#e94560',
+    color: colors.primary,
   },
   priceFree: {
-    color: '#10b981',
+    color: colors.success,
   },
   rating: {
     fontSize: 12,
-    color: '#8892b0',
+    color: colors.textSecondary,
   },
 });

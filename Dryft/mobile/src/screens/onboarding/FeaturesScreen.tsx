@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useOnboardingStore, getStepProgress } from '../../store/onboardingStore';
+import { ThemeColors, useColors } from '../../theme/ThemeProvider';
 
 const { width } = Dimensions.get('window');
 
@@ -18,7 +19,7 @@ interface Feature {
   icon: string;
   title: string;
   description: string;
-  color: string;
+  colorToken: keyof ThemeColors;
 }
 
 const FEATURES: Feature[] = [
@@ -28,7 +29,7 @@ const FEATURES: Feature[] = [
     title: 'Immersive VR Dating',
     description:
       'Meet in stunning virtual environments. Walk, talk, and interact like you\'re really there together.',
-    color: '#9b59b6',
+    colorToken: 'accent',
   },
   {
     id: 'avatar',
@@ -36,7 +37,7 @@ const FEATURES: Feature[] = [
     title: 'Custom Avatars',
     description:
       'Express yourself with fully customizable avatars. Unlock exclusive outfits, effects, and accessories.',
-    color: '#3498db',
+    colorToken: 'info',
   },
   {
     id: 'voice',
@@ -44,7 +45,7 @@ const FEATURES: Feature[] = [
     title: 'Voice Chat',
     description:
       'Have real conversations with spatial audio. Hear them as if they\'re right next to you.',
-    color: '#e74c3c',
+    colorToken: 'error',
   },
   {
     id: 'haptic',
@@ -52,7 +53,7 @@ const FEATURES: Feature[] = [
     title: 'Haptic Connection',
     description:
       'Connect compatible devices for an extra dimension of intimacy. Feel closer than ever.',
-    color: '#e94560',
+    colorToken: 'primary',
   },
   {
     id: 'mobile',
@@ -60,14 +61,18 @@ const FEATURES: Feature[] = [
     title: 'Mobile Companion',
     description:
       'Stay connected when not in VR. Chat, browse matches, and manage your profile anywhere.',
-    color: '#2ecc71',
+    colorToken: 'success',
   },
 ];
 
+const withAlpha = (color: string, alphaHex: string): string => `${color}${alphaHex}`;
+
 export default function FeaturesScreen() {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { completeStep } = useOnboardingStore();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const flatListRef = useRef<FlatList>(null);
+  const flatListRef = useRef<FlatList<Feature>>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
 
   const progress = getStepProgress('features');
@@ -112,7 +117,12 @@ export default function FeaturesScreen() {
             { transform: [{ scale }], opacity },
           ]}
         >
-          <View style={[styles.iconContainer, { backgroundColor: `${item.color}20` }]}>
+          <View
+            style={[
+              styles.iconContainer,
+              { backgroundColor: withAlpha(colors[item.colorToken], '20') },
+            ]}
+          >
             <Text style={styles.icon}>{item.icon}</Text>
           </View>
           <Text style={styles.featureTitle}>{item.title}</Text>
@@ -161,7 +171,7 @@ export default function FeaturesScreen() {
 
   return (
     <LinearGradient
-      colors={['#1a1a2e', '#16213e', '#0f0f23']}
+      colors={[colors.surface, colors.backgroundSecondary, colors.background]}
       style={styles.container}
     >
       <View style={styles.header}>
@@ -204,7 +214,7 @@ export default function FeaturesScreen() {
           activeOpacity={0.8}
         >
           <LinearGradient
-            colors={['#e94560', '#c73e54']}
+            colors={[colors.primary, colors.primaryDark]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.buttonGradient}
@@ -219,7 +229,7 @@ export default function FeaturesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -233,13 +243,13 @@ const styles = StyleSheet.create({
   progressBar: {
     flex: 1,
     height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: withAlpha(colors.text, '1A'),
     borderRadius: 2,
     marginRight: 16,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#e94560',
+    backgroundColor: colors.primary,
     borderRadius: 2,
   },
   skipButton: {
@@ -248,7 +258,7 @@ const styles = StyleSheet.create({
   },
   skipText: {
     fontSize: 14,
-    color: '#8892b0',
+    color: colors.textSecondary,
   },
   content: {
     flex: 1,
@@ -256,7 +266,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.text,
     textAlign: 'center',
     marginBottom: 32,
     paddingHorizontal: 24,
@@ -285,13 +295,13 @@ const styles = StyleSheet.create({
   featureTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.text,
     textAlign: 'center',
     marginBottom: 16,
   },
   featureDescription: {
     fontSize: 16,
-    color: '#8892b0',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
   },
@@ -304,7 +314,7 @@ const styles = StyleSheet.create({
   dot: {
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#e94560',
+    backgroundColor: colors.primary,
     marginHorizontal: 4,
   },
   bottomSection: {
@@ -322,6 +332,6 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
   },
 });

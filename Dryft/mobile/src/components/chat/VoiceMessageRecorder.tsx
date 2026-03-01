@@ -1,16 +1,18 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Animated,
-  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useVoiceRecording } from '../../hooks/useVoiceMessage';
+import { ThemeColors, useColors } from '../../theme/ThemeProvider';
+
+const withAlpha = (color: string, alphaHex: string): string => `${color}${alphaHex}`;
 
 // ============================================================================
 // Types
@@ -27,6 +29,8 @@ interface VoiceMessageRecorderProps {
 // ============================================================================
 
 function WaveformVisualizer({ metering }: { metering: number[] }) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const displayBars = metering.slice(-30);
   const bars = displayBars.length < 30
     ? [...Array(30 - displayBars.length).fill(0.1), ...displayBars]
@@ -59,6 +63,8 @@ export function VoiceMessageRecorder({
   onCancel,
   maxDuration = 60000,
 }: VoiceMessageRecorderProps) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const {
     isRecording,
     isPaused,
@@ -149,7 +155,7 @@ export function VoiceMessageRecorder({
         ]}
       >
         <View style={styles.permissionError}>
-          <Ionicons name="mic-off" size={32} color="#EF4444" />
+          <Ionicons name="mic-off" size={32} color={colors.error} />
           <Text style={styles.permissionErrorText}>
             Microphone access is required to record voice messages
           </Text>
@@ -176,7 +182,7 @@ export function VoiceMessageRecorder({
               styles.recordingDot,
               {
                 transform: [{ scale: pulseAnim }],
-                backgroundColor: isPaused ? '#F59E0B' : '#EF4444',
+                backgroundColor: isPaused ? colors.warning : colors.error,
               },
             ]}
           />
@@ -206,26 +212,26 @@ export function VoiceMessageRecorder({
       <View style={styles.controls}>
         {/* Cancel Button */}
         <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
-          <Ionicons name="close" size={24} color="#EF4444" />
+          <Ionicons name="close" size={24} color={colors.error} />
         </TouchableOpacity>
 
         {/* Main Record/Stop Button */}
         {!isRecording ? (
           <TouchableOpacity style={styles.recordButton} onPress={handleStart}>
             <LinearGradient
-              colors={['#EF4444', '#DC2626']}
+              colors={[colors.error, colors.panic]}
               style={styles.recordButtonGradient}
             >
-              <Ionicons name="mic" size={32} color="#fff" />
+              <Ionicons name="mic" size={32} color={colors.text} />
             </LinearGradient>
           </TouchableOpacity>
         ) : (
           <TouchableOpacity style={styles.stopButton} onPress={handleStop}>
             <LinearGradient
-              colors={['#8B5CF6', '#7C3AED']}
+              colors={[colors.accent, colors.accentSecondary]}
               style={styles.stopButtonGradient}
             >
-              <Ionicons name="stop" size={28} color="#fff" />
+              <Ionicons name="stop" size={28} color={colors.text} />
             </LinearGradient>
           </TouchableOpacity>
         )}
@@ -236,14 +242,14 @@ export function VoiceMessageRecorder({
             <Ionicons
               name={isPaused ? 'play' : 'pause'}
               size={24}
-              color="#fff"
+              color={colors.text}
             />
           </TouchableOpacity>
         )}
 
         {!isRecording && (
           <View style={styles.pauseButton}>
-            <Ionicons name="pause" size={24} color="#4B5563" />
+            <Ionicons name="pause" size={24} color={colors.borderLight} />
           </View>
         )}
       </View>
@@ -262,11 +268,9 @@ export function VoiceMessageRecorder({
 // Styles
 // ============================================================================
 
-const { width } = Dimensions.get('window');
-
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.backgroundDarkest,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 24,
@@ -292,27 +296,27 @@ const styles = StyleSheet.create({
   recordingText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#9CA3AF',
+    color: colors.textTertiary,
   },
   duration: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#fff',
+    color: colors.text,
     fontVariant: ['tabular-nums'],
   },
   durationWarning: {
-    color: '#F59E0B',
+    color: colors.warning,
   },
   progressContainer: {
     height: 4,
-    backgroundColor: '#2a2a2a',
+    backgroundColor: colors.border,
     borderRadius: 2,
     marginBottom: 20,
     overflow: 'hidden',
   },
   progressBar: {
     height: '100%',
-    backgroundColor: '#8B5CF6',
+    backgroundColor: colors.accent,
     borderRadius: 2,
   },
   limitWarning: {
@@ -320,7 +324,7 @@ const styles = StyleSheet.create({
     right: 0,
     top: 8,
     fontSize: 12,
-    color: '#F59E0B',
+    color: colors.warning,
   },
   waveformContainer: {
     flexDirection: 'row',
@@ -332,7 +336,7 @@ const styles = StyleSheet.create({
   },
   waveformBar: {
     width: 3,
-    backgroundColor: '#8B5CF6',
+    backgroundColor: colors.accent,
     borderRadius: 2,
   },
   controls: {
@@ -346,7 +350,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+    backgroundColor: withAlpha(colors.error, '33'),
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -378,13 +382,13 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#2a2a2a',
+    backgroundColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   instructions: {
     fontSize: 13,
-    color: '#6B7280',
+    color: colors.textMuted,
     textAlign: 'center',
   },
   permissionError: {
@@ -394,12 +398,12 @@ const styles = StyleSheet.create({
   },
   permissionErrorText: {
     fontSize: 15,
-    color: '#9CA3AF',
+    color: colors.textTertiary,
     textAlign: 'center',
     maxWidth: 280,
   },
   permissionButton: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: colors.accent,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,
@@ -407,7 +411,7 @@ const styles = StyleSheet.create({
   permissionButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
   },
 });
 

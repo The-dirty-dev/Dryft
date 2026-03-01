@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -12,11 +12,16 @@ import { RootStackParamList } from '../../navigation';
 import { Creator, StoreItem } from '../../types';
 import marketplaceApi from '../../api/marketplace';
 import ItemCard from '../../components/ItemCard';
+import { ThemeColors, useColors } from '../../theme/ThemeProvider';
+
+const withAlpha = (color: string, alphaHex: string): string => `${color}${alphaHex}`;
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Creator'>;
 
 export default function CreatorScreen({ route, navigation }: Props) {
   const { creatorId } = route.params;
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [creator, setCreator] = useState<Creator | null>(null);
   const [items, setItems] = useState<StoreItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -54,7 +59,7 @@ export default function CreatorScreen({ route, navigation }: Props) {
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#e94560" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -165,25 +170,25 @@ export default function CreatorScreen({ route, navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f0f23',
+    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0f0f23',
+    backgroundColor: colors.background,
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0f0f23',
+    backgroundColor: colors.background,
   },
   errorText: {
-    color: '#8892b0',
+    color: colors.textSecondary,
     fontSize: 16,
   },
   list: {
@@ -195,12 +200,12 @@ const styles = StyleSheet.create({
   banner: {
     width: '100%',
     height: 150,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surface,
   },
   bannerPlaceholder: {
     width: '100%',
     height: 150,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surface,
   },
   profile: {
     flexDirection: 'row',
@@ -212,22 +217,22 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 40,
     borderWidth: 4,
-    borderColor: '#0f0f23',
+    borderColor: colors.background,
   },
   logoPlaceholder: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#e94560',
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 4,
-    borderColor: '#0f0f23',
+    borderColor: colors.background,
   },
   logoText: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.text,
   },
   profileInfo: {
     flex: 1,
@@ -242,27 +247,27 @@ const styles = StyleSheet.create({
   storeName: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.text,
   },
   verifiedBadge: {
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    backgroundColor: withAlpha(colors.success, '33'),
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 8,
   },
   verifiedText: {
-    color: '#10b981',
+    color: colors.success,
     fontSize: 11,
     fontWeight: '600',
   },
   description: {
     fontSize: 14,
-    color: '#8892b0',
+    color: colors.textSecondary,
     marginTop: 4,
   },
   stats: {
     flexDirection: 'row',
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surface,
     marginHorizontal: 20,
     borderRadius: 12,
     padding: 16,
@@ -274,21 +279,21 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.text,
   },
   statLabel: {
     fontSize: 12,
-    color: '#8892b0',
+    color: colors.textSecondary,
     marginTop: 4,
   },
   statDivider: {
     width: 1,
-    backgroundColor: '#16213e',
+    backgroundColor: colors.backgroundSecondary,
   },
   itemsTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
     paddingHorizontal: 20,
     marginTop: 24,
     marginBottom: 12,
@@ -303,7 +308,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyText: {
-    color: '#8892b0',
+    color: colors.textSecondary,
     fontSize: 16,
   },
 });

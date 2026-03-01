@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,9 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useVoicePlayback } from '../../hooks/useVoiceMessage';
+import { ThemeColors, useColors } from '../../theme/ThemeProvider';
+
+const withAlpha = (color: string, alphaHex: string): string => `${color}${alphaHex}`;
 
 // ============================================================================
 // Types
@@ -37,6 +40,8 @@ interface WaveformProgressProps {
 }
 
 function WaveformProgress({ waveform, progress, isSent, onSeek }: WaveformProgressProps) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const containerRef = useRef<View>(null);
   const widthRef = useRef(0);
 
@@ -77,11 +82,11 @@ function WaveformProgress({ waveform, progress, isSent, onSeek }: WaveformProgre
                 height: Math.max(4, level * 24),
                 backgroundColor: isActive
                   ? isSent
-                    ? '#fff'
-                    : '#8B5CF6'
+                    ? colors.text
+                    : colors.accent
                   : isSent
-                  ? 'rgba(255, 255, 255, 0.3)'
-                  : 'rgba(139, 92, 246, 0.3)',
+                  ? withAlpha(colors.text, '4D')
+                  : withAlpha(colors.accent, '4D'),
               },
             ]}
           />
@@ -105,6 +110,8 @@ export function VoiceMessagePlayer({
   onPlayed,
   compact = false,
 }: VoiceMessagePlayerProps) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const {
     isLoading,
     isPlaying,
@@ -186,12 +193,12 @@ export function VoiceMessagePlayer({
           disabled={isLoading}
         >
           {isLoading ? (
-            <Ionicons name="hourglass" size={16} color={isSent ? '#8B5CF6' : '#fff'} />
+            <Ionicons name="hourglass" size={16} color={isSent ? colors.accent : colors.text} />
           ) : (
             <Ionicons
               name={isPlaying ? 'pause' : 'play'}
               size={16}
-              color={isSent ? '#8B5CF6' : '#fff'}
+              color={isSent ? colors.accent : colors.text}
             />
           )}
         </TouchableOpacity>
@@ -202,7 +209,7 @@ export function VoiceMessagePlayer({
               styles.compactProgressBar,
               {
                 width: `${progress * 100}%`,
-                backgroundColor: isSent ? '#fff' : '#8B5CF6',
+                backgroundColor: isSent ? colors.text : colors.accent,
               },
             ]}
           />
@@ -225,12 +232,12 @@ export function VoiceMessagePlayer({
       >
         <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
           {isLoading ? (
-            <Ionicons name="hourglass" size={24} color={isSent ? '#8B5CF6' : '#fff'} />
+            <Ionicons name="hourglass" size={24} color={isSent ? colors.accent : colors.text} />
           ) : (
             <Ionicons
               name={isPlaying ? 'pause' : 'play'}
               size={24}
-              color={isSent ? '#8B5CF6' : '#fff'}
+              color={isSent ? colors.accent : colors.text}
             />
           )}
         </Animated.View>
@@ -263,7 +270,7 @@ export function VoiceMessagePlayer({
           {/* Played indicator */}
           {!isSent && isPlayed && (
             <View style={styles.playedIndicator}>
-              <Ionicons name="checkmark" size={12} color="#10B981" />
+              <Ionicons name="checkmark" size={12} color={colors.success} />
             </View>
           )}
         </View>
@@ -276,29 +283,29 @@ export function VoiceMessagePlayer({
 // Styles
 // ============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.backgroundDarkest,
     borderRadius: 16,
     padding: 12,
     gap: 12,
     minWidth: 200,
   },
   containerSent: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: colors.accent,
   },
   playButton: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#8B5CF6',
+    backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },
   playButtonSent: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.text,
   },
   content: {
     flex: 1,
@@ -322,28 +329,28 @@ const styles = StyleSheet.create({
   },
   time: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: colors.textTertiary,
     fontVariant: ['tabular-nums'],
   },
   timeSent: {
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: colors.textSecondary,
   },
   rateButton: {
-    backgroundColor: 'rgba(139, 92, 246, 0.2)',
+    backgroundColor: withAlpha(colors.accent, '33'),
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
   },
   rateButtonSent: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: withAlpha(colors.text, '33'),
   },
   rateText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#8B5CF6',
+    color: colors.accent,
   },
   rateTextSent: {
-    color: '#fff',
+    color: colors.text,
   },
   playedIndicator: {
     flexDirection: 'row',
@@ -355,30 +362,30 @@ const styles = StyleSheet.create({
   compactContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.backgroundDarkest,
     borderRadius: 20,
     paddingVertical: 8,
     paddingHorizontal: 12,
     gap: 8,
   },
   compactContainerSent: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: colors.accent,
   },
   compactPlayButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#8B5CF6',
+    backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },
   compactPlayButtonSent: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.text,
   },
   compactProgress: {
     flex: 1,
     height: 4,
-    backgroundColor: 'rgba(139, 92, 246, 0.3)',
+    backgroundColor: withAlpha(colors.accent, '4D'),
     borderRadius: 2,
     overflow: 'hidden',
   },
@@ -388,13 +395,13 @@ const styles = StyleSheet.create({
   },
   compactDuration: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: colors.textTertiary,
     fontVariant: ['tabular-nums'],
     minWidth: 36,
     textAlign: 'right',
   },
   compactDurationSent: {
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: colors.textSecondary,
   },
 });
 

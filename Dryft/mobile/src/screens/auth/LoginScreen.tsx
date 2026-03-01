@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -10,12 +10,17 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../navigation';
 import { useAuthStore } from '../../store/authStore';
 import { Button, Input } from '../../components/common';
+import { ThemeColors, useColors } from '../../theme/ThemeProvider';
+
+const withAlpha = (color: string, alphaHex: string): string => `${color}${alphaHex}`;
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 };
 
 export default function LoginScreen({ navigation }: Props) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { login, isLoading, error, clearError } = useAuthStore();
@@ -88,10 +93,10 @@ export default function LoginScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f0f23',
+    backgroundColor: colors.background,
   },
   content: {
     flex: 1,
@@ -101,18 +106,18 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 48,
     fontWeight: 'bold',
-    color: '#e94560',
+    color: colors.primary,
     textAlign: 'center',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 18,
-    color: '#8892b0',
+    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 40,
   },
   errorContainer: {
-    backgroundColor: 'rgba(233, 69, 96, 0.1)',
+    backgroundColor: withAlpha(colors.primary, '1A'),
     borderRadius: 8,
     padding: 12,
     marginBottom: 20,
@@ -121,7 +126,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   errorText: {
-    color: '#e94560',
+    color: colors.primary,
     flex: 1,
   },
   dismissButton: {
@@ -129,7 +134,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   dismissText: {
-    color: '#e94560',
+    color: colors.primary,
     fontWeight: '600',
   },
   form: {
@@ -143,7 +148,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   footerText: {
-    color: '#8892b0',
+    color: colors.textSecondary,
     fontSize: 16,
   },
   linkButton: {
@@ -151,7 +156,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   linkText: {
-    color: '#e94560',
+    color: colors.primary,
     fontSize: 16,
     fontWeight: '600',
   },

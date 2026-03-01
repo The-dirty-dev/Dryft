@@ -5,14 +5,13 @@ import {
   StyleSheet,
   Animated,
   TouchableOpacity,
-  Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../theme/ThemeProvider';
 import { useOfflineIndicator } from '../hooks/useOffline';
 
-const { width } = Dimensions.get('window');
+const withAlpha = (color: string, alphaHex: string): string => `${color}${alphaHex}`;
 
 interface OfflineBannerProps {
   showPendingCount?: boolean;
@@ -66,18 +65,18 @@ export function OfflineBanner({ showPendingCount = true, onPress }: OfflineBanne
         accessibilityRole="alert"
         accessibilityLabel={`You are offline. ${hasPendingActions ? `${pendingActions} actions pending.` : ''}`}
       >
-        <Ionicons name="cloud-offline" size={18} color="#000" />
+        <Ionicons name="cloud-offline" size={18} color={theme.colors.textInverse} />
         <View style={styles.bannerTextContainer}>
-          <Text style={styles.bannerTitle}>You're Offline</Text>
+          <Text style={[styles.bannerTitle, { color: theme.colors.textInverse }]}>You're Offline</Text>
           {offlineDuration && (
-            <Text style={styles.bannerSubtitle}>
+            <Text style={[styles.bannerSubtitle, { color: withAlpha(theme.colors.textInverse, 'CC') }]}>
               Last online: {offlineDuration} ago
             </Text>
           )}
         </View>
         {showPendingCount && hasPendingActions && (
-          <View style={styles.pendingBadge}>
-            <Text style={styles.pendingText}>{pendingActions}</Text>
+          <View style={[styles.pendingBadge, { backgroundColor: theme.colors.textInverse }]}>
+            <Text style={[styles.pendingText, { color: theme.colors.text }]}>{pendingActions}</Text>
           </View>
         )}
       </TouchableOpacity>
@@ -96,11 +95,11 @@ export function OfflineChip() {
 
   return (
     <View style={[styles.chip, { backgroundColor: theme.colors.warning }]}>
-      <Ionicons name="cloud-offline" size={12} color="#000" />
-      <Text style={styles.chipText}>Offline</Text>
+      <Ionicons name="cloud-offline" size={12} color={theme.colors.textInverse} />
+      <Text style={[styles.chipText, { color: theme.colors.textInverse }]}>Offline</Text>
       {pendingActions > 0 && (
-        <View style={styles.chipBadge}>
-          <Text style={styles.chipBadgeText}>{pendingActions}</Text>
+        <View style={[styles.chipBadge, { backgroundColor: theme.colors.textInverse }]}>
+          <Text style={[styles.chipBadgeText, { color: theme.colors.text }]}>{pendingActions}</Text>
         </View>
       )}
     </View>
@@ -132,7 +131,7 @@ export function OfflineScreen({
 
   return (
     <View style={[styles.offlineScreen, { backgroundColor: theme.colors.background }]}>
-      <View style={styles.offlineIconContainer}>
+      <View style={[styles.offlineIconContainer, { backgroundColor: withAlpha(theme.colors.text, '0D') }]}>
         <Ionicons name="cloud-offline" size={64} color={theme.colors.textMuted} />
       </View>
 
@@ -159,8 +158,8 @@ export function OfflineScreen({
             onPress={onRetry}
             style={[styles.retryButton, { backgroundColor: theme.colors.primary }]}
           >
-            <Ionicons name="refresh" size={20} color="#fff" />
-            <Text style={styles.retryButtonText}>Try Again</Text>
+            <Ionicons name="refresh" size={20} color={theme.colors.text} />
+            <Text style={[styles.retryButtonText, { color: theme.colors.text }]}>Try Again</Text>
           </TouchableOpacity>
         )}
 
@@ -317,20 +316,16 @@ const styles = StyleSheet.create({
   bannerTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#000',
   },
   bannerSubtitle: {
     fontSize: 12,
-    color: '#333',
   },
   pendingBadge: {
-    backgroundColor: '#000',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
   },
   pendingText: {
-    color: '#fff',
     fontSize: 12,
     fontWeight: '600',
   },
@@ -345,17 +340,14 @@ const styles = StyleSheet.create({
   chipText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#000',
   },
   chipBadge: {
-    backgroundColor: '#000',
     paddingHorizontal: 5,
     paddingVertical: 1,
     borderRadius: 8,
     marginLeft: 2,
   },
   chipBadgeText: {
-    color: '#fff',
     fontSize: 10,
     fontWeight: '600',
   },
@@ -369,7 +361,6 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
@@ -412,7 +403,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   retryButtonText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },

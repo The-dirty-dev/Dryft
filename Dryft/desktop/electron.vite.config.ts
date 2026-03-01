@@ -1,4 +1,5 @@
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
+import { resolve } from 'path';
 
 export default defineConfig({
   main: {
@@ -6,7 +7,7 @@ export default defineConfig({
     build: {
       rollupOptions: {
         input: {
-          index: 'src/main/index.ts',
+          index: resolve('src/main/index.ts'),
         },
       },
     },
@@ -16,12 +17,20 @@ export default defineConfig({
     build: {
       rollupOptions: {
         input: {
-          index: 'src/preload/index.ts',
+          index: resolve('src/preload/index.ts'),
         },
       },
     },
   },
   renderer: {
-    // Not used - we load the web app directly
+    // The renderer is a native shell (HTML + TS) that hosts the Dryft web app
+    // inside a <webview>. electron-vite builds it as a standard Vite app.
+    build: {
+      rollupOptions: {
+        input: {
+          index: resolve('src/renderer/index.html'),
+        },
+      },
+    },
   },
 });

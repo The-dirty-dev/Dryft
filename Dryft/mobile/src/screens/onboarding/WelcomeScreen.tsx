@@ -1,18 +1,19 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  Dimensions,
   TouchableOpacity,
-  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useOnboardingStore } from '../../store/onboardingStore';
+import { ThemeColors, useColors } from '../../theme/ThemeProvider';
 
-const { width, height } = Dimensions.get('window');
+const withAlpha = (color: string, alphaHex: string): string => `${color}${alphaHex}`;
 
 export default function WelcomeScreen() {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { completeStep } = useOnboardingStore();
 
   const handleGetStarted = () => {
@@ -21,7 +22,7 @@ export default function WelcomeScreen() {
 
   return (
     <LinearGradient
-      colors={['#1a1a2e', '#16213e', '#0f0f23']}
+      colors={[colors.surface, colors.backgroundSecondary, colors.background]}
       style={styles.container}
     >
       <View style={styles.content}>
@@ -74,7 +75,7 @@ export default function WelcomeScreen() {
           activeOpacity={0.8}
         >
           <LinearGradient
-            colors={['#e94560', '#c73e54']}
+            colors={[colors.primary, colors.primaryDark]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.buttonGradient}
@@ -93,7 +94,7 @@ export default function WelcomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -111,11 +112,11 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#e94560',
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
-    shadowColor: '#e94560',
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.5,
     shadowRadius: 20,
@@ -124,17 +125,17 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: 48,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.text,
   },
   appName: {
     fontSize: 42,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.text,
     letterSpacing: 2,
   },
   tagline: {
     fontSize: 18,
-    color: '#8892b0',
+    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 48,
   },
@@ -151,7 +152,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: 'rgba(233, 69, 96, 0.15)',
+    backgroundColor: withAlpha(colors.primary, '26'),
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
@@ -161,27 +162,27 @@ const styles = StyleSheet.create({
   },
   featureText: {
     fontSize: 12,
-    color: '#8892b0',
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   ageNotice: {
-    backgroundColor: 'rgba(233, 69, 96, 0.1)',
+    backgroundColor: withAlpha(colors.primary, '1A'),
     paddingHorizontal: 24,
     paddingVertical: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(233, 69, 96, 0.3)',
+    borderColor: withAlpha(colors.primary, '4D'),
     alignItems: 'center',
   },
   ageNoticeText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#e94560',
+    color: colors.primary,
     marginBottom: 4,
   },
   ageNoticeSubtext: {
     fontSize: 13,
-    color: '#8892b0',
+    color: colors.textSecondary,
   },
   bottomSection: {
     paddingHorizontal: 32,
@@ -199,15 +200,15 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
   },
   termsText: {
     fontSize: 12,
-    color: '#8892b0',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 18,
   },
   linkText: {
-    color: '#e94560',
+    color: colors.primary,
   },
 });

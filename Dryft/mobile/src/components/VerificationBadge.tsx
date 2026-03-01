@@ -4,6 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../theme/ThemeProvider';
 import { VerificationStatus, VerificationType } from '../store/verificationStore';
 
+const withAlpha = (color: string, alphaHex: string): string => `${color}${alphaHex}`;
+
 interface VerificationBadgeProps {
   verified: boolean;
   size?: 'small' | 'medium' | 'large';
@@ -34,14 +36,14 @@ export function VerificationBadge({
         {
           width: currentSize.container,
           height: currentSize.container,
-          backgroundColor: verified ? '#3b82f6' : theme.colors.textMuted,
+          backgroundColor: verified ? theme.colors.info : theme.colors.textMuted,
         },
       ]}
     >
       <Ionicons
         name={verified ? 'checkmark' : 'close'}
         size={currentSize.icon}
-        color="#fff"
+        color={theme.colors.text}
       />
     </View>
   );
@@ -53,7 +55,7 @@ export function VerificationBadge({
         <Text
           style={[
             styles.label,
-            { color: verified ? '#3b82f6' : theme.colors.textMuted },
+            { color: verified ? theme.colors.info : theme.colors.textMuted },
           ]}
         >
           {verified ? 'Verified' : 'Unverified'}
@@ -98,12 +100,12 @@ export function VerificationStatusBadge({
   const getStatusColor = () => {
     switch (status) {
       case 'approved':
-        return '#22c55e';
+        return theme.colors.success;
       case 'pending':
       case 'in_review':
-        return '#f59e0b';
+        return theme.colors.warning;
       case 'rejected':
-        return '#ef4444';
+        return theme.colors.error;
       default:
         return theme.colors.textMuted;
     }
@@ -223,8 +225,8 @@ export function VerificationScore({ score, showDetails = false }: VerificationSc
   const theme = useTheme();
 
   const getScoreColor = () => {
-    if (score >= 80) return '#22c55e';
-    if (score >= 50) return '#f59e0b';
+    if (score >= 80) return theme.colors.success;
+    if (score >= 50) return theme.colors.warning;
     return theme.colors.textMuted;
   };
 
@@ -287,12 +289,12 @@ export function TrustIndicator({
         <Ionicons
           name="shield-checkmark"
           size={14}
-          color={verifiedCount > 0 ? '#3b82f6' : theme.colors.textMuted}
+          color={verifiedCount > 0 ? theme.colors.info : theme.colors.textMuted}
         />
         <Text
           style={[
             styles.compactText,
-            { color: verifiedCount > 0 ? '#3b82f6' : theme.colors.textMuted },
+            { color: verifiedCount > 0 ? theme.colors.info : theme.colors.textMuted },
           ]}
         >
           {verifiedCount}/3
@@ -303,25 +305,25 @@ export function TrustIndicator({
 
   return (
     <View style={styles.trustContainer}>
-      <View style={styles.trustItem}>
+      <View style={[styles.trustItem, { backgroundColor: withAlpha(theme.colors.text, '1A') }]}>
         <Ionicons
           name="camera"
           size={16}
-          color={photoVerified ? '#22c55e' : theme.colors.textMuted}
+          color={photoVerified ? theme.colors.success : theme.colors.textMuted}
         />
       </View>
-      <View style={styles.trustItem}>
+      <View style={[styles.trustItem, { backgroundColor: withAlpha(theme.colors.text, '1A') }]}>
         <Ionicons
           name="call"
           size={16}
-          color={phoneVerified ? '#22c55e' : theme.colors.textMuted}
+          color={phoneVerified ? theme.colors.success : theme.colors.textMuted}
         />
       </View>
-      <View style={styles.trustItem}>
+      <View style={[styles.trustItem, { backgroundColor: withAlpha(theme.colors.text, '1A') }]}>
         <Ionicons
           name="mail"
           size={16}
-          color={emailVerified ? '#22c55e' : theme.colors.textMuted}
+          color={emailVerified ? theme.colors.success : theme.colors.textMuted}
         />
       </View>
     </View>
@@ -427,7 +429,6 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.1)',
     justifyContent: 'center',
     alignItems: 'center',
   },

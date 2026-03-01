@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -15,11 +15,14 @@ import { useAuthStore } from '../../store/authStore';
 import { useMarketplaceStore } from '../../store/marketplaceStore';
 import ItemCard from '../../components/ItemCard';
 import { StoreItem } from '../../types';
+import { ThemeColors, useColors } from '../../theme/ThemeProvider';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function HomeScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { user } = useAuthStore();
   const {
     featuredItems,
@@ -89,7 +92,7 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#e94560"
+            tintColor={colors.primary}
           />
         }
       >
@@ -143,24 +146,24 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f0f23',
+    backgroundColor: colors.background,
   },
   header: {
     padding: 20,
     paddingTop: 60,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surface,
   },
   greeting: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.text,
   },
   subGreeting: {
     fontSize: 16,
-    color: '#8892b0',
+    color: colors.textSecondary,
     marginTop: 4,
   },
   content: {
@@ -179,11 +182,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
   },
   seeAllText: {
     fontSize: 14,
-    color: '#e94560',
+    color: colors.primary,
     fontWeight: '500',
   },
   itemList: {
@@ -201,20 +204,20 @@ const styles = StyleSheet.create({
   },
   actionCard: {
     flex: 1,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#16213e',
+    borderColor: colors.backgroundSecondary,
   },
   actionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
   },
   actionSubtitle: {
     fontSize: 13,
-    color: '#8892b0',
+    color: colors.textSecondary,
     marginTop: 4,
   },
   bottomPadding: {
@@ -223,12 +226,12 @@ const styles = StyleSheet.create({
   companionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 16,
     marginTop: 12,
     borderWidth: 1,
-    borderColor: '#e94560',
+    borderColor: colors.primary,
   },
   companionIcon: {
     fontSize: 32,
@@ -240,15 +243,15 @@ const styles = StyleSheet.create({
   companionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
   },
   companionSubtitle: {
     fontSize: 13,
-    color: '#8892b0',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   companionArrow: {
     fontSize: 20,
-    color: '#e94560',
+    color: colors.primary,
   },
 });

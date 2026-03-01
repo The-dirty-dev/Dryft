@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,9 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { useStreakStatus } from '../hooks/useRewards';
+import { ThemeColors, useColors } from '../theme/ThemeProvider';
+
+const withAlpha = (color: string, alphaHex: string): string => `${color}${alphaHex}`;
 
 interface DailyRewardWidgetProps {
   onClaim?: () => void;
@@ -16,6 +19,8 @@ interface DailyRewardWidgetProps {
 
 export default function DailyRewardWidget({ onClaim }: DailyRewardWidgetProps) {
   const navigation = useNavigation<any>();
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { current, isActive, canClaim, loading, refresh } = useStreakStatus();
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -57,7 +62,11 @@ export default function DailyRewardWidget({ onClaim }: DailyRewardWidgetProps) {
     <TouchableOpacity onPress={handlePress} activeOpacity={0.9}>
       <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
         <LinearGradient
-          colors={canClaim ? ['#6B46C1', '#EC4899'] : ['#1F1F2E', '#2D2D3D']}
+          colors={
+            canClaim
+              ? [colors.accent, colors.accentPink]
+              : [colors.surfaceSecondary, colors.surfaceElevated]
+          }
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.container}
@@ -87,7 +96,7 @@ export default function DailyRewardWidget({ onClaim }: DailyRewardWidgetProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -105,18 +114,18 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   streakValue: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 24,
     fontWeight: 'bold',
   },
   streakLabel: {
-    color: 'rgba(255,255,255,0.8)',
+    color: withAlpha(colors.text, 'CC'),
     fontSize: 12,
   },
   claimBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.text,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
@@ -126,24 +135,24 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   claimText: {
-    color: '#6B46C1',
+    color: colors.accent,
     fontWeight: 'bold',
     fontSize: 14,
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    backgroundColor: withAlpha(colors.success, '33'),
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 16,
   },
   statusIcon: {
-    color: '#10B981',
+    color: colors.success,
     marginRight: 4,
   },
   statusText: {
-    color: '#10B981',
+    color: colors.success,
     fontSize: 12,
     fontWeight: '600',
   },

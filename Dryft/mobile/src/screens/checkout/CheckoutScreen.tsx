@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,9 @@ import { useTranslation } from 'react-i18next';
 import { RootStackParamList } from '../../navigation';
 import apiClient from '../../api/client';
 import { Button } from '../../components/common';
+import { ThemeColors, useColors } from '../../theme/ThemeProvider';
+
+const withAlpha = (color: string, alphaHex: string): string => `${color}${alphaHex}`;
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'Checkout'>;
@@ -31,6 +34,8 @@ interface PurchaseDetails {
 
 export default function CheckoutScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const route = useRoute<RouteProps>();
   const { t } = useTranslation();
   const { itemId, purchaseId, clientSecret } = route.params;
@@ -97,7 +102,7 @@ export default function CheckoutScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#e94560" />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </SafeAreaView>
     );
@@ -144,11 +149,11 @@ export default function CheckoutScreen() {
                 number: '4242 4242 4242 4242',
               }}
               cardStyle={{
-                backgroundColor: '#1a1a2e',
-                textColor: '#ffffff',
-                placeholderColor: '#8892b0',
+                backgroundColor: colors.surface,
+                textColor: colors.text,
+                placeholderColor: colors.textSecondary,
                 borderWidth: 1,
-                borderColor: '#16213e',
+                borderColor: colors.backgroundSecondary,
                 borderRadius: 12,
               }}
               style={styles.cardField}
@@ -194,10 +199,10 @@ export default function CheckoutScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f0f23',
+    backgroundColor: colors.background,
   },
   scrollView: {
     flex: 1,
@@ -211,7 +216,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   orderSummary: {
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 20,
     marginBottom: 20,
@@ -219,7 +224,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
     marginBottom: 16,
   },
   itemRow: {
@@ -230,7 +235,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 8,
-    backgroundColor: '#16213e',
+    backgroundColor: colors.backgroundSecondary,
   },
   itemInfo: {
     flex: 1,
@@ -240,12 +245,12 @@ const styles = StyleSheet.create({
   itemName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
     marginBottom: 4,
   },
   creatorName: {
     fontSize: 14,
-    color: '#8892b0',
+    color: colors.textSecondary,
   },
   pricingRow: {
     flexDirection: 'row',
@@ -253,23 +258,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#16213e',
+    borderTopColor: colors.backgroundSecondary,
   },
   pricingLabel: {
     fontSize: 16,
-    color: '#fff',
+    color: colors.text,
     fontWeight: '600',
   },
   pricingValue: {
     fontSize: 20,
-    color: '#e94560',
+    color: colors.primary,
     fontWeight: 'bold',
   },
   paymentSection: {
     marginBottom: 20,
   },
   cardContainer: {
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
   },
@@ -289,20 +294,20 @@ const styles = StyleSheet.create({
   },
   securityText: {
     fontSize: 13,
-    color: '#8892b0',
+    color: colors.textSecondary,
   },
   payButton: {
-    backgroundColor: '#e94560',
+    backgroundColor: colors.primary,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
     marginBottom: 12,
   },
   payButtonDisabled: {
-    backgroundColor: '#e9456066',
+    backgroundColor: withAlpha(colors.primary, '66'),
   },
   payButtonText: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 18,
     fontWeight: '600',
   },
@@ -311,7 +316,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelButtonText: {
-    color: '#8892b0',
+    color: colors.textSecondary,
     fontSize: 16,
   },
 });

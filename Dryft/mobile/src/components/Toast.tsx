@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,8 +8,10 @@ import {
   Image,
   Dimensions,
 } from 'react-native';
+import { ThemeColors, useColors } from '../theme/ThemeProvider';
 
 const { width } = Dimensions.get('window');
+const withAlpha = (color: string, alphaHex: string): string => `${color}${alphaHex}`;
 
 export interface Toast {
   id: string;
@@ -80,6 +82,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 }
 
 function ToastContainer({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: string) => void }) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <View style={styles.container} pointerEvents="box-none">
       {toasts.map((toast) => (
@@ -90,6 +95,8 @@ function ToastContainer({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: 
 }
 
 function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) => void }) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const translateX = useRef(new Animated.Value(width)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
@@ -137,12 +144,12 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
 
   const bgColor =
     toast.type === 'match'
-      ? ['#e94560', '#ff6b9d']
+      ? [colors.primary, colors.primaryLight]
       : toast.type === 'success'
-      ? ['#4cd137', '#4cd137']
+      ? [colors.success, colors.success]
       : toast.type === 'error'
-      ? ['#e74c3c', '#e74c3c']
-      : ['#1a1a2e', '#1a1a2e'];
+      ? [colors.error, colors.error]
+      : [colors.surface, colors.surface];
 
   return (
     <Animated.View
@@ -186,7 +193,7 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     position: 'absolute',
     top: 60,
@@ -197,7 +204,7 @@ const styles = StyleSheet.create({
   toast: {
     marginBottom: 12,
     borderRadius: 16,
-    shadowColor: '#000',
+    shadowColor: colors.backgroundDarkest,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -214,7 +221,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     marginRight: 12,
     borderWidth: 2,
-    borderColor: '#fff',
+    borderColor: colors.text,
   },
   textContainer: {
     flex: 1,
@@ -222,23 +229,23 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.text,
     marginBottom: 2,
   },
   message: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.9)',
+    color: withAlpha(colors.text, 'E6'),
   },
   actionButton: {
     marginTop: 8,
-    backgroundColor: '#fff',
+    backgroundColor: colors.text,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     alignSelf: 'flex-start',
   },
   actionText: {
-    color: '#e94560',
+    color: colors.primary,
     fontWeight: '600',
     fontSize: 14,
   },
@@ -246,7 +253,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   closeText: {
-    color: 'rgba(255,255,255,0.7)',
+    color: withAlpha(colors.text, 'B3'),
     fontSize: 24,
     lineHeight: 24,
   },

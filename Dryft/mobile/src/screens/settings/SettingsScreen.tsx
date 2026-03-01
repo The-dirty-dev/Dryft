@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,9 @@ import { useTranslation } from 'react-i18next';
 import { RootStackParamList } from '../../navigation';
 import { useAuthStore } from '../../store/authStore';
 import { Button, Input } from '../../components/common';
+import { ThemeColors, useColors } from '../../theme/ThemeProvider';
+
+const withAlpha = (color: string, alphaHex: string): string => `${color}${alphaHex}`;
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -30,6 +33,9 @@ interface SettingRowProps {
 }
 
 function SettingRow({ icon, label, value, onPress, showArrow = true, rightElement }: SettingRowProps) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <TouchableOpacity
       style={styles.settingRow}
@@ -50,6 +56,8 @@ function SettingRow({ icon, label, value, onPress, showArrow = true, rightElemen
 
 export default function SettingsScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { t } = useTranslation();
   const { user, logout, deleteAccount, isLoading } = useAuthStore();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -160,8 +168,8 @@ export default function SettingsScreen() {
                 <Switch
                   value={hapticFeedback}
                   onValueChange={setHapticFeedback}
-                  trackColor={{ false: '#16213e', true: '#e9456066' }}
-                  thumbColor={hapticFeedback ? '#e94560' : '#8892b0'}
+                  trackColor={{ false: colors.backgroundSecondary, true: withAlpha(colors.primary, '66') }}
+                  thumbColor={hapticFeedback ? colors.primary : colors.textSecondary}
                 />
               }
             />
@@ -180,8 +188,8 @@ export default function SettingsScreen() {
                 <Switch
                   value={notificationsEnabled}
                   onValueChange={setNotificationsEnabled}
-                  trackColor={{ false: '#16213e', true: '#e9456066' }}
-                  thumbColor={notificationsEnabled ? '#e94560' : '#8892b0'}
+                  trackColor={{ false: colors.backgroundSecondary, true: withAlpha(colors.primary, '66') }}
+                  thumbColor={notificationsEnabled ? colors.primary : colors.textSecondary}
                 />
               }
             />
@@ -284,7 +292,7 @@ export default function SettingsScreen() {
             <Input
               style={styles.modalInput}
               placeholder="Enter your password"
-              placeholderTextColor="#8892b0"
+              placeholderTextColor={colors.textSecondary}
               secureTextEntry
               value={deletePassword}
               onChangeText={setDeletePassword}
@@ -294,7 +302,7 @@ export default function SettingsScreen() {
             <Input
               style={[styles.modalInput, styles.modalTextArea]}
               placeholder="Why are you leaving? (optional)"
-              placeholderTextColor="#8892b0"
+              placeholderTextColor={colors.textSecondary}
               value={deleteReason}
               onChangeText={setDeleteReason}
               multiline
@@ -319,7 +327,7 @@ export default function SettingsScreen() {
                 disabled={isLoading}
               >
                 {isLoading ? (
-                  <ActivityIndicator color="#fff" size="small" />
+                  <ActivityIndicator color={colors.text} size="small" />
                 ) : (
                   <Text style={styles.modalDeleteText}>Delete Account</Text>
                 )}
@@ -332,10 +340,10 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f0f23',
+    backgroundColor: colors.background,
   },
   scrollView: {
     flex: 1,
@@ -346,13 +354,13 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#8892b0',
+    color: colors.textSecondary,
     textTransform: 'uppercase',
     paddingHorizontal: 20,
     marginBottom: 8,
   },
   sectionContent: {
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surface,
   },
   settingRow: {
     flexDirection: 'row',
@@ -360,7 +368,7 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#16213e',
+    borderBottomColor: colors.backgroundSecondary,
   },
   settingIcon: {
     fontSize: 20,
@@ -371,30 +379,30 @@ const styles = StyleSheet.create({
   },
   settingLabel: {
     fontSize: 16,
-    color: '#fff',
+    color: colors.text,
   },
   settingValue: {
     fontSize: 14,
-    color: '#8892b0',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   settingArrow: {
     fontSize: 24,
-    color: '#8892b0',
+    color: colors.textSecondary,
   },
   actionsSection: {
     padding: 20,
     paddingBottom: 40,
   },
   logoutButton: {
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
     marginBottom: 12,
   },
   logoutButtonText: {
-    color: '#e94560',
+    color: colors.primary,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -403,18 +411,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   deleteButtonText: {
-    color: '#8892b0',
+    color: colors.textSecondary,
     fontSize: 14,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: withAlpha(colors.background, 'CC'),
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   modalContent: {
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 24,
     width: '100%',
@@ -423,33 +431,33 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#fff',
+    color: colors.text,
     marginBottom: 8,
     textAlign: 'center',
   },
   modalDescription: {
     fontSize: 14,
-    color: '#8892b0',
+    color: colors.textSecondary,
     marginBottom: 20,
     textAlign: 'center',
     lineHeight: 20,
   },
   modalInput: {
-    backgroundColor: '#0f0f23',
+    backgroundColor: colors.background,
     borderRadius: 12,
     padding: 16,
-    color: '#fff',
+    color: colors.text,
     fontSize: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#16213e',
+    borderColor: colors.backgroundSecondary,
   },
   modalTextArea: {
     height: 80,
     textAlignVertical: 'top',
   },
   modalError: {
-    color: '#e94560',
+    color: colors.primary,
     fontSize: 14,
     marginBottom: 12,
     textAlign: 'center',
@@ -461,25 +469,25 @@ const styles = StyleSheet.create({
   },
   modalCancelButton: {
     flex: 1,
-    backgroundColor: '#16213e',
+    backgroundColor: colors.backgroundSecondary,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
   },
   modalCancelText: {
-    color: '#8892b0',
+    color: colors.textSecondary,
     fontSize: 16,
     fontWeight: '600',
   },
   modalDeleteButton: {
     flex: 1,
-    backgroundColor: '#e94560',
+    backgroundColor: colors.primary,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
   },
   modalDeleteText: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 16,
     fontWeight: '600',
   },

@@ -29,6 +29,8 @@ import {
   AccountStatus,
 } from '../../services/accountDeletion';
 
+const withAlpha = (color: string, alphaHex: string): string => `${color}${alphaHex}`;
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -419,7 +421,7 @@ function SettingRow({ title, description, value, onValueChange, theme }: Setting
         value={value}
         onValueChange={onValueChange}
         trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
-        thumbColor="#fff"
+        thumbColor={theme.colors.text}
       />
     </View>
   );
@@ -490,7 +492,7 @@ function ExportModal({ visible, onClose, theme }: ExportModalProps) {
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
       <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
-        <View style={styles.modalHeader}>
+        <View style={[styles.modalHeader, { borderBottomColor: withAlpha(theme.colors.text, '1A') }]}>
           <TouchableOpacity onPress={onClose}>
             <Text style={[styles.modalCancel, { color: theme.colors.textSecondary }]}>Cancel</Text>
           </TouchableOpacity>
@@ -557,7 +559,7 @@ function ExportModal({ visible, onClose, theme }: ExportModalProps) {
               value={includeMedia}
               onValueChange={setIncludeMedia}
               trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
-              thumbColor="#fff"
+              thumbColor={theme.colors.text}
             />
           </View>
 
@@ -568,11 +570,13 @@ function ExportModal({ visible, onClose, theme }: ExportModalProps) {
             disabled={loading || selectedCategories.size === 0}
           >
             {loading ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={theme.colors.text} />
             ) : (
               <>
-                <Ionicons name="cloud-download" size={20} color="#fff" />
-                <Text style={styles.exportButtonText}>Request Full Export</Text>
+                <Ionicons name="cloud-download" size={20} color={theme.colors.text} />
+                <Text style={[styles.exportButtonText, { color: theme.colors.text }]}>
+                  Request Full Export
+                </Text>
               </>
             )}
           </TouchableOpacity>
@@ -643,7 +647,7 @@ function DeleteAccountModal({ visible, onClose, onDeleted, theme }: DeleteAccoun
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
       <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
-        <View style={styles.modalHeader}>
+        <View style={[styles.modalHeader, { borderBottomColor: withAlpha(theme.colors.text, '1A') }]}>
           <TouchableOpacity onPress={resetAndClose}>
             <Text style={[styles.modalCancel, { color: theme.colors.textSecondary }]}>Cancel</Text>
           </TouchableOpacity>
@@ -717,7 +721,9 @@ function DeleteAccountModal({ visible, onClose, onDeleted, theme }: DeleteAccoun
                 onPress={() => setStep('feedback')}
                 disabled={!selectedReason}
               >
-                <Text style={styles.continueButtonText}>Continue</Text>
+                <Text style={[styles.continueButtonText, { color: theme.colors.text }]}>
+                  Continue
+                </Text>
               </TouchableOpacity>
             </>
           )}
@@ -763,11 +769,13 @@ function DeleteAccountModal({ visible, onClose, onDeleted, theme }: DeleteAccoun
                 disabled={loading}
               >
                 {loading ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color={theme.colors.text} />
                 ) : (
                   <>
-                    <Ionicons name="trash" size={20} color="#fff" />
-                    <Text style={styles.deleteButtonText}>Delete My Account</Text>
+                    <Ionicons name="trash" size={20} color={theme.colors.text} />
+                    <Text style={[styles.deleteButtonText, { color: theme.colors.text }]}>
+                      Delete My Account
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -826,7 +834,7 @@ function PauseAccountModal({ visible, onClose, onPaused, theme }: PauseAccountMo
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
       <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
-        <View style={styles.modalHeader}>
+        <View style={[styles.modalHeader, { borderBottomColor: withAlpha(theme.colors.text, '1A') }]}>
           <TouchableOpacity onPress={onClose}>
             <Text style={[styles.modalCancel, { color: theme.colors.textSecondary }]}>Cancel</Text>
           </TouchableOpacity>
@@ -879,11 +887,13 @@ function PauseAccountModal({ visible, onClose, onPaused, theme }: PauseAccountMo
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color="#000" />
+              <ActivityIndicator color={theme.colors.textInverse} />
             ) : (
               <>
-                <Ionicons name="pause" size={20} color="#000" />
-                <Text style={styles.pauseButtonText}>Pause My Account</Text>
+                <Ionicons name="pause" size={20} color={theme.colors.textInverse} />
+                <Text style={[styles.pauseButtonText, { color: theme.colors.textInverse }]}>
+                  Pause My Account
+                </Text>
               </>
             )}
           </TouchableOpacity>
@@ -1017,7 +1027,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.1)',
   },
   modalCancel: {
     fontSize: 16,
@@ -1075,7 +1084,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   exportButtonText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -1150,7 +1158,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   continueButtonText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -1186,7 +1193,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   deleteButtonText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -1220,7 +1226,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   pauseButtonText: {
-    color: '#000',
     fontSize: 16,
     fontWeight: '600',
   },

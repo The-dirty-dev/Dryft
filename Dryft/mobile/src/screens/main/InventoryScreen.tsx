@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
 import { useMarketplaceStore } from '../../store/marketplaceStore';
 import { ItemType, InventoryItem, formatPrice } from '../../types';
 import { Image } from 'expo-image';
+import { ThemeColors, useColors } from '../../theme/ThemeProvider';
 
 const ITEM_TYPES: { label: string; value: ItemType | null }[] = [
   { label: 'All', value: null },
@@ -23,6 +24,8 @@ const ITEM_TYPES: { label: string; value: ItemType | null }[] = [
 ];
 
 export default function InventoryScreen() {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [selectedType, setSelectedType] = useState<ItemType | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -164,7 +167,7 @@ export default function InventoryScreen() {
 
       {isLoadingInventory && inventory.length === 0 ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#e94560" />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : filteredInventory.length === 0 ? (
         <View style={styles.emptyContainer}>
@@ -183,7 +186,7 @@ export default function InventoryScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#e94560"
+              tintColor={colors.primary}
             />
           }
         />
@@ -192,20 +195,20 @@ export default function InventoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f0f23',
+    backgroundColor: colors.background,
   },
   header: {
     padding: 20,
     paddingTop: 60,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surface,
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.text,
     marginBottom: 16,
   },
   equippedSection: {
@@ -213,7 +216,7 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontSize: 14,
-    color: '#8892b0',
+    color: colors.textSecondary,
     marginBottom: 8,
   },
   equippedScroll: {
@@ -229,23 +232,23 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 25,
     borderWidth: 2,
-    borderColor: '#e94560',
+    borderColor: colors.primary,
   },
   equippedEmpty: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#16213e',
+    backgroundColor: colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   equippedEmptyText: {
-    color: '#8892b0',
+    color: colors.textSecondary,
     fontSize: 16,
     fontWeight: '600',
   },
   equippedLabel: {
-    color: '#8892b0',
+    color: colors.textSecondary,
     fontSize: 10,
     marginTop: 4,
     textTransform: 'capitalize',
@@ -261,21 +264,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#0f0f23',
+    backgroundColor: colors.background,
     borderWidth: 1,
-    borderColor: '#16213e',
+    borderColor: colors.backgroundSecondary,
   },
   typeChipActive: {
-    backgroundColor: '#e94560',
-    borderColor: '#e94560',
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   typeChipText: {
-    color: '#8892b0',
+    color: colors.textSecondary,
     fontSize: 14,
     fontWeight: '500',
   },
   typeChipTextActive: {
-    color: '#fff',
+    color: colors.text,
   },
   loadingContainer: {
     flex: 1,
@@ -291,11 +294,11 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#8892b0',
+    color: colors.textSecondary,
     marginTop: 8,
   },
   list: {
@@ -304,18 +307,18 @@ const styles = StyleSheet.create({
   inventoryCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 12,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#16213e',
+    borderColor: colors.backgroundSecondary,
   },
   itemImage: {
     width: 60,
     height: 60,
     borderRadius: 8,
-    backgroundColor: '#16213e',
+    backgroundColor: colors.backgroundSecondary,
   },
   itemInfo: {
     flex: 1,
@@ -324,11 +327,11 @@ const styles = StyleSheet.create({
   itemName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
   },
   itemType: {
     fontSize: 13,
-    color: '#8892b0',
+    color: colors.textSecondary,
     textTransform: 'capitalize',
     marginTop: 2,
   },
@@ -336,19 +339,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: '#16213e',
+    backgroundColor: colors.backgroundSecondary,
     borderWidth: 1,
-    borderColor: '#e94560',
+    borderColor: colors.primary,
   },
   equipButtonActive: {
-    backgroundColor: '#e94560',
+    backgroundColor: colors.primary,
   },
   equipButtonText: {
-    color: '#e94560',
+    color: colors.primary,
     fontWeight: '600',
     fontSize: 13,
   },
   equipButtonTextActive: {
-    color: '#fff',
+    color: colors.text,
   },
 });

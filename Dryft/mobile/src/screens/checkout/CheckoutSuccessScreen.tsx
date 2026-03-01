@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,9 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation';
 import apiClient from '../../api/client';
 import { Button } from '../../components/common';
+import { ThemeColors, useColors } from '../../theme/ThemeProvider';
+
+const withAlpha = (color: string, alphaHex: string): string => `${color}${alphaHex}`;
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'CheckoutSuccess'>;
@@ -30,6 +33,8 @@ interface PurchaseDetails {
 
 export default function CheckoutSuccessScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const route = useRoute<RouteProps>();
   const { purchaseId } = route.params;
 
@@ -94,7 +99,7 @@ export default function CheckoutSuccessScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#e94560" />
+          <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>Confirming your purchase...</Text>
         </View>
       </SafeAreaView>
@@ -177,10 +182,10 @@ export default function CheckoutSuccessScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f0f23',
+    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
@@ -188,7 +193,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    color: '#8892b0',
+    color: colors.textSecondary,
     marginTop: 16,
     fontSize: 16,
   },
@@ -202,30 +207,30 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#10b981',
+    backgroundColor: colors.success,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
   },
   successIconText: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 40,
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.text,
     marginBottom: 12,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
-    color: '#8892b0',
+    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 32,
   },
   purchaseCard: {
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 20,
     width: '100%',
@@ -236,13 +241,13 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#16213e',
+    borderBottomColor: colors.backgroundSecondary,
   },
   thumbnail: {
     width: 70,
     height: 70,
     borderRadius: 12,
-    backgroundColor: '#16213e',
+    backgroundColor: colors.backgroundSecondary,
   },
   thumbnailPlaceholder: {
     justifyContent: 'center',
@@ -258,23 +263,23 @@ const styles = StyleSheet.create({
   itemName: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
     marginBottom: 4,
   },
   creatorName: {
     fontSize: 14,
-    color: '#8892b0',
+    color: colors.textSecondary,
     marginBottom: 8,
   },
   typeTag: {
-    backgroundColor: '#e9456033',
+    backgroundColor: withAlpha(colors.primary, '33'),
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
     alignSelf: 'flex-start',
   },
   typeTagText: {
-    color: '#e94560',
+    color: colors.primary,
     fontSize: 12,
     fontWeight: '500',
     textTransform: 'capitalize',
@@ -286,41 +291,41 @@ const styles = StyleSheet.create({
   },
   receiptLabel: {
     fontSize: 14,
-    color: '#8892b0',
+    color: colors.textSecondary,
   },
   receiptValue: {
     fontSize: 14,
-    color: '#fff',
+    color: colors.text,
     fontFamily: 'monospace',
   },
   receiptAmount: {
     fontSize: 16,
-    color: '#e94560',
+    color: colors.primary,
     fontWeight: '600',
   },
   actions: {
     width: '100%',
   },
   primaryButton: {
-    backgroundColor: '#e94560',
+    backgroundColor: colors.primary,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
     marginBottom: 12,
   },
   primaryButtonText: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 18,
     fontWeight: '600',
   },
   secondaryButton: {
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
   },
   secondaryButtonText: {
-    color: '#8892b0',
+    color: colors.textSecondary,
     fontSize: 16,
   },
 });

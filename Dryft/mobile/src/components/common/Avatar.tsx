@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ViewStyle, ImageStyle } from 'react-native';
 import { Image } from 'expo-image';
+import { ThemeColors, useColors } from '../../theme/ThemeProvider';
 
 export interface AvatarProps {
   uri?: string | null;
@@ -10,6 +11,8 @@ export interface AvatarProps {
 }
 
 export default function Avatar({ uri, name, size = 72, style }: AvatarProps) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const initial = name?.trim()?.charAt(0).toUpperCase() || '?';
 
   if (uri) {
@@ -35,19 +38,19 @@ export default function Avatar({ uri, name, size = 72, style }: AvatarProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   image: {
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surface,
   },
   placeholder: {
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#16213e',
+    borderColor: colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   initial: {
-    color: '#e94560',
+    color: colors.primary,
     fontWeight: '700',
   },
 });

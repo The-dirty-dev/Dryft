@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,17 +11,21 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { CardField, useStripe, useConfirmSetupIntent } from '@stripe/stripe-react-native';
+import { CardField, useConfirmSetupIntent } from '@stripe/stripe-react-native';
 import { useTranslation } from 'react-i18next';
 import { VerificationStackParamList } from '../../navigation';
 import apiClient from '../../api/client';
+import { ThemeColors, useColors } from '../../theme/ThemeProvider';
 
 type NavigationProp = NativeStackNavigationProp<VerificationStackParamList>;
+const withAlpha = (color: string, alphaHex: string): string => `${color}${alphaHex}`;
 
 export default function CardVerificationScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { confirmSetupIntent } = useConfirmSetupIntent();
   const { t } = useTranslation();
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -88,7 +92,7 @@ export default function CardVerificationScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#e94560" />
+          <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>Setting up verification...</Text>
         </View>
       </SafeAreaView>
@@ -117,11 +121,11 @@ export default function CardVerificationScreen() {
               number: '4242 4242 4242 4242',
             }}
             cardStyle={{
-              backgroundColor: '#1a1a2e',
-              textColor: '#ffffff',
-              placeholderColor: '#8892b0',
+              backgroundColor: colors.surface,
+              textColor: colors.text,
+              placeholderColor: colors.textSecondary,
               borderWidth: 1,
-              borderColor: '#16213e',
+              borderColor: colors.backgroundSecondary,
               borderRadius: 12,
             }}
             style={styles.cardField}
@@ -161,7 +165,7 @@ export default function CardVerificationScreen() {
           disabled={!cardComplete || isSubmitting}
         >
           {isSubmitting ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={colors.text} />
           ) : (
             <Text style={styles.submitButtonText}>Verify Card</Text>
           )}
@@ -178,10 +182,10 @@ export default function CardVerificationScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f0f23',
+    backgroundColor: colors.background,
   },
   scrollView: {
     flex: 1,
@@ -195,7 +199,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    color: '#8892b0',
+    color: colors.textSecondary,
     marginTop: 16,
     fontSize: 16,
   },
@@ -203,7 +207,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   stepIndicator: {
-    backgroundColor: '#e94560',
+    backgroundColor: colors.primary,
     alignSelf: 'flex-start',
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -211,19 +215,19 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   stepText: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 12,
     fontWeight: '600',
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.text,
     marginBottom: 12,
   },
   subtitle: {
     fontSize: 16,
-    color: '#8892b0',
+    color: colors.textSecondary,
     lineHeight: 24,
   },
   cardContainer: {
@@ -232,7 +236,7 @@ const styles = StyleSheet.create({
   cardLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
     marginBottom: 8,
   },
   cardField: {
@@ -241,7 +245,7 @@ const styles = StyleSheet.create({
   },
   infoBox: {
     flexDirection: 'row',
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -256,26 +260,26 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
     marginBottom: 4,
   },
   infoText: {
     fontSize: 13,
-    color: '#8892b0',
+    color: colors.textSecondary,
     lineHeight: 18,
   },
   submitButton: {
-    backgroundColor: '#e94560',
+    backgroundColor: colors.primary,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
     marginTop: 8,
   },
   submitButtonDisabled: {
-    backgroundColor: '#e9456066',
+    backgroundColor: withAlpha(colors.primary, '66'),
   },
   submitButtonText: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 18,
     fontWeight: '600',
   },
@@ -285,7 +289,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   backButtonText: {
-    color: '#8892b0',
+    color: colors.textSecondary,
     fontSize: 16,
   },
 });

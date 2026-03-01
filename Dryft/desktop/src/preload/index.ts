@@ -42,6 +42,20 @@ const api = {
   // Platform info
   platform: process.platform,
   isElectron: true,
+  isDev: process.env.NODE_ENV === 'development',
+
+  // URL the renderer shell should load in the webview.
+  // Resolved at preload time (Node.js context) so the renderer doesn't
+  // need access to process.env.
+  appUrl: process.env.NODE_ENV === 'development'
+    ? 'http://localhost:3000'
+    : 'https://dryft.site',
+
+  // Absolute path to this compiled preload script.
+  // The renderer shell passes this to the <webview preload="..."> attribute
+  // so that window.drift is also available inside the webview (for the web
+  // app to call drift.minimizeWindow() etc.).
+  preloadPath: __dirname + '/index.js',
 
   // ==========================================================================
   // Haptic / Intiface APIs

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useOnboardingStore, getStepProgress } from '../../store/onboardingStore';
+import { ThemeColors, useColors } from '../../theme/ThemeProvider';
 
 interface SafetyFeature {
   icon: string;
@@ -48,7 +49,11 @@ const SAFETY_FEATURES: SafetyFeature[] = [
   },
 ];
 
+const withAlpha = (color: string, alphaHex: string): string => `${color}${alphaHex}`;
+
 export default function SafetyScreen() {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { completeStep } = useOnboardingStore();
   const progress = getStepProgress('safety');
 
@@ -62,7 +67,7 @@ export default function SafetyScreen() {
 
   return (
     <LinearGradient
-      colors={['#1a1a2e', '#16213e', '#0f0f23']}
+      colors={[colors.surface, colors.backgroundSecondary, colors.background]}
       style={styles.container}
     >
       <View style={styles.header}>
@@ -85,7 +90,7 @@ export default function SafetyScreen() {
           </View>
           <Text style={styles.title}>Your Safety Matters</Text>
           <Text style={styles.subtitle}>
-            We've built powerful tools to keep you safe. Here's what you should know.
+            We&apos;ve built powerful tools to keep you safe. Here&apos;s what you should know.
           </Text>
         </View>
 
@@ -126,7 +131,7 @@ export default function SafetyScreen() {
           activeOpacity={0.8}
         >
           <LinearGradient
-            colors={['#e94560', '#c73e54']}
+            colors={[colors.primary, colors.primaryDark]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.buttonGradient}
@@ -139,7 +144,7 @@ export default function SafetyScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -153,13 +158,13 @@ const styles = StyleSheet.create({
   progressBar: {
     flex: 1,
     height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: withAlpha(colors.text, '1A'),
     borderRadius: 2,
     marginRight: 16,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#e94560',
+    backgroundColor: colors.primary,
     borderRadius: 2,
   },
   skipButton: {
@@ -168,7 +173,7 @@ const styles = StyleSheet.create({
   },
   skipText: {
     fontSize: 14,
-    color: '#8892b0',
+    color: colors.textSecondary,
   },
   scrollView: {
     flex: 1,
@@ -185,7 +190,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(46, 204, 113, 0.15)',
+    backgroundColor: withAlpha(colors.success, '26'),
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -196,13 +201,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.text,
     textAlign: 'center',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#8892b0',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
   },
@@ -212,7 +217,7 @@ const styles = StyleSheet.create({
   },
   featureCard: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: withAlpha(colors.text, '0D'),
     borderRadius: 16,
     padding: 16,
     alignItems: 'flex-start',
@@ -221,7 +226,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: withAlpha(colors.text, '1A'),
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -235,31 +240,31 @@ const styles = StyleSheet.create({
   featureTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
     marginBottom: 4,
   },
   featureDescription: {
     fontSize: 14,
-    color: '#8892b0',
+    color: colors.textSecondary,
     lineHeight: 20,
   },
   commitmentCard: {
-    backgroundColor: 'rgba(233, 69, 96, 0.1)',
+    backgroundColor: withAlpha(colors.primary, '1A'),
     borderRadius: 16,
     padding: 20,
     borderWidth: 1,
-    borderColor: 'rgba(233, 69, 96, 0.2)',
+    borderColor: withAlpha(colors.primary, '33'),
     marginBottom: 16,
   },
   commitmentTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#e94560',
+    color: colors.primary,
     marginBottom: 8,
   },
   commitmentText: {
     fontSize: 14,
-    color: '#8892b0',
+    color: colors.textSecondary,
     lineHeight: 22,
   },
   helpSection: {
@@ -267,10 +272,10 @@ const styles = StyleSheet.create({
   },
   helpText: {
     fontSize: 14,
-    color: '#8892b0',
+    color: colors.textSecondary,
   },
   helpLink: {
-    color: '#e94560',
+    color: colors.primary,
     fontWeight: '500',
   },
   bottomSection: {
@@ -288,6 +293,6 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
   },
 });

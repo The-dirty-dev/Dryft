@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,9 @@ import {
   changeLanguage,
   getCurrentLanguage,
 } from '../i18n';
+import { ThemeColors, useColors } from '../theme/ThemeProvider';
+
+const withAlpha = (color: string, alphaHex: string): string => `${color}${alphaHex}`;
 
 interface LanguageSelectorProps {
   style?: object;
@@ -28,6 +31,8 @@ export function LanguageSelector({
   showNativeName = true,
 }: LanguageSelectorProps) {
   const { t } = useTranslation();
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [modalVisible, setModalVisible] = useState(false);
   const currentLang = getCurrentLanguage();
   const currentLanguageInfo = SUPPORTED_LANGUAGES[currentLang];
@@ -174,11 +179,11 @@ export function useLocalizedNumber() {
   return { formatNumber, formatCurrency, formatDistance };
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   selector: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: withAlpha(colors.text, '0D'),
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12,
@@ -190,19 +195,19 @@ const styles = StyleSheet.create({
   selectedLanguage: {
     flex: 1,
     fontSize: 16,
-    color: '#fff',
+    color: colors.text,
   },
   chevron: {
     fontSize: 20,
-    color: '#8892b0',
+    color: colors.textSecondary,
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: '70%',
@@ -213,24 +218,24 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    borderBottomColor: withAlpha(colors.text, '1A'),
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
   },
   closeButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: withAlpha(colors.text, '1A'),
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeButtonText: {
     fontSize: 16,
-    color: '#8892b0',
+    color: colors.textSecondary,
   },
   languageItem: {
     flexDirection: 'row',
@@ -238,7 +243,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   languageItemSelected: {
-    backgroundColor: 'rgba(233, 69, 96, 0.1)',
+    backgroundColor: withAlpha(colors.primary, '1A'),
   },
   languageFlag: {
     fontSize: 28,
@@ -250,21 +255,21 @@ const styles = StyleSheet.create({
   languageNative: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#fff',
+    color: colors.text,
     marginBottom: 2,
   },
   languageName: {
     fontSize: 13,
-    color: '#8892b0',
+    color: colors.textSecondary,
   },
   checkmark: {
     fontSize: 18,
-    color: '#e94560',
+    color: colors.primary,
     fontWeight: '600',
   },
   separator: {
     height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: withAlpha(colors.text, '0D'),
     marginLeft: 60,
   },
 });

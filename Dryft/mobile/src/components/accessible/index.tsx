@@ -1,4 +1,4 @@
-import React, { forwardRef, useCallback } from 'react';
+import React, { forwardRef, useCallback, useMemo } from 'react';
 import {
   TouchableOpacity,
   TouchableOpacityProps,
@@ -27,6 +27,7 @@ import {
   useReducedMotion,
   useAccessibleColors,
 } from '../../hooks/useAccessibility';
+import { ThemeColors, useColors } from '../../theme/ThemeProvider';
 
 // ============================================================================
 // AccessibleButton
@@ -62,8 +63,10 @@ export const AccessibleButton = forwardRef<any, AccessibleButtonProps>(
     },
     ref
   ) => {
+    const colors = useColors();
+    const styles = useMemo(() => createStyles(colors), [colors]);
     const { createButtonLabel } = useAccessibilityLabel();
-    const { getStyle: getTouchStyle, minSize } = useAccessibleTouchTarget();
+    const { getStyle: getTouchStyle } = useAccessibleTouchTarget();
     const { medium } = useHaptics();
     const fontScale = useFontScale();
     const { highContrast, getColor } = useAccessibleColors();
@@ -86,28 +89,28 @@ export const AccessibleButton = forwardRef<any, AccessibleButtonProps>(
 
     const variantStyles = {
       primary: {
-        backgroundColor: getColor('#8B5CF6', '#6D28D9'),
+        backgroundColor: getColor(colors.accent, colors.accentSecondary),
         borderWidth: 0,
         borderColor: 'transparent',
-        textColor: '#FFFFFF',
+        textColor: colors.text,
       },
       secondary: {
-        backgroundColor: getColor('#374151', '#1F2937'),
+        backgroundColor: getColor(colors.border, colors.surfaceSecondary),
         borderWidth: 0,
         borderColor: 'transparent',
-        textColor: '#FFFFFF',
+        textColor: colors.text,
       },
       outline: {
         backgroundColor: 'transparent',
         borderWidth: highContrast ? 2 : 1,
-        borderColor: getColor('#8B5CF6', '#A78BFA'),
-        textColor: getColor('#8B5CF6', '#A78BFA'),
+        borderColor: getColor(colors.accent, colors.accent),
+        textColor: getColor(colors.accent, colors.accent),
       },
       ghost: {
         backgroundColor: 'transparent',
         borderWidth: 0,
         borderColor: 'transparent',
-        textColor: getColor('#8B5CF6', '#A78BFA'),
+        textColor: getColor(colors.accent, colors.accent),
       },
     };
 
@@ -192,15 +195,16 @@ export interface AccessibleTextProps extends TextProps {
 
 export const AccessibleText = forwardRef<Text, AccessibleTextProps>(
   ({ variant = 'body', bold = false, style, children, ...props }, ref) => {
+    const colors = useColors();
     const fontScale = useFontScale();
-    const { highContrast, getColor } = useAccessibleColors();
+    const { highContrast } = useAccessibleColors();
 
     const variantStyles = {
-      heading: { fontSize: 24, fontWeight: '700' as const, color: '#FFFFFF' },
-      subheading: { fontSize: 18, fontWeight: '600' as const, color: '#FFFFFF' },
-      body: { fontSize: 16, fontWeight: '400' as const, color: '#E5E5E5' },
-      caption: { fontSize: 14, fontWeight: '400' as const, color: '#9CA3AF' },
-      label: { fontSize: 12, fontWeight: '500' as const, color: '#9CA3AF' },
+      heading: { fontSize: 24, fontWeight: '700' as const, color: colors.text },
+      subheading: { fontSize: 18, fontWeight: '600' as const, color: colors.text },
+      body: { fontSize: 16, fontWeight: '400' as const, color: colors.textSecondary },
+      caption: { fontSize: 14, fontWeight: '400' as const, color: colors.textTertiary },
+      label: { fontSize: 12, fontWeight: '500' as const, color: colors.textTertiary },
     };
 
     const currentStyle = variantStyles[variant];
@@ -212,7 +216,7 @@ export const AccessibleText = forwardRef<Text, AccessibleTextProps>(
           {
             fontSize: currentStyle.fontSize * fontScale,
             fontWeight: bold ? '700' : currentStyle.fontWeight,
-            color: highContrast ? '#FFFFFF' : currentStyle.color,
+            color: highContrast ? colors.text : currentStyle.color,
           },
           style,
         ]}
@@ -265,8 +269,10 @@ export interface AccessibleTextInputProps extends TextInputProps {
 
 export const AccessibleTextInput = forwardRef<TextInput, AccessibleTextInputProps>(
   ({ label, hint, error, required, style, ...props }, ref) => {
+    const colors = useColors();
+    const styles = useMemo(() => createStyles(colors), [colors]);
     const fontScale = useFontScale();
-    const { highContrast, getColor } = useAccessibleColors();
+    const { highContrast } = useAccessibleColors();
 
     const accessibilityLabel = [
       label,
@@ -303,7 +309,7 @@ export const AccessibleTextInput = forwardRef<TextInput, AccessibleTextInputProp
             highContrast && styles.inputHighContrast,
             style,
           ]}
-          placeholderTextColor="#6B7280"
+          placeholderTextColor={colors.textMuted}
           {...props}
         />
         {error && (
@@ -337,6 +343,8 @@ export function AccessibleSwitch({
   onValueChange,
   ...props
 }: AccessibleSwitchProps) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { selection } = useHaptics();
   const fontScale = useFontScale();
   const { getStyle: getTouchStyle } = useAccessibleTouchTarget();
@@ -365,9 +373,9 @@ export function AccessibleSwitch({
       <Switch
         value={value}
         onValueChange={handleChange}
-        trackColor={{ false: '#374151', true: '#8B5CF6' }}
-        thumbColor={value ? '#FFFFFF' : '#9CA3AF'}
-        ios_backgroundColor="#374151"
+        trackColor={{ false: colors.border, true: colors.accent }}
+        thumbColor={value ? colors.text : colors.textTertiary}
+        ios_backgroundColor={colors.border}
         {...props}
       />
     </Pressable>
@@ -394,7 +402,7 @@ export const AccessibleIconButton = forwardRef<any, AccessibleIconButtonProps>(
       label,
       hint,
       size = 24,
-      color = '#FFFFFF',
+      color,
       haptic = true,
       style,
       onPress,
@@ -402,9 +410,12 @@ export const AccessibleIconButton = forwardRef<any, AccessibleIconButtonProps>(
     },
     ref
   ) => {
+    const colors = useColors();
+    const styles = useMemo(() => createStyles(colors), [colors]);
     const { createButtonLabel } = useAccessibilityLabel();
     const { getStyle: getTouchStyle, minSize } = useAccessibleTouchTarget();
     const { light } = useHaptics();
+    const iconColor = color ?? colors.text;
 
     const handlePress = useCallback(
       (e: any) => {
@@ -429,7 +440,7 @@ export const AccessibleIconButton = forwardRef<any, AccessibleIconButtonProps>(
         activeOpacity={0.7}
         {...props}
       >
-        <Ionicons name={icon} size={size} color={color} />
+        <Ionicons name={icon} size={size} color={iconColor} />
       </TouchableOpacity>
     );
   }
@@ -452,6 +463,8 @@ export function AccessibleCard({
   style,
   ...props
 }: AccessibleCardProps) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const reduceMotion = useReducedMotion();
   const { createButtonLabel } = useAccessibilityLabel();
   const { light } = useHaptics();
@@ -487,6 +500,8 @@ export function AccessibleLink({
   style,
   ...props
 }: AccessibleLinkProps) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const fontScale = useFontScale();
   const { highContrast, getColor } = useAccessibleColors();
 
@@ -503,7 +518,7 @@ export function AccessibleLink({
           styles.linkText,
           {
             fontSize: 16 * fontScale,
-            color: getColor('#8B5CF6', '#A78BFA'),
+            color: getColor(colors.accent, colors.accentSecondary),
             textDecorationLine: highContrast ? 'underline' : 'none',
           },
         ]}
@@ -527,6 +542,8 @@ export function SkipToContent({
   targetRef,
   label = 'Skip to main content',
 }: SkipToContentProps) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { isScreenReaderEnabled, focusOn } = require('../../hooks/useAccessibility').useScreenReader();
 
   if (!isScreenReaderEnabled) {
@@ -550,7 +567,7 @@ export function SkipToContent({
 // Styles
 // ============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   button: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -571,33 +588,33 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   inputLabel: {
-    color: '#9CA3AF',
+    color: colors.textTertiary,
     marginBottom: 6,
   },
   inputLabelHighContrast: {
-    color: '#FFFFFF',
+    color: colors.text,
   },
   required: {
-    color: '#EF4444',
+    color: colors.error,
   },
   input: {
-    backgroundColor: '#1F2937',
+    backgroundColor: colors.surfaceSecondary,
     borderWidth: 1,
-    borderColor: '#374151',
+    borderColor: colors.border,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 12,
-    color: '#FFFFFF',
+    color: colors.text,
   },
   inputError: {
-    borderColor: '#EF4444',
+    borderColor: colors.error,
   },
   inputHighContrast: {
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: colors.text,
   },
   errorText: {
-    color: '#EF4444',
+    color: colors.error,
     marginTop: 4,
   },
   switchContainer: {
@@ -607,7 +624,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   switchLabel: {
-    color: '#FFFFFF',
+    color: colors.text,
     flex: 1,
     marginRight: 12,
   },
@@ -616,7 +633,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   card: {
-    backgroundColor: '#1F2937',
+    backgroundColor: colors.surfaceSecondary,
     borderRadius: 12,
     padding: 16,
   },
@@ -632,12 +649,12 @@ const styles = StyleSheet.create({
     top: -100,
     left: 0,
     right: 0,
-    backgroundColor: '#8B5CF6',
+    backgroundColor: colors.accent,
     padding: 12,
     zIndex: 1000,
   },
   skipLinkText: {
-    color: '#FFFFFF',
+    color: colors.text,
     textAlign: 'center',
     fontWeight: '600',
   },

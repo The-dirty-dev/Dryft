@@ -1,10 +1,11 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useMemo } from 'react';
 import {
   TextInput,
   StyleSheet,
   TextInputProps,
   ViewStyle,
 } from 'react-native';
+import { ThemeColors, useColors } from '../../theme/ThemeProvider';
 
 export interface InputProps extends TextInputProps {
   error?: boolean;
@@ -14,18 +15,21 @@ export interface InputProps extends TextInputProps {
 const Input = forwardRef<TextInput, InputProps>(function Input(
   {
     style,
-    placeholderTextColor = '#8892b0',
+    placeholderTextColor,
     error = false,
     containerStyle,
     ...props
   },
   ref
 ) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <TextInput
       ref={ref}
       {...props}
-      placeholderTextColor={placeholderTextColor}
+      placeholderTextColor={placeholderTextColor ?? colors.textSecondary}
       style={[
         styles.input,
         error && styles.inputError,
@@ -40,18 +44,18 @@ Input.displayName = 'Input';
 
 export default Input;
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   input: {
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 16,
     fontSize: 16,
-    color: '#fff',
+    color: colors.text,
     borderWidth: 1,
-    borderColor: '#16213e',
+    borderColor: colors.backgroundSecondary,
   },
   inputError: {
-    borderColor: '#e94560',
+    borderColor: colors.primary,
   },
 });

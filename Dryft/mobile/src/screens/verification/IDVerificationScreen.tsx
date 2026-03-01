@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,12 +15,16 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { VerificationStackParamList } from '../../navigation';
 import apiClient from '../../api/client';
+import { ThemeColors, useColors } from '../../theme/ThemeProvider';
 
 type NavigationProp = NativeStackNavigationProp<VerificationStackParamList>;
+const withAlpha = (color: string, alphaHex: string): string => `${color}${alphaHex}`;
 
 export default function IDVerificationScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { t } = useTranslation();
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [isLoading, setIsLoading] = useState(false);
   const [verificationStarted, setVerificationStarted] = useState(false);
@@ -150,7 +154,7 @@ export default function IDVerificationScreen() {
             disabled={isLoading}
           >
             {isLoading ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={colors.text} />
             ) : (
               <Text style={styles.startButtonText}>Start ID Verification</Text>
             )}
@@ -168,7 +172,7 @@ export default function IDVerificationScreen() {
               disabled={isLoading}
             >
               {isLoading ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={colors.text} />
               ) : (
                 <Text style={styles.checkButtonText}>Check Verification Status</Text>
               )}
@@ -195,10 +199,10 @@ export default function IDVerificationScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f0f23',
+    backgroundColor: colors.background,
   },
   scrollView: {
     flex: 1,
@@ -210,7 +214,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   stepIndicator: {
-    backgroundColor: '#e94560',
+    backgroundColor: colors.primary,
     alignSelf: 'flex-start',
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -218,23 +222,23 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   stepText: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 12,
     fontWeight: '600',
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.text,
     marginBottom: 12,
   },
   subtitle: {
     fontSize: 16,
-    color: '#8892b0',
+    color: colors.textSecondary,
     lineHeight: 24,
   },
   requirementsContainer: {
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 20,
     marginBottom: 20,
@@ -242,7 +246,7 @@ const styles = StyleSheet.create({
   requirementsTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
     marginBottom: 16,
   },
   requirement: {
@@ -259,43 +263,43 @@ const styles = StyleSheet.create({
   requirementTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
     marginBottom: 2,
   },
   requirementText: {
     fontSize: 13,
-    color: '#8892b0',
+    color: colors.textSecondary,
   },
   privacyBox: {
-    backgroundColor: '#16213e',
+    backgroundColor: colors.backgroundSecondary,
     borderRadius: 12,
     padding: 16,
     marginBottom: 24,
     borderLeftWidth: 4,
-    borderLeftColor: '#10b981',
+    borderLeftColor: colors.success,
   },
   privacyTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#10b981',
+    color: colors.success,
     marginBottom: 8,
   },
   privacyText: {
     fontSize: 13,
-    color: '#8892b0',
+    color: colors.textSecondary,
     lineHeight: 20,
   },
   startButton: {
-    backgroundColor: '#e94560',
+    backgroundColor: colors.primary,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
   },
   startButtonDisabled: {
-    backgroundColor: '#e9456066',
+    backgroundColor: withAlpha(colors.primary, '66'),
   },
   startButtonText: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 18,
     fontWeight: '600',
   },
@@ -304,34 +308,34 @@ const styles = StyleSheet.create({
   },
   completedText: {
     fontSize: 14,
-    color: '#8892b0',
+    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 16,
     lineHeight: 20,
   },
   checkButton: {
-    backgroundColor: '#10b981',
+    backgroundColor: colors.success,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
     marginBottom: 12,
   },
   checkButtonDisabled: {
-    backgroundColor: '#10b98166',
+    backgroundColor: withAlpha(colors.success, '66'),
   },
   checkButtonText: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 18,
     fontWeight: '600',
   },
   restartButton: {
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 14,
     alignItems: 'center',
   },
   restartButtonText: {
-    color: '#8892b0',
+    color: colors.textSecondary,
     fontSize: 16,
   },
   backButton: {
@@ -340,7 +344,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   backButtonText: {
-    color: '#8892b0',
+    color: colors.textSecondary,
     fontSize: 16,
   },
 });

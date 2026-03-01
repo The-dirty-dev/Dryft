@@ -228,12 +228,12 @@ export function InAppNotification({
       case 'MESSAGE':
         return theme.colors.primary;
       case 'MATCH':
-        return '#e94560';
+        return theme.colors.primary;
       case 'LIKE':
       case 'SUPER_LIKE':
-        return '#ff6b9d';
+        return theme.colors.accentPink;
       case 'VR_INVITE':
-        return '#9b59b6';
+        return theme.colors.accent;
       case 'SAFETY':
         return theme.colors.error;
       default:
@@ -267,6 +267,7 @@ export function InAppNotification({
             {
               backgroundColor: theme.colors.surface,
               borderLeftColor: categoryColor,
+              shadowColor: theme.colors.backgroundDarkest,
             },
           ]}
         >
@@ -301,7 +302,7 @@ export function InAppNotification({
 
             {/* App Icon */}
             <View style={[styles.appIcon, { backgroundColor: categoryColor }]}>
-              <Text style={styles.appIconText}>D</Text>
+              <Text style={[styles.appIconText, { color: theme.colors.text }]}>D</Text>
             </View>
           </View>
 
@@ -345,7 +346,7 @@ export function InAppNotification({
                 onPress={handleSendReply}
                 disabled={!replyText.trim()}
               >
-                <Ionicons name="send" size={18} color="#fff" />
+                <Ionicons name="send" size={18} color={theme.colors.text} />
               </TouchableOpacity>
             </View>
           )}
@@ -551,7 +552,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderLeftWidth: 4,
     overflow: 'hidden',
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
@@ -594,7 +594,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   appIconText: {
-    color: '#fff',
     fontSize: 14,
     fontWeight: '700',
   },

@@ -65,13 +65,13 @@ groups:
           description: "More than 50 authentication failures per second - possible attack."
 
       - alert: DryftDatabaseConnectionsHigh
-        expr: db_connections_active > 80
+        expr: db_connections_active > 20
         for: 5m
         labels:
           severity: warning
         annotations:
           summary: "High database connections"
-          description: "Database connection count is above 80 (typical pool size is 100)."
+          description: "Database connection count is above 20 (80% of default pool size 25; set DB_MAX_CONNS env var to adjust)."
 
   - name: dryft-test-alerts
     rules:

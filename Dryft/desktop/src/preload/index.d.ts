@@ -33,6 +33,11 @@ declare global {
       // Platform info
       platform: NodeJS.Platform;
       isElectron: boolean;
+      isDev: boolean;
+
+      // Webview bootstrap — URL and preload path for the renderer shell
+      appUrl: string;
+      preloadPath: string;
 
       // Haptic / Intiface APIs
       getIntifaceUrl: () => Promise<string>;

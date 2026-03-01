@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -14,11 +14,14 @@ import { RootStackParamList } from '../../navigation';
 import { useMarketplaceStore } from '../../store/marketplaceStore';
 import { StoreItem, formatPrice } from '../../types';
 import marketplaceApi from '../../api/marketplace';
+import { ThemeColors, useColors } from '../../theme/ThemeProvider';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ItemDetail'>;
 
 export default function ItemDetailScreen({ route, navigation }: Props) {
   const { itemId } = route.params;
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [item, setItem] = useState<StoreItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPurchasing, setIsPurchasing] = useState(false);
@@ -71,7 +74,7 @@ export default function ItemDetailScreen({ route, navigation }: Props) {
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#e94560" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -173,7 +176,7 @@ export default function ItemDetailScreen({ route, navigation }: Props) {
             disabled={isPurchasing}
           >
             {isPurchasing ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={colors.text} />
             ) : (
               <Text style={styles.buyButtonText}>
                 {item.price === 0 ? 'Get Free' : 'Buy Now'}
@@ -186,25 +189,25 @@ export default function ItemDetailScreen({ route, navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f0f23',
+    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0f0f23',
+    backgroundColor: colors.background,
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0f0f23',
+    backgroundColor: colors.background,
   },
   errorText: {
-    color: '#8892b0',
+    color: colors.textSecondary,
     fontSize: 16,
   },
   content: {
@@ -213,7 +216,7 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: 300,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surface,
   },
   details: {
     padding: 20,
@@ -227,40 +230,40 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   typeBadge: {
-    backgroundColor: '#16213e',
+    backgroundColor: colors.backgroundSecondary,
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
   },
   typeBadgeText: {
-    color: '#8892b0',
+    color: colors.textSecondary,
     fontSize: 12,
     textTransform: 'capitalize',
   },
   featuredBadge: {
-    backgroundColor: '#e94560',
+    backgroundColor: colors.primary,
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
   },
   featuredBadgeText: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 12,
     fontWeight: '600',
   },
   name: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.text,
   },
   creator: {
     fontSize: 16,
-    color: '#e94560',
+    color: colors.primary,
     marginTop: 4,
   },
   stats: {
     flexDirection: 'row',
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     marginBottom: 24,
@@ -272,30 +275,30 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.text,
   },
   statLabel: {
     fontSize: 12,
-    color: '#8892b0',
+    color: colors.textSecondary,
     marginTop: 4,
   },
   statDivider: {
     width: 1,
-    backgroundColor: '#16213e',
+    backgroundColor: colors.backgroundSecondary,
   },
   section: {
     marginBottom: 20,
   },
   sectionTitle: {
     fontSize: 14,
-    color: '#8892b0',
+    color: colors.textSecondary,
     marginBottom: 8,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
   description: {
     fontSize: 16,
-    color: '#fff',
+    color: colors.text,
     lineHeight: 24,
   },
   tags: {
@@ -304,40 +307,40 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   tag: {
-    backgroundColor: '#16213e',
+    backgroundColor: colors.backgroundSecondary,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
   },
   tagText: {
-    color: '#8892b0',
+    color: colors.textSecondary,
     fontSize: 13,
   },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: '#16213e',
+    borderTopColor: colors.backgroundSecondary,
   },
   priceContainer: {
     flex: 1,
   },
   priceLabel: {
     fontSize: 12,
-    color: '#8892b0',
+    color: colors.textSecondary,
   },
   priceValue: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#e94560',
+    color: colors.primary,
   },
   priceFree: {
-    color: '#10b981',
+    color: colors.success,
   },
   buyButton: {
-    backgroundColor: '#e94560',
+    backgroundColor: colors.primary,
     paddingHorizontal: 32,
     paddingVertical: 16,
     borderRadius: 12,
@@ -346,18 +349,18 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   buyButtonText: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 16,
     fontWeight: '600',
   },
   ownedButton: {
-    backgroundColor: '#10b981',
+    backgroundColor: colors.success,
     paddingHorizontal: 32,
     paddingVertical: 16,
     borderRadius: 12,
   },
   ownedButtonText: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 16,
     fontWeight: '600',
   },

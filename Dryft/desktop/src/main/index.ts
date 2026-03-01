@@ -3,10 +3,11 @@ import { join } from 'path';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 import { autoUpdater } from 'electron-updater';
 
-// App configuration
-const APP_URL = is.dev
-  ? 'http://localhost:3000'
-  : 'https://dryft.site';
+// The web app URL is exposed to the renderer shell via window.drift.appUrl
+// (set in preload/index.ts). The BrowserWindow itself loads the renderer
+// shell (index.html), which then creates a <webview> for the web app.
+// In dev, electron-vite sets ELECTRON_RENDERER_URL to the Vite dev server URL.
+const RENDERER_DEV_URL = process.env['ELECTRON_RENDERER_URL'];
 
 const INTIFACE_DOWNLOAD_URL = 'https://intiface.com/central/';
 const INTIFACE_DEFAULT_URL = 'ws://127.0.0.1:12345';
@@ -32,6 +33,8 @@ function createWindow(): void {
       sandbox: false,
       nodeIntegration: false,
       contextIsolation: true,
+      // Required for the renderer shell's <webview> element
+      webviewTag: true,
     },
   });
 
@@ -48,8 +51,14 @@ function createWindow(): void {
     return { action: 'deny' };
   });
 
-  // Load the web app
-  mainWindow.loadURL(APP_URL);
+  // Load the renderer shell (which in turn creates a <webview> for the web app)
+  if (RENDERER_DEV_URL) {
+    // Dev: electron-vite serves the renderer shell via its own Vite dev server
+    mainWindow.loadURL(RENDERER_DEV_URL);
+  } else {
+    // Prod: load the built renderer shell from dist/renderer/
+    mainWindow.loadFile(join(__dirname, '../renderer/index.html'));
+  }
 
   // Handle window close
   mainWindow.on('close', (event) => {
@@ -336,13 +345,20 @@ app.on('open-url', (event, url) => {
   }
 });
 
-// Security: Prevent new window creation
+// Security: The renderer shell only loads local file:// or the Vite dev server.
+// External URL navigation from the shell is already handled by setWindowOpenHandler.
+// The <webview> inside the shell manages its own navigation (dryft.site / localhost).
+// Any unexpected new BrowserWindow navigation is blocked here as a safety net.
 app.on('web-contents-created', (_, contents) => {
   contents.on('will-navigate', (event, navigationUrl) => {
-    const parsedUrl = new URL(navigationUrl);
+    const parsed = new URL(navigationUrl);
+    const allowed =
+      parsed.protocol === 'file:' ||
+      navigationUrl.startsWith('http://localhost:') ||
+      navigationUrl.startsWith('https://dryft.site') ||
+      navigationUrl.startsWith('https://updates.dryft.site');
 
-    // Only allow navigation to our app
-    if (!navigationUrl.startsWith(APP_URL) && parsedUrl.protocol !== 'file:') {
+    if (!allowed) {
       event.preventDefault();
       shell.openExternal(navigationUrl);
     }

@@ -154,7 +154,7 @@ export function RatingPrompt({
 
   return (
     <Modal visible={visible} transparent animationType="fade">
-      <View style={styles.overlay}>
+      <View style={[styles.overlay, { backgroundColor: theme.colors.overlay }]}>
         <Animated.View
           style={[
             styles.container,
@@ -235,7 +235,7 @@ function InitialStep({
     <>
       {/* Logo */}
       <View style={[styles.logo, { backgroundColor: theme.colors.primary }]}>
-        <Text style={styles.logoText}>D</Text>
+        <Text style={[styles.logoText, { color: theme.colors.text }]}>D</Text>
       </View>
 
       {/* Title */}
@@ -253,7 +253,7 @@ function InitialStep({
             <Ionicons
               name={star <= selectedRating ? 'star' : 'star-outline'}
               size={40}
-              color={star <= selectedRating ? '#FFD700' : theme.colors.textMuted}
+              color={star <= selectedRating ? theme.colors.warning : theme.colors.textMuted}
             />
           </TouchableOpacity>
         ))}
@@ -298,7 +298,7 @@ function HappyStep({ theme, rating, onRateOnStore, onNoThanks }: HappyStepProps)
             key={star}
             name={star <= rating ? 'star' : 'star-outline'}
             size={24}
-            color={star <= rating ? '#FFD700' : theme.colors.textMuted}
+            color={star <= rating ? theme.colors.warning : theme.colors.textMuted}
           />
         ))}
       </View>
@@ -308,8 +308,8 @@ function HappyStep({ theme, rating, onRateOnStore, onNoThanks }: HappyStepProps)
         style={[styles.primaryButton, { backgroundColor: theme.colors.primary }]}
         onPress={onRateOnStore}
       >
-        <Ionicons name="star" size={20} color="#fff" />
-        <Text style={styles.primaryButtonText}>Rate on Store</Text>
+        <Ionicons name="star" size={20} color={theme.colors.text} />
+        <Text style={[styles.primaryButtonText, { color: theme.colors.text }]}>Rate on Store</Text>
       </TouchableOpacity>
 
       <TouchableOpacity onPress={onNoThanks} style={styles.secondaryButton}>
@@ -349,7 +349,7 @@ function UnhappyStep({ theme, rating, onGiveFeedback, onNoThanks }: UnhappyStepP
             key={star}
             name={star <= rating ? 'star' : 'star-outline'}
             size={24}
-            color={star <= rating ? '#FFD700' : theme.colors.textMuted}
+            color={star <= rating ? theme.colors.warning : theme.colors.textMuted}
           />
         ))}
       </View>
@@ -359,8 +359,8 @@ function UnhappyStep({ theme, rating, onGiveFeedback, onNoThanks }: UnhappyStepP
         style={[styles.primaryButton, { backgroundColor: theme.colors.primary }]}
         onPress={onGiveFeedback}
       >
-        <Ionicons name="chatbubble" size={20} color="#fff" />
-        <Text style={styles.primaryButtonText}>Give Feedback</Text>
+        <Ionicons name="chatbubble" size={20} color={theme.colors.text} />
+        <Text style={[styles.primaryButtonText, { color: theme.colors.text }]}>Give Feedback</Text>
       </TouchableOpacity>
 
       <TouchableOpacity onPress={onNoThanks} style={styles.secondaryButton}>
@@ -428,8 +428,8 @@ function FeedbackStep({
         onPress={onSubmit}
         disabled={!feedback.trim()}
       >
-        <Ionicons name="send" size={20} color="#fff" />
-        <Text style={styles.primaryButtonText}>Submit Feedback</Text>
+        <Ionicons name="send" size={20} color={theme.colors.text} />
+        <Text style={[styles.primaryButtonText, { color: theme.colors.text }]}>Submit Feedback</Text>
       </TouchableOpacity>
 
       <TouchableOpacity onPress={onCancel} style={styles.secondaryButton}>
@@ -498,6 +498,7 @@ export function RatingBanner({ visible, trigger = 'manual', onPress, onDismiss }
         styles.bannerContainer,
         {
           backgroundColor: theme.colors.surface,
+          shadowColor: theme.colors.backgroundDarkest,
           transform: [{ translateY }],
           opacity: animation,
         },
@@ -603,7 +604,6 @@ export function useRatingPrompt() {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
@@ -626,7 +626,6 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#fff',
   },
   emojiContainer: {
     width: 72,
@@ -683,7 +682,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   primaryButtonText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -717,7 +715,6 @@ const styles = StyleSheet.create({
     padding: 16,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,

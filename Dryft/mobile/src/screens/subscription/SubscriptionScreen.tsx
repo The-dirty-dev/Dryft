@@ -20,6 +20,8 @@ import {
   TIER_ENTITLEMENTS,
 } from '../../store/subscriptionStore';
 
+const withAlpha = (color: string, alphaHex: string): string => `${color}${alphaHex}`;
+
 interface PlanCardProps {
   tier: SubscriptionTier;
   name: string;
@@ -53,9 +55,9 @@ function PlanCard({
   const billingText = selectedBilling === 'monthly' ? '/month' : '/month, billed yearly';
 
   const gradientColors = {
-    plus: ['#3b82f6', '#1d4ed8'],
-    premium: ['#8b5cf6', '#6d28d9'],
-    vip: ['#f59e0b', '#d97706'],
+    plus: [theme.colors.info, theme.colors.primaryDark],
+    premium: [theme.colors.accent, theme.colors.accentSecondary],
+    vip: [theme.colors.warning, theme.colors.primaryDark],
   };
 
   return (
@@ -73,24 +75,24 @@ function PlanCard({
     >
       {isPopular && (
         <View style={[styles.popularBadge, { backgroundColor: theme.colors.primary }]}>
-          <Text style={styles.popularText}>MOST POPULAR</Text>
+          <Text style={[styles.popularText, { color: theme.colors.text }]}>MOST POPULAR</Text>
         </View>
       )}
 
       {isCurrentPlan && (
         <View style={[styles.currentBadge, { backgroundColor: theme.colors.success }]}>
-          <Text style={styles.currentText}>CURRENT PLAN</Text>
+          <Text style={[styles.currentText, { color: theme.colors.text }]}>CURRENT PLAN</Text>
         </View>
       )}
 
       <LinearGradient
-        colors={gradientColors[tier as keyof typeof gradientColors] || ['#666', '#444']}
+        colors={gradientColors[tier as keyof typeof gradientColors] || [theme.colors.textMuted, theme.colors.textSecondary]}
         style={styles.planHeader}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
-        <Text style={styles.planName}>{name}</Text>
-        {tier === 'vip' && <Ionicons name="diamond" size={20} color="#fff" />}
+        <Text style={[styles.planName, { color: theme.colors.text }]}>{name}</Text>
+        {tier === 'vip' && <Ionicons name="diamond" size={20} color={theme.colors.text} />}
       </LinearGradient>
 
       <View style={styles.planContent}>
@@ -125,7 +127,7 @@ function PlanCard({
             onPress={onSelect}
             style={[styles.selectButton, { backgroundColor: theme.colors.primary }]}
           >
-            <Text style={styles.selectButtonText}>
+            <Text style={[styles.selectButtonText, { color: theme.colors.text }]}>
               {selectedBilling === 'yearly' ? `Get ${name} - ${yearlyPrice}/year` : `Get ${name}`}
             </Text>
           </TouchableOpacity>
@@ -265,6 +267,7 @@ export default function SubscriptionScreen({ navigation, route }: any) {
           onPress={() => setSelectedBilling('monthly')}
           style={[
             styles.billingOption,
+            { backgroundColor: withAlpha(theme.colors.text, '1A') },
             selectedBilling === 'monthly' && {
               backgroundColor: theme.colors.primary,
             },
@@ -273,7 +276,7 @@ export default function SubscriptionScreen({ navigation, route }: any) {
           <Text
             style={[
               styles.billingOptionText,
-              { color: selectedBilling === 'monthly' ? '#fff' : theme.colors.text },
+              { color: selectedBilling === 'monthly' ? theme.colors.text : theme.colors.text },
             ]}
           >
             Monthly
@@ -283,6 +286,7 @@ export default function SubscriptionScreen({ navigation, route }: any) {
           onPress={() => setSelectedBilling('yearly')}
           style={[
             styles.billingOption,
+            { backgroundColor: withAlpha(theme.colors.text, '1A') },
             selectedBilling === 'yearly' && {
               backgroundColor: theme.colors.primary,
             },
@@ -291,13 +295,13 @@ export default function SubscriptionScreen({ navigation, route }: any) {
           <Text
             style={[
               styles.billingOptionText,
-              { color: selectedBilling === 'yearly' ? '#fff' : theme.colors.text },
+              { color: selectedBilling === 'yearly' ? theme.colors.text : theme.colors.text },
             ]}
           >
             Yearly
           </Text>
-          <View style={styles.saveBadge}>
-            <Text style={styles.saveBadgeText}>SAVE UP TO 50%</Text>
+          <View style={[styles.saveBadge, { backgroundColor: theme.colors.success }]}>
+            <Text style={[styles.saveBadgeText, { color: theme.colors.text }]}>SAVE UP TO 50%</Text>
           </View>
         </TouchableOpacity>
       </View>
@@ -397,21 +401,18 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 12,
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)',
   },
   billingOptionText: {
     fontSize: 14,
     fontWeight: '600',
   },
   saveBadge: {
-    backgroundColor: '#22c55e',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
     marginTop: 4,
   },
   saveBadgeText: {
-    color: '#fff',
     fontSize: 10,
     fontWeight: '700',
   },
@@ -439,7 +440,6 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   popularText: {
-    color: '#fff',
     fontSize: 10,
     fontWeight: '700',
   },
@@ -453,7 +453,6 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   currentText: {
-    color: '#fff',
     fontSize: 10,
     fontWeight: '700',
   },
@@ -467,7 +466,6 @@ const styles = StyleSheet.create({
   planName: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#fff',
   },
   planContent: {
     padding: 16,
@@ -513,7 +511,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   selectButtonText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },

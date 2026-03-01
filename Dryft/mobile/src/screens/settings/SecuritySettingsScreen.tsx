@@ -24,6 +24,8 @@ import { useScreenSecurity } from '@hooks/useScreenSecurity';
 import { ScreenSecurityModule } from '@native/ScreenSecurityModule';
 import { Input } from '../../components/common';
 
+const withAlpha = (color: string, alphaHex: string): string => `${color}${alphaHex}`;
+
 interface SettingRowProps {
   icon: keyof typeof Ionicons.glyphMap;
   title: string;
@@ -72,7 +74,7 @@ function SettingRow({
           onValueChange={onValueChange}
           disabled={disabled}
           trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
-          thumbColor="#fff"
+          thumbColor={theme.colors.text}
         />
       )}
       {showArrow && (
@@ -380,20 +382,20 @@ export default function SecuritySettingsScreen({ navigation }: any) {
               styles.statusBox,
               {
                 backgroundColor: isSecure
-                  ? 'rgba(34, 197, 94, 0.1)'
-                  : 'rgba(245, 158, 11, 0.1)',
+                  ? withAlpha(theme.colors.success, '1A')
+                  : withAlpha(theme.colors.warning, '1A'),
               },
             ]}
           >
             <Ionicons
               name={isSecure ? 'shield-checkmark' : 'shield-outline'}
               size={20}
-              color={isSecure ? '#22c55e' : '#f59e0b'}
+              color={isSecure ? theme.colors.success : theme.colors.warning}
             />
             <Text
               style={[
                 styles.statusText,
-                { color: isSecure ? '#22c55e' : '#f59e0b' },
+                { color: isSecure ? theme.colors.success : theme.colors.warning },
               ]}
             >
               {isSecure
@@ -405,9 +407,9 @@ export default function SecuritySettingsScreen({ navigation }: any) {
 
         {/* Development Mode Warning */}
         {!isScreenSecurityAvailable && (
-          <View style={[styles.infoBox, { backgroundColor: 'rgba(245, 158, 11, 0.1)' }]}>
-            <Ionicons name="warning" size={20} color="#f59e0b" />
-            <Text style={[styles.infoText, { color: '#f59e0b' }]}>
+          <View style={[styles.infoBox, { backgroundColor: withAlpha(theme.colors.warning, '1A') }]}>
+            <Ionicons name="warning" size={20} color={theme.colors.warning} />
+            <Text style={[styles.infoText, { color: theme.colors.warning }]}>
               Screen security requires a development build. It won't work in Expo Go.
             </Text>
           </View>
@@ -520,7 +522,7 @@ function PINSetupModal({ visible, mode, onClose, onSuccess }: PINSetupModalProps
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
-      <View style={styles.modalOverlay}>
+      <View style={[styles.modalOverlay, { backgroundColor: theme.colors.overlay }]}>
         <View style={[styles.modalContent, { backgroundColor: theme.colors.surface }]}>
           <TouchableOpacity onPress={onClose} style={styles.modalClose}>
             <Ionicons name="close" size={24} color={theme.colors.text} />
@@ -570,7 +572,7 @@ function PINSetupModal({ visible, mode, onClose, onSuccess }: PINSetupModalProps
             style={[styles.submitButton, { backgroundColor: theme.colors.primary }]}
             disabled={currentValue.length < 4}
           >
-            <Text style={styles.submitButtonText}>
+            <Text style={[styles.submitButtonText, { color: theme.colors.text }]}>
               {step === 'confirm' ? 'Set PIN' : 'Continue'}
             </Text>
           </TouchableOpacity>
@@ -602,7 +604,7 @@ function TimeoutModal({ visible, currentTimeout, onSelect, onClose }: TimeoutMod
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
-      <View style={styles.modalOverlay}>
+      <View style={[styles.modalOverlay, { backgroundColor: theme.colors.overlay }]}>
         <View style={[styles.modalContent, { backgroundColor: theme.colors.surface }]}>
           <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
             Lock Timeout
@@ -716,7 +718,6 @@ const styles = StyleSheet.create({
   // Modal styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'flex-end',
   },
   modalContent: {
@@ -762,7 +763,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   submitButtonText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },

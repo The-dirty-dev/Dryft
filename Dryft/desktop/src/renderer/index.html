@@ -9,10 +9,10 @@
     - default-src 'self': only allow local resources by default
     - script-src 'self': only local scripts (no inline)
     - style-src 'self' 'unsafe-inline': local styles + inline for dynamic status
-    - connect-src 'self' http://localhost:* https://app.drift.app https://*.drift.app ws://127.0.0.1:*: allow API and Intiface connections
+    - connect-src: allow API, Intiface, and local dev connections
     - img-src 'self' data: https:: allow images from HTTPS sources
     - font-src 'self' data:: allow local and data: fonts
-    - frame-src http://localhost:* https://app.drift.app https://*.drift.app: webview allowed origins
+    - frame-src: webview allowed origins (prod + local dev)
   -->
   <meta
     http-equiv="Content-Security-Policy"
@@ -20,14 +20,14 @@
       default-src 'self';
       script-src 'self';
       style-src 'self' 'unsafe-inline';
-      connect-src 'self' http://localhost:* https://app.drift.app https://*.drift.app ws://127.0.0.1:*;
+      connect-src 'self' http://localhost:* https://dryft.site https://*.dryft.site ws://127.0.0.1:*;
       img-src 'self' data: https:;
       font-src 'self' data:;
-      frame-src http://localhost:* https://app.drift.app https://*.drift.app;
+      frame-src http://localhost:* https://dryft.site https://*.dryft.site;
     "
   />
 
-  <title>Drift</title>
+  <title>Dryft</title>
   <link rel="stylesheet" href="./src/styles.css" />
 </head>
 <body>
@@ -35,7 +35,7 @@
   <div id="titlebar" class="titlebar">
     <!-- Drag region (macOS traffic lights sit here) -->
     <div class="titlebar-drag">
-      <div class="titlebar-title">Drift</div>
+      <div class="titlebar-title">Dryft</div>
     </div>
 
     <!-- Navigation Controls -->
@@ -82,7 +82,7 @@
       </button>
     </div>
 
-    <!-- Window Controls (Windows/Linux) -->
+    <!-- Window Controls (Windows/Linux — hidden on macOS, traffic lights used instead) -->
     <div id="window-controls" class="window-controls">
       <button id="btn-minimize" class="window-btn" title="Minimize">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
@@ -116,7 +116,7 @@
   <!-- Loading Screen (shown while webview loads) -->
   <div id="loading-screen" class="loading-screen">
     <div class="loading-content">
-      <div class="loading-logo">Drift</div>
+      <div class="loading-logo">Dryft</div>
       <div class="loading-spinner"></div>
       <div class="loading-text">Loading...</div>
     </div>
@@ -133,7 +133,7 @@
         </svg>
       </div>
       <h2 class="error-title">Unable to connect</h2>
-      <p class="error-message">Could not reach the Drift server. Make sure the web app is running.</p>
+      <p class="error-message">Could not reach the Dryft server. Make sure the web app is running.</p>
       <p id="error-detail" class="error-detail"></p>
       <button id="btn-error-retry" class="error-retry-btn">Try Again</button>
     </div>

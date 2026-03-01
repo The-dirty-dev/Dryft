@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,9 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useOnboardingStore, getStepProgress } from '../../store/onboardingStore';
 import { Input } from '../../components/common';
+import { ThemeColors, useColors } from '../../theme/ThemeProvider';
+
+const withAlpha = (color: string, alphaHex: string): string => `${color}${alphaHex}`;
 
 const MAX_BIO_LENGTH = 500;
 const MIN_BIO_LENGTH = 20;
@@ -30,6 +33,8 @@ const INTERESTS = [
 ];
 
 export default function ProfileBioScreen() {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { profileData, setProfileBio, setInterests, completeStep } = useOnboardingStore();
   const progress = getStepProgress('profile_bio');
   const [bio, setBio] = useState(profileData.bio);
@@ -67,7 +72,7 @@ export default function ProfileBioScreen() {
 
   return (
     <LinearGradient
-      colors={['#1a1a2e', '#16213e', '#0f0f23']}
+      colors={[colors.surface, colors.backgroundSecondary, colors.background]}
       style={styles.container}
     >
       <KeyboardAvoidingView
@@ -108,7 +113,7 @@ export default function ProfileBioScreen() {
                 value={bio}
                 onChangeText={handleBioChange}
                 placeholder="Write something about yourself..."
-                placeholderTextColor="#666"
+                placeholderTextColor={colors.textMuted}
                 multiline
                 textAlignVertical="top"
               />
@@ -188,7 +193,7 @@ export default function ProfileBioScreen() {
             activeOpacity={0.8}
           >
             <LinearGradient
-              colors={['#e94560', '#c73e54']}
+              colors={[colors.primary, colors.primaryDark]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.buttonGradient}
@@ -202,7 +207,7 @@ export default function ProfileBioScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -219,13 +224,13 @@ const styles = StyleSheet.create({
   progressBar: {
     flex: 1,
     height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: withAlpha(colors.text, '1A'),
     borderRadius: 2,
     marginRight: 16,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#e94560',
+    backgroundColor: colors.primary,
     borderRadius: 2,
   },
   skipButton: {
@@ -234,7 +239,7 @@ const styles = StyleSheet.create({
   },
   skipText: {
     fontSize: 14,
-    color: '#8892b0',
+    color: colors.textSecondary,
   },
   scrollView: {
     flex: 1,
@@ -246,12 +251,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.text,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#8892b0',
+    color: colors.textSecondary,
     marginBottom: 24,
   },
   bioSection: {
@@ -266,21 +271,21 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
   },
   charCount: {
     fontSize: 12,
-    color: '#8892b0',
+    color: colors.textSecondary,
   },
   bioInputContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: withAlpha(colors.text, '0D'),
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
   },
   bioInput: {
     fontSize: 16,
-    color: '#fff',
+    color: colors.text,
     minHeight: 120,
     lineHeight: 24,
   },
@@ -292,25 +297,25 @@ const styles = StyleSheet.create({
   bioProgressBar: {
     flex: 1,
     height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: withAlpha(colors.text, '1A'),
     borderRadius: 2,
     marginRight: 12,
   },
   bioProgressFill: {
     height: '100%',
-    backgroundColor: '#e94560',
+    backgroundColor: colors.primary,
     borderRadius: 2,
   },
   bioProgressText: {
     fontSize: 12,
-    color: '#8892b0',
+    color: colors.textSecondary,
   },
   promptsContainer: {
     marginTop: 8,
   },
   promptsLabel: {
     fontSize: 12,
-    color: '#8892b0',
+    color: colors.textSecondary,
     marginBottom: 8,
   },
   promptsList: {
@@ -319,27 +324,27 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   promptChip: {
-    backgroundColor: 'rgba(233, 69, 96, 0.15)',
+    backgroundColor: withAlpha(colors.primary, '26'),
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(233, 69, 96, 0.3)',
+    borderColor: withAlpha(colors.primary, '4D'),
   },
   promptText: {
     fontSize: 12,
-    color: '#e94560',
+    color: colors.primary,
   },
   interestsSection: {
     marginBottom: 24,
   },
   interestCount: {
     fontSize: 12,
-    color: '#8892b0',
+    color: colors.textSecondary,
   },
   interestsSubtitle: {
     fontSize: 13,
-    color: '#8892b0',
+    color: colors.textSecondary,
     marginBottom: 16,
   },
   interestsGrid: {
@@ -348,23 +353,23 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   interestChip: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: withAlpha(colors.text, '0D'),
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: withAlpha(colors.text, '1A'),
   },
   interestSelected: {
-    backgroundColor: 'rgba(233, 69, 96, 0.2)',
-    borderColor: '#e94560',
+    backgroundColor: withAlpha(colors.primary, '33'),
+    borderColor: colors.primary,
   },
   interestText: {
     fontSize: 14,
-    color: '#8892b0',
+    color: colors.textSecondary,
   },
   interestTextSelected: {
-    color: '#e94560',
+    color: colors.primary,
     fontWeight: '500',
   },
   bottomSection: {
@@ -382,6 +387,6 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
   },
 });

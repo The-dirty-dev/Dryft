@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { VerificationStackParamList } from '../../navigation';
 import apiClient from '../../api/client';
+import { ThemeColors, useColors } from '../../theme/ThemeProvider';
 
 type NavigationProp = NativeStackNavigationProp<VerificationStackParamList>;
 
@@ -24,6 +25,8 @@ interface VerificationStatus {
 
 export default function VerificationStatusScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [status, setStatus] = useState<VerificationStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -72,7 +75,7 @@ export default function VerificationStatusScreen() {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
-        <ActivityIndicator size="large" color="#e94560" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </SafeAreaView>
     );
   }
@@ -117,7 +120,7 @@ export default function VerificationStatusScreen() {
           </View>
         ) : isPending ? (
           <View style={styles.pendingContainer}>
-            <ActivityIndicator size="large" color="#f0a500" />
+            <ActivityIndicator size="large" color={colors.warning} />
             <Text style={styles.pendingTitle}>Under Review</Text>
             <Text style={styles.pendingText}>
               Your verification is being reviewed. This usually takes less than 24 hours.
@@ -180,10 +183,10 @@ export default function VerificationStatusScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f0f23',
+    backgroundColor: colors.background,
   },
   content: {
     flex: 1,
@@ -195,16 +198,16 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.text,
     marginBottom: 12,
   },
   subtitle: {
     fontSize: 16,
-    color: '#8892b0',
+    color: colors.textSecondary,
     lineHeight: 24,
   },
   stepsContainer: {
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 20,
     marginBottom: 24,
@@ -217,12 +220,12 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#10b981',
+    backgroundColor: colors.success,
     justifyContent: 'center',
     alignItems: 'center',
   },
   stepCompleteText: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -230,12 +233,12 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#16213e',
+    backgroundColor: colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   stepIncompleteText: {
-    color: '#8892b0',
+    color: colors.textSecondary,
     fontSize: 20,
   },
   stepContent: {
@@ -245,28 +248,28 @@ const styles = StyleSheet.create({
   stepTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
   },
   stepDescription: {
     fontSize: 14,
-    color: '#8892b0',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   stepConnector: {
     width: 2,
     height: 24,
-    backgroundColor: '#16213e',
+    backgroundColor: colors.backgroundSecondary,
     marginLeft: 15,
     marginVertical: 8,
   },
   continueButton: {
-    backgroundColor: '#e94560',
+    backgroundColor: colors.primary,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
   },
   continueButtonText: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 18,
     fontWeight: '600',
   },
@@ -279,24 +282,24 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#10b981',
+    backgroundColor: colors.success,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
   },
   verifiedIconText: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 40,
   },
   verifiedTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.text,
     marginBottom: 12,
   },
   verifiedText: {
     fontSize: 16,
-    color: '#8892b0',
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   rejectedContainer: {
@@ -308,35 +311,35 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#ef4444',
+    backgroundColor: colors.error,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
   },
   rejectedIconText: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 40,
   },
   rejectedTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.text,
     marginBottom: 12,
   },
   rejectedText: {
     fontSize: 16,
-    color: '#8892b0',
+    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 24,
   },
   retryButton: {
-    backgroundColor: '#e94560',
+    backgroundColor: colors.primary,
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 32,
   },
   retryButtonText: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -348,13 +351,13 @@ const styles = StyleSheet.create({
   pendingTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#f0a500',
+    color: colors.warning,
     marginTop: 24,
     marginBottom: 12,
   },
   pendingText: {
     fontSize: 16,
-    color: '#8892b0',
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   footer: {
@@ -363,7 +366,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 12,
-    color: '#8892b0',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 18,
   },

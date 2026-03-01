@@ -102,13 +102,13 @@ function ColorPreview({ mode }: ColorPreviewProps) {
   const getPreviewColors = () => {
     switch (mode) {
       case 'protanopia':
-        return ['#ff0000', '#00ff00', '#0077bb', '#ee9922'];
+        return [theme.colors.error, theme.colors.success, theme.colors.info, theme.colors.warning];
       case 'deuteranopia':
-        return ['#ff0000', '#00ff00', '#0077bb', '#ee9922'];
+        return [theme.colors.error, theme.colors.success, theme.colors.info, theme.colors.warning];
       case 'tritanopia':
-        return ['#0000ff', '#ffff00', '#ee3377', '#009988'];
+        return [theme.colors.info, theme.colors.warning, theme.colors.accentPink, theme.colors.success];
       default:
-        return ['#e94560', '#2ecc71', '#3498db', '#f39c12'];
+        return [theme.colors.primary, theme.colors.success, theme.colors.info, theme.colors.warning];
     }
   };
 

@@ -1,18 +1,20 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Animated,
-  Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useOnboardingStore } from '../../store/onboardingStore';
+import { ThemeColors, useColors } from '../../theme/ThemeProvider';
 
-const { width } = Dimensions.get('window');
+const withAlpha = (color: string, alphaHex: string): string => `${color}${alphaHex}`;
 
 export default function OnboardingCompleteScreen() {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { completeOnboarding, profileData } = useOnboardingStore();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -54,7 +56,7 @@ export default function OnboardingCompleteScreen() {
 
   return (
     <LinearGradient
-      colors={['#1a1a2e', '#16213e', '#0f0f23']}
+      colors={[colors.surface, colors.backgroundSecondary, colors.background]}
       style={styles.container}
     >
       <View style={styles.content}>
@@ -126,7 +128,7 @@ export default function OnboardingCompleteScreen() {
           activeOpacity={0.8}
         >
           <LinearGradient
-            colors={['#e94560', '#c73e54']}
+            colors={[colors.primary, colors.primaryDark]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.buttonGradient}
@@ -143,7 +145,7 @@ export default function OnboardingCompleteScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -160,11 +162,11 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#2ecc71',
+    backgroundColor: colors.success,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
-    shadowColor: '#2ecc71',
+    shadowColor: colors.success,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.5,
     shadowRadius: 20,
@@ -172,19 +174,19 @@ const styles = StyleSheet.create({
   },
   checkmark: {
     fontSize: 48,
-    color: '#fff',
+    color: colors.text,
     fontWeight: 'bold',
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.text,
     textAlign: 'center',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#8892b0',
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   statsContainer: {
@@ -193,12 +195,12 @@ const styles = StyleSheet.create({
   statsTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
     marginBottom: 16,
   },
   statsGrid: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: withAlpha(colors.text, '0D'),
     borderRadius: 16,
     padding: 20,
     marginBottom: 24,
@@ -210,22 +212,22 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#e94560',
+    color: colors.primary,
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 13,
-    color: '#8892b0',
+    color: colors.textSecondary,
   },
   tipsCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: withAlpha(colors.text, '0D'),
     borderRadius: 16,
     padding: 20,
   },
   tipsTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
     marginBottom: 16,
   },
   tipRow: {
@@ -240,7 +242,7 @@ const styles = StyleSheet.create({
   },
   tipText: {
     fontSize: 14,
-    color: '#8892b0',
+    color: colors.textSecondary,
     flex: 1,
   },
   bottomSection: {
@@ -259,11 +261,11 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
   },
   footerText: {
     fontSize: 14,
-    color: '#8892b0',
+    color: colors.textSecondary,
     textAlign: 'center',
   },
 });

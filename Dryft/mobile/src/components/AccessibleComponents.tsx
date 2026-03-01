@@ -23,6 +23,9 @@ import {
   getAnimationDuration,
   announceForAccessibility,
 } from '../utils/accessibility';
+import { useColors } from '../theme/ThemeProvider';
+
+const withAlpha = (color: string, alphaHex: string): string => `${color}${alphaHex}`;
 
 // Accessible Button with proper touch targets and haptic feedback
 interface AccessibleButtonProps extends Omit<TouchableOpacityProps, 'role'> {
@@ -288,6 +291,7 @@ export const AccessibleToggle: React.FC<AccessibleToggleProps> = ({
   disabled,
 }) => {
   const { settings } = useAccessibilitySettings();
+  const colors = useColors();
 
   const handlePress = () => {
     if (settings.hapticFeedback) {
@@ -306,9 +310,20 @@ export const AccessibleToggle: React.FC<AccessibleToggleProps> = ({
       accessibilityState={{ checked: value, disabled }}
       onPress={handlePress}
       disabled={disabled}
-      style={[styles.toggle, value && styles.toggleOn, disabled && styles.toggleDisabled]}
+      style={[
+        styles.toggle,
+        { backgroundColor: withAlpha(colors.text, '33') },
+        value && { backgroundColor: colors.primary },
+        disabled && styles.toggleDisabled,
+      ]}
     >
-      <View style={[styles.toggleThumb, value && styles.toggleThumbOn]} />
+      <View
+        style={[
+          styles.toggleThumb,
+          { backgroundColor: colors.text },
+          value && styles.toggleThumbOn,
+        ]}
+      />
     </Pressable>
   );
 };
@@ -323,15 +338,22 @@ export const AccessibleProgress: React.FC<AccessibleProgressProps> = ({
   value,
   label,
 }) => {
+  const colors = useColors();
+
   return (
     <View
       accessible={true}
       accessibilityLabel={`${label}: ${Math.round(value)}%`}
       accessibilityRole="progressbar"
       accessibilityValue={{ min: 0, max: 100, now: value }}
-      style={styles.progressContainer}
+      style={[styles.progressContainer, { backgroundColor: withAlpha(colors.text, '1A') }]}
     >
-      <View style={[styles.progressBar, { width: `${value}%` }]} />
+      <View
+        style={[
+          styles.progressBar,
+          { width: `${value}%`, backgroundColor: colors.primary },
+        ]}
+      />
     </View>
   );
 };
@@ -368,6 +390,8 @@ export const SkipLink: React.FC<SkipLinkProps> = ({
   targetRef,
   label = 'Skip to main content',
 }) => {
+  const colors = useColors();
+
   const handlePress = () => {
     if (targetRef.current) {
       targetRef.current.focus?.();
@@ -382,7 +406,9 @@ export const SkipLink: React.FC<SkipLinkProps> = ({
       onPress={handlePress}
       style={styles.skipLink}
     >
-      <Text style={styles.skipLinkText}>{label}</Text>
+      <Text style={[styles.skipLinkText, { color: colors.text, backgroundColor: colors.primary }]}>
+        {label}
+      </Text>
     </TouchableOpacity>
   );
 };
@@ -396,11 +422,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     padding: 2,
-  },
-  toggleOn: {
-    backgroundColor: '#e94560',
   },
   toggleDisabled: {
     opacity: 0.5,
@@ -409,20 +431,17 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#fff',
   },
   toggleThumbOn: {
     transform: [{ translateX: 20 }],
   },
   progressContainer: {
     height: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 4,
     overflow: 'hidden',
   },
   progressBar: {
     height: '100%',
-    backgroundColor: '#e94560',
     borderRadius: 4,
   },
   liveRegion: {
@@ -441,8 +460,6 @@ const styles = StyleSheet.create({
     zIndex: 999,
   },
   skipLinkText: {
-    color: '#fff',
-    backgroundColor: '#e94560',
     padding: 12,
   },
 });

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,9 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ScamWarning } from '../../services/safety';
+import { ThemeColors, useColors } from '../../theme/ThemeProvider';
+
+const withAlpha = (color: string, alphaHex: string): string => `${color}${alphaHex}`;
 
 // ============================================================================
 // Types
@@ -28,16 +31,19 @@ export function ScamWarningBanner({
   onDismiss,
   onLearnMore,
 }: ScamWarningBannerProps) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const getSeverityColor = () => {
     switch (warning.severity) {
       case 'high':
-        return '#EF4444';
+        return colors.error;
       case 'medium':
-        return '#F59E0B';
+        return colors.warning;
       case 'low':
-        return '#6B7280';
+        return colors.textMuted;
       default:
-        return '#F59E0B';
+        return colors.warning;
     }
   };
 
@@ -91,14 +97,14 @@ export function ScamWarningBanner({
         </View>
 
         <TouchableOpacity style={styles.dismissButton} onPress={onDismiss}>
-          <Ionicons name="close" size={20} color="#6B7280" />
+          <Ionicons name="close" size={20} color={colors.textMuted} />
         </TouchableOpacity>
       </View>
 
       {onLearnMore && (
         <TouchableOpacity style={styles.learnMoreButton} onPress={onLearnMore}>
           <Text style={styles.learnMoreText}>Learn more about staying safe</Text>
-          <Ionicons name="arrow-forward" size={14} color="#8B5CF6" />
+          <Ionicons name="arrow-forward" size={14} color={colors.accent} />
         </TouchableOpacity>
       )}
     </Animated.View>
@@ -115,7 +121,9 @@ interface InlineScamWarningProps {
 }
 
 export function InlineScamWarning({ warning, onDismiss }: InlineScamWarningProps) {
-  const color = warning.severity === 'high' ? '#EF4444' : '#F59E0B';
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const color = warning.severity === 'high' ? colors.error : colors.warning;
 
   return (
     <View style={[styles.inlineContainer, { borderColor: color }]}>
@@ -125,7 +133,7 @@ export function InlineScamWarning({ warning, onDismiss }: InlineScamWarningProps
           {warning.severity === 'high' ? 'Warning' : 'Caution'}
         </Text>
         <TouchableOpacity onPress={onDismiss} style={styles.inlineDismiss}>
-          <Ionicons name="close" size={16} color="#6B7280" />
+          <Ionicons name="close" size={16} color={colors.textMuted} />
         </TouchableOpacity>
       </View>
       <Text style={styles.inlineMessage}>{warning.message}</Text>
@@ -152,13 +160,15 @@ export function ScamDetectionOverlay({
   onBlock,
   onReport,
 }: ScamDetectionOverlayProps) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   if (!visible) return null;
 
   return (
     <View style={styles.overlayContainer}>
       <View style={styles.overlayContent}>
         <View style={styles.overlayIcon}>
-          <Ionicons name="shield-checkmark" size={48} color="#EF4444" />
+          <Ionicons name="shield-checkmark" size={48} color={colors.error} />
         </View>
 
         <Text style={styles.overlayTitle}>Safety Alert</Text>
@@ -166,12 +176,12 @@ export function ScamDetectionOverlay({
 
         <View style={styles.overlayActions}>
           <TouchableOpacity style={styles.blockButton} onPress={onBlock}>
-            <Ionicons name="ban" size={18} color="#fff" />
+            <Ionicons name="ban" size={18} color={colors.text} />
             <Text style={styles.blockButtonText}>Block User</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.reportButton} onPress={onReport}>
-            <Ionicons name="flag" size={18} color="#EF4444" />
+            <Ionicons name="flag" size={18} color={colors.error} />
             <Text style={styles.reportButtonText}>Report</Text>
           </TouchableOpacity>
         </View>
@@ -188,10 +198,10 @@ export function ScamDetectionOverlay({
 // Styles
 // ============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   // Banner
   container: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.backgroundDarkest,
     borderRadius: 12,
     borderLeftWidth: 4,
     margin: 16,
@@ -220,7 +230,7 @@ const styles = StyleSheet.create({
   },
   message: {
     fontSize: 14,
-    color: '#9CA3AF',
+    color: colors.textTertiary,
     lineHeight: 20,
   },
   dismissButton: {
@@ -232,18 +242,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: '#2a2a2a',
+    borderTopColor: colors.border,
     gap: 6,
   },
   learnMoreText: {
     fontSize: 14,
-    color: '#8B5CF6',
+    color: colors.accent,
     fontWeight: '500',
   },
 
   // Inline Warning
   inlineContainer: {
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    backgroundColor: withAlpha(colors.warning, '1A'),
     borderRadius: 8,
     borderWidth: 1,
     padding: 12,
@@ -265,20 +275,20 @@ const styles = StyleSheet.create({
   },
   inlineMessage: {
     fontSize: 13,
-    color: '#9CA3AF',
+    color: colors.textTertiary,
     lineHeight: 18,
   },
 
   // Overlay
   overlayContainer: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    backgroundColor: withAlpha(colors.background, 'E6'),
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
   },
   overlayContent: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.backgroundDarkest,
     borderRadius: 20,
     padding: 24,
     alignItems: 'center',
@@ -289,7 +299,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+    backgroundColor: withAlpha(colors.error, '33'),
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
@@ -297,12 +307,12 @@ const styles = StyleSheet.create({
   overlayTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#fff',
+    color: colors.text,
     marginBottom: 12,
   },
   overlayMessage: {
     fontSize: 15,
-    color: '#9CA3AF',
+    color: colors.textTertiary,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 24,
@@ -318,7 +328,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EF4444',
+    backgroundColor: colors.error,
     borderRadius: 12,
     padding: 14,
     gap: 8,
@@ -326,14 +336,14 @@ const styles = StyleSheet.create({
   blockButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
   },
   reportButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+    backgroundColor: withAlpha(colors.error, '33'),
     borderRadius: 12,
     padding: 14,
     gap: 8,
@@ -341,14 +351,14 @@ const styles = StyleSheet.create({
   reportButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#EF4444',
+    color: colors.error,
   },
   continueButton: {
     paddingVertical: 12,
   },
   continueButtonText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.textMuted,
   },
 });
 

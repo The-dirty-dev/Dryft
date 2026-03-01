@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,17 +12,19 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useDashboard, useDailyActivity } from '../hooks/useCouples';
-import { useTimelineSummary } from '../hooks/useTimeline';
 import DailyRewardWidget from '../components/DailyRewardWidget';
 import { useNavigation } from '@react-navigation/native';
+import { ThemeColors, useColors } from '../theme/ThemeProvider';
 
 const { width } = Dimensions.get('window');
+const withAlpha = (color: string, alphaHex: string): string => `${color}${alphaHex}`;
 
 export default function CouplesDashboardScreen() {
   const navigation = useNavigation<any>();
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { dashboard, loading, refresh } = useDashboard();
   const { activity: dailyActivity } = useDailyActivity();
-  const { summary: timelineSummary } = useTimelineSummary();
 
   if (!dashboard?.has_couple) {
     return (
@@ -50,18 +52,18 @@ export default function CouplesDashboardScreen() {
     );
   }
 
-  const { partner, stats, streak, recent_activities, upcoming_date } = dashboard;
+  const { partner, stats, recent_activities, upcoming_date } = dashboard;
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={refresh} tintColor="#fff" />
+          <RefreshControl refreshing={loading} onRefresh={refresh} tintColor={colors.text} />
         }
       >
         {/* Header with Partner */}
-        <LinearGradient colors={['#6B46C1', '#EC4899']} style={styles.header}>
+        <LinearGradient colors={[colors.accentSecondary, colors.accentPink]} style={styles.header}>
           <View style={styles.partnerRow}>
             <View style={styles.avatarContainer}>
               {partner?.profilePhoto ? (
@@ -152,7 +154,7 @@ export default function CouplesDashboardScreen() {
               }
             >
               <LinearGradient
-                colors={['#4C1D95', '#7C3AED']}
+                colors={[colors.accentSecondary, colors.accent]}
                 style={styles.dailyGradient}
               >
                 <View style={styles.dailyContent}>
@@ -248,10 +250,10 @@ export default function CouplesDashboardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F0F1A',
+    backgroundColor: colors.background,
   },
   noCoupleContainer: {
     flex: 1,
@@ -266,19 +268,19 @@ const styles = StyleSheet.create({
   noCoupleTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.text,
     marginBottom: 12,
     textAlign: 'center',
   },
   noCoupleText: {
     fontSize: 16,
-    color: '#9CA3AF',
+    color: colors.textTertiary,
     textAlign: 'center',
     marginBottom: 32,
     lineHeight: 24,
   },
   inviteButton: {
-    backgroundColor: '#6B46C1',
+    backgroundColor: colors.accentSecondary,
     paddingHorizontal: 32,
     paddingVertical: 16,
     borderRadius: 12,
@@ -286,7 +288,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   inviteButtonText: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 18,
     fontWeight: '600',
     textAlign: 'center',
@@ -296,7 +298,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   codeButtonText: {
-    color: '#EC4899',
+    color: colors.accentPink,
     fontSize: 16,
   },
   header: {
@@ -318,15 +320,15 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 30,
     borderWidth: 3,
-    borderColor: '#fff',
+    borderColor: colors.text,
   },
   avatarPlaceholder: {
-    backgroundColor: '#4C1D95',
+    backgroundColor: withAlpha(colors.accentSecondary, '80'),
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 24,
     fontWeight: 'bold',
   },
@@ -334,7 +336,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: -4,
     right: -4,
-    backgroundColor: '#fff',
+    backgroundColor: colors.text,
     borderRadius: 12,
     padding: 2,
   },
@@ -342,17 +344,17 @@ const styles = StyleSheet.create({
     marginLeft: 16,
   },
   partnerName: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 20,
     fontWeight: 'bold',
   },
   daysText: {
-    color: 'rgba(255,255,255,0.8)',
+    color: colors.textSecondary,
     fontSize: 14,
     marginTop: 4,
   },
   levelContainer: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: withAlpha(colors.text, '33'),
     borderRadius: 12,
     padding: 12,
   },
@@ -362,21 +364,21 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   levelText: {
-    color: '#fff',
+    color: colors.text,
     fontWeight: '600',
   },
   xpText: {
-    color: 'rgba(255,255,255,0.8)',
+    color: colors.textSecondary,
     fontSize: 12,
   },
   progressBar: {
     height: 8,
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: withAlpha(colors.text, '4D'),
     borderRadius: 4,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#fff',
+    backgroundColor: colors.text,
     borderRadius: 4,
   },
   rewardWidgetContainer: {
@@ -391,7 +393,7 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     alignItems: 'center',
-    backgroundColor: '#1F1F2E',
+    backgroundColor: colors.surfaceSecondary,
     padding: 16,
     borderRadius: 16,
     width: (width - 64) / 4,
@@ -401,7 +403,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   actionText: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 12,
     fontWeight: '500',
   },
@@ -416,13 +418,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 12,
   },
   seeAll: {
-    color: '#EC4899',
+    color: colors.accentPink,
     fontSize: 14,
   },
   dailyCard: {
@@ -444,13 +446,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   dailyTitle: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 4,
   },
   dailyDesc: {
-    color: 'rgba(255,255,255,0.8)',
+    color: colors.textSecondary,
     fontSize: 14,
     marginBottom: 8,
   },
@@ -459,18 +461,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dailyXp: {
-    color: '#FCD34D',
+    color: colors.accentYellow,
     fontWeight: '600',
     marginRight: 12,
   },
   dailyBonus: {
-    color: '#34D399',
+    color: colors.like,
     fontSize: 12,
   },
   dateCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1F1F2E',
+    backgroundColor: colors.surfaceSecondary,
     padding: 16,
     borderRadius: 12,
   },
@@ -482,17 +484,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   dateTitle: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 16,
     fontWeight: '600',
   },
   dateTime: {
-    color: '#9CA3AF',
+    color: colors.textTertiary,
     fontSize: 14,
     marginTop: 4,
   },
   dateArrow: {
-    color: '#6B46C1',
+    color: colors.accentSecondary,
     fontSize: 20,
   },
   activityItem: {
@@ -500,25 +502,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#2D2D3D',
+    borderBottomColor: colors.border,
   },
   activityDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#6B46C1',
+    backgroundColor: colors.accentSecondary,
     marginRight: 12,
   },
   activityContent: {
     flex: 1,
   },
   activityTitle: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 14,
     fontWeight: '500',
   },
   activityMeta: {
-    color: '#9CA3AF',
+    color: colors.textTertiary,
     fontSize: 12,
     marginTop: 4,
   },
@@ -528,18 +530,18 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#1F1F2E',
+    backgroundColor: colors.surfaceSecondary,
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
   statValue: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 28,
     fontWeight: 'bold',
   },
   statLabel: {
-    color: '#9CA3AF',
+    color: colors.textTertiary,
     fontSize: 12,
     marginTop: 4,
   },

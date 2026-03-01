@@ -1,0 +1,41 @@
+[Unit]
+Description=Dryft API Server
+Documentation=https://github.com/dryft-app/backend
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=dryft
+Group=dryft
+WorkingDirectory=/opt/dryft
+
+# Load all env vars from .env.prod (DATABASE_URL, JWT_SECRET, REDIS_URL, etc.)
+EnvironmentFile=/opt/dryft/.env.prod
+
+ExecStart=/opt/dryft/bin/dryft-api
+ExecReload=/bin/kill -HUP $MAINPID
+
+# Restart policy — back off on repeated crashes (5s, 5s, 5s…)
+Restart=on-failure
+RestartSec=5s
+StartLimitIntervalSec=60s
+StartLimitBurst=5
+
+# Logging — captured by journald; tail with: journalctl -u dryft-api -f
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=dryft-api
+
+# Hardening
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/dryft
+
+# Give the binary time to drain in-flight requests before hard kill
+TimeoutStopSec=30s
+
+[Install]
+WantedBy=multi-user.target

@@ -1,12 +1,10 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  Dimensions,
   StatusBar,
-  SafeAreaView,
   Animated,
 } from 'react-native';
 import { RTCView, MediaStream } from 'react-native-webrtc';
@@ -16,8 +14,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { webRTCService, CallState } from '../../services/webrtc';
 import { callSignalingService } from '../../services/callSignaling';
 import { RootStackParamList } from '../../navigation';
+import { ThemeColors, useColors } from '../../theme/ThemeProvider';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const withAlpha = (color: string, alphaHex: string): string => `${color}${alphaHex}`;
 
 type VideoCallRouteProp = RouteProp<RootStackParamList, 'VideoCall'>;
 
@@ -25,6 +24,8 @@ export function VideoCallScreen() {
   const navigation = useNavigation();
   const route = useRoute<VideoCallRouteProp>();
   const insets = useSafeAreaInsets();
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const { matchId, userId, userName, isIncoming, videoEnabled, callId } = route.params;
 
@@ -229,7 +230,7 @@ export function VideoCallScreen() {
       ) : (
         <View style={styles.noVideoContainer}>
           <View style={styles.avatarPlaceholder}>
-            <Ionicons name="person" size={80} color="#666" />
+            <Ionicons name="person" size={80} color={colors.textMuted} />
           </View>
           <Text style={styles.userName}>{userName}</Text>
           {remoteVideoOff && (
@@ -266,7 +267,7 @@ export function VideoCallScreen() {
           <View style={styles.remoteStatus}>
             {remoteMuted && (
               <View style={styles.statusBadge}>
-                <Ionicons name="mic-off" size={14} color="#fff" />
+                <Ionicons name="mic-off" size={14} color={colors.text} />
               </View>
             )}
           </View>
@@ -286,7 +287,7 @@ export function VideoCallScreen() {
             <Ionicons
               name={isMuted ? 'mic-off' : 'mic'}
               size={24}
-              color="#fff"
+              color={colors.text}
             />
           </TouchableOpacity>
 
@@ -297,7 +298,7 @@ export function VideoCallScreen() {
             <Ionicons
               name={isVideoOff ? 'videocam-off' : 'videocam'}
               size={24}
-              color="#fff"
+              color={colors.text}
             />
           </TouchableOpacity>
 
@@ -305,14 +306,14 @@ export function VideoCallScreen() {
             style={styles.controlButton}
             onPress={handleSwitchCamera}
           >
-            <Ionicons name="camera-reverse" size={24} color="#fff" />
+            <Ionicons name="camera-reverse" size={24} color={colors.text} />
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.controlButton, styles.endCallButton]}
             onPress={handleEndCall}
           >
-            <Ionicons name="call" size={28} color="#fff" />
+            <Ionicons name="call" size={28} color={colors.text} />
           </TouchableOpacity>
         </Animated.View>
       </TouchableOpacity>
@@ -320,10 +321,10 @@ export function VideoCallScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: colors.backgroundDarkest,
   },
   touchableOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -331,11 +332,11 @@ const styles = StyleSheet.create({
   },
   remoteVideo: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.backgroundDarkest,
   },
   noVideoContainer: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.backgroundDarkest,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -343,7 +344,7 @@ const styles = StyleSheet.create({
     width: 150,
     height: 150,
     borderRadius: 75,
-    backgroundColor: '#333',
+    backgroundColor: colors.surfaceElevated,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -351,11 +352,11 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 24,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
   },
   videoOffText: {
     fontSize: 14,
-    color: '#888',
+    color: colors.textSecondary,
     marginTop: 8,
   },
   localVideoContainer: {
@@ -365,8 +366,8 @@ const styles = StyleSheet.create({
     height: 160,
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: '#333',
-    shadowColor: '#000',
+    backgroundColor: colors.surfaceElevated,
+    shadowColor: colors.backgroundDarkest,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -381,11 +382,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 10,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: withAlpha(colors.backgroundDarkest, '4D'),
   },
   callStatus: {
     fontSize: 16,
-    color: '#fff',
+    color: colors.text,
     fontWeight: '500',
   },
   remoteStatus: {
@@ -395,7 +396,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   statusBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: withAlpha(colors.text, '33'),
     padding: 4,
     borderRadius: 12,
   },
@@ -405,21 +406,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 20,
     paddingVertical: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: withAlpha(colors.backgroundDarkest, '4D'),
   },
   controlButton: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: withAlpha(colors.text, '33'),
     justifyContent: 'center',
     alignItems: 'center',
   },
   controlButtonActive: {
-    backgroundColor: 'rgba(255, 69, 96, 0.8)',
+    backgroundColor: withAlpha(colors.primary, 'CC'),
   },
   endCallButton: {
-    backgroundColor: '#e94560',
+    backgroundColor: colors.primary,
     width: 64,
     height: 64,
     borderRadius: 32,

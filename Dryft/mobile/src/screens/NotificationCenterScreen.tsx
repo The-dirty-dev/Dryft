@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -17,7 +17,10 @@ import {
   useNotifications,
   useNotificationHelpers,
 } from '../hooks/useNotificationCenter';
-import { Notification, NotificationGroup } from '../services/notificationCenter';
+import { Notification } from '../services/notificationCenter';
+import { ThemeColors, useColors } from '../theme/ThemeProvider';
+
+const withAlpha = (color: string, alphaHex: string): string => `${color}${alphaHex}`;
 
 // ============================================================================
 // Notification Item Component
@@ -36,6 +39,8 @@ function NotificationItem({
   onDelete,
   onMarkRead,
 }: NotificationItemProps) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { getIcon, getColor } = useNotificationHelpers();
   const icon = getIcon(notification.type);
   const color = getColor(notification.type);
@@ -46,7 +51,7 @@ function NotificationItem({
         style={[styles.swipeAction, styles.deleteAction]}
         onPress={onDelete}
       >
-        <Ionicons name="trash" size={22} color="#fff" />
+        <Ionicons name="trash" size={22} color={colors.text} />
       </TouchableOpacity>
     </View>
   );
@@ -132,6 +137,9 @@ interface SectionHeaderProps {
 }
 
 function SectionHeader({ label }: SectionHeaderProps) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionHeaderText}>{label}</Text>
@@ -144,10 +152,13 @@ function SectionHeader({ label }: SectionHeaderProps) {
 // ============================================================================
 
 function EmptyState() {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <View style={styles.emptyState}>
       <View style={styles.emptyIcon}>
-        <Ionicons name="notifications-off-outline" size={48} color="#4B5563" />
+        <Ionicons name="notifications-off-outline" size={48} color={colors.borderLight} />
       </View>
       <Text style={styles.emptyTitle}>No Notifications</Text>
       <Text style={styles.emptyMessage}>
@@ -170,6 +181,8 @@ export function NotificationCenterScreen({
   onBack,
   onNotificationPress,
 }: NotificationCenterScreenProps) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const {
     groupedNotifications,
@@ -255,7 +268,7 @@ export function NotificationCenterScreen({
       <View style={styles.header}>
         {onBack && (
           <TouchableOpacity style={styles.backButton} onPress={onBack}>
-            <Ionicons name="arrow-back" size={24} color="#fff" />
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
         )}
         <Text style={styles.headerTitle}>Notifications</Text>
@@ -269,7 +282,7 @@ export function NotificationCenterScreen({
             ]);
           }}
         >
-          <Ionicons name="ellipsis-horizontal" size={24} color="#9CA3AF" />
+          <Ionicons name="ellipsis-horizontal" size={24} color={colors.textTertiary} />
         </TouchableOpacity>
       </View>
 
@@ -299,7 +312,7 @@ export function NotificationCenterScreen({
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={refresh}
-            tintColor="#8B5CF6"
+            tintColor={colors.accent}
           />
         }
         showsVerticalScrollIndicator={false}
@@ -312,10 +325,10 @@ export function NotificationCenterScreen({
 // Styles
 // ============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0a',
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -324,7 +337,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#1a1a1a',
+    borderBottomColor: colors.backgroundDarkest,
   },
   backButton: {
     width: 40,
@@ -335,7 +348,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#fff',
+    color: colors.text,
   },
   moreButton: {
     width: 40,
@@ -347,18 +360,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(139, 92, 246, 0.2)',
+    backgroundColor: withAlpha(colors.accent, '33'),
     paddingVertical: 12,
     paddingHorizontal: 16,
   },
   unreadBadgeText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#8B5CF6',
+    color: colors.accent,
   },
   markAllReadText: {
     fontSize: 13,
-    color: '#8B5CF6',
+    color: colors.accent,
   },
   listContent: {
     paddingBottom: 32,
@@ -370,12 +383,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 20,
     paddingBottom: 8,
-    backgroundColor: '#0a0a0a',
+    backgroundColor: colors.background,
   },
   sectionHeaderText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#6B7280',
+    color: colors.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -384,12 +397,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 14,
-    backgroundColor: '#0a0a0a',
+    backgroundColor: colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: '#1a1a1a',
+    borderBottomColor: colors.backgroundDarkest,
   },
   notificationUnread: {
-    backgroundColor: '#0f0f0f',
+    backgroundColor: colors.backgroundDarkest,
   },
   notificationIcon: {
     width: 48,
@@ -417,7 +430,7 @@ const styles = StyleSheet.create({
   notificationTitle: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#fff',
+    color: colors.text,
     flex: 1,
     marginRight: 8,
   },
@@ -426,18 +439,18 @@ const styles = StyleSheet.create({
   },
   notificationTime: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.textMuted,
   },
   notificationBody: {
     fontSize: 14,
-    color: '#9CA3AF',
+    color: colors.textTertiary,
     lineHeight: 20,
   },
   unreadDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#8B5CF6',
+    backgroundColor: colors.accent,
     marginLeft: 8,
   },
   swipeActions: {
@@ -449,7 +462,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   deleteAction: {
-    backgroundColor: '#EF4444',
+    backgroundColor: colors.error,
   },
   emptyState: {
     flex: 1,
@@ -461,7 +474,7 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.backgroundDarkest,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 24,
@@ -469,12 +482,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#fff',
+    color: colors.text,
     marginBottom: 12,
   },
   emptyMessage: {
     fontSize: 15,
-    color: '#6B7280',
+    color: colors.textMuted,
     textAlign: 'center',
     lineHeight: 22,
   },

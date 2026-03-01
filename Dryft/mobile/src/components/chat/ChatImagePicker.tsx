@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import {
   chatMediaService,
   MediaAttachment,
 } from '../../services/chatMedia';
+import { ThemeColors, useColors } from '../../theme/ThemeProvider';
 
 // ============================================================================
 // Types
@@ -29,6 +30,8 @@ interface ChatImagePickerProps {
   maxSelections?: number;
 }
 
+const withAlpha = (color: string, alphaHex: string): string => `${color}${alphaHex}`;
+
 // ============================================================================
 // Chat Image Picker Component
 // ============================================================================
@@ -39,6 +42,8 @@ export function ChatImagePicker({
   onSelect,
   maxSelections = 10,
 }: ChatImagePickerProps) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedImages, setSelectedImages] = useState<MediaAttachment[]>([]);
 
@@ -95,7 +100,7 @@ export function ChatImagePicker({
           {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-              <Ionicons name="close" size={24} color="#9CA3AF" />
+              <Ionicons name="close" size={24} color={colors.textTertiary} />
             </TouchableOpacity>
             <Text style={styles.title}>Share Photos</Text>
             {selectedImages.length > 0 ? (
@@ -127,7 +132,7 @@ export function ChatImagePicker({
                       style={styles.removeButton}
                       onPress={() => handleRemoveImage(image.id)}
                     >
-                      <Ionicons name="close-circle" size={24} color="#EF4444" />
+                      <Ionicons name="close-circle" size={24} color={colors.error} />
                     </TouchableOpacity>
                   </View>
                 ))}
@@ -146,10 +151,10 @@ export function ChatImagePicker({
               disabled={isLoading || selectedImages.length >= maxSelections}
             >
               <LinearGradient
-                colors={['#8B5CF6', '#7C3AED']}
+                colors={[colors.accent, colors.accentSecondary]}
                 style={styles.optionIcon}
               >
-                <Ionicons name="images" size={28} color="#fff" />
+                <Ionicons name="images" size={28} color={colors.text} />
               </LinearGradient>
               <Text style={styles.optionLabel}>Photo Library</Text>
               <Text style={styles.optionDescription}>
@@ -163,10 +168,10 @@ export function ChatImagePicker({
               disabled={isLoading || selectedImages.length >= maxSelections}
             >
               <LinearGradient
-                colors={['#10B981', '#059669']}
+                colors={[colors.success, colors.like]}
                 style={styles.optionIcon}
               >
-                <Ionicons name="camera" size={28} color="#fff" />
+                <Ionicons name="camera" size={28} color={colors.text} />
               </LinearGradient>
               <Text style={styles.optionLabel}>Camera</Text>
               <Text style={styles.optionDescription}>
@@ -178,13 +183,13 @@ export function ChatImagePicker({
           {/* Loading Indicator */}
           {isLoading && (
             <View style={styles.loadingOverlay}>
-              <ActivityIndicator size="large" color="#8B5CF6" />
+              <ActivityIndicator size="large" color={colors.accent} />
             </View>
           )}
 
           {/* Info */}
           <View style={styles.infoContainer}>
-            <Ionicons name="information-circle" size={18} color="#6B7280" />
+            <Ionicons name="information-circle" size={18} color={colors.textMuted} />
             <Text style={styles.infoText}>
               Photos are shared privately and can only be seen by your match
             </Text>
@@ -218,6 +223,8 @@ export function ChatImageMessage({
   isLoading,
   uploadProgress,
 }: ChatImageMessageProps) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const maxWidth = Dimensions.get('window').width * 0.65;
   const aspectRatio = width / height;
 
@@ -277,17 +284,20 @@ interface ImageViewerProps {
 }
 
 export function ImageViewer({ visible, uri, onClose, onSave }: ImageViewerProps) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.viewerContainer}>
         {/* Header */}
         <View style={styles.viewerHeader}>
           <TouchableOpacity style={styles.viewerButton} onPress={onClose}>
-            <Ionicons name="close" size={28} color="#fff" />
+            <Ionicons name="close" size={28} color={colors.text} />
           </TouchableOpacity>
           {onSave && (
             <TouchableOpacity style={styles.viewerButton} onPress={onSave}>
-              <Ionicons name="download-outline" size={28} color="#fff" />
+              <Ionicons name="download-outline" size={28} color={colors.text} />
             </TouchableOpacity>
           )}
         </View>
@@ -311,14 +321,14 @@ export function ImageViewer({ visible, uri, onClose, onSave }: ImageViewerProps)
 
 const { width, height } = Dimensions.get('window');
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: withAlpha(colors.background, 'CC'),
     justifyContent: 'flex-end',
   },
   container: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.backgroundDarkest,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingBottom: 40,
@@ -330,7 +340,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#2a2a2a',
+    borderBottomColor: colors.border,
   },
   closeButton: {
     padding: 4,
@@ -338,10 +348,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#fff',
+    color: colors.text,
   },
   sendButton: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: colors.accent,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
@@ -349,7 +359,7 @@ const styles = StyleSheet.create({
   sendButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
   },
   sendButtonPlaceholder: {
     width: 80,
@@ -357,7 +367,7 @@ const styles = StyleSheet.create({
   previewContainer: {
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#2a2a2a',
+    borderBottomColor: colors.border,
   },
   previewScroll: {
     paddingHorizontal: 16,
@@ -375,12 +385,12 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -8,
     right: -8,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.backgroundDarkest,
     borderRadius: 12,
   },
   previewCount: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.textMuted,
     textAlign: 'center',
     marginTop: 12,
   },
@@ -391,7 +401,7 @@ const styles = StyleSheet.create({
   },
   optionButton: {
     flex: 1,
-    backgroundColor: '#0a0a0a',
+    backgroundColor: colors.background,
     borderRadius: 16,
     padding: 20,
     alignItems: 'center',
@@ -407,17 +417,17 @@ const styles = StyleSheet.create({
   optionLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
     marginBottom: 4,
   },
   optionDescription: {
     fontSize: 13,
-    color: '#6B7280',
+    color: colors.textMuted,
     textAlign: 'center',
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: withAlpha(colors.background, '80'),
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -430,14 +440,14 @@ const styles = StyleSheet.create({
   infoText: {
     flex: 1,
     fontSize: 13,
-    color: '#6B7280',
+    color: colors.textMuted,
   },
 
   // Image Message
   imageMessage: {
     borderRadius: 16,
     overflow: 'hidden',
-    backgroundColor: '#2a2a2a',
+    backgroundColor: colors.border,
   },
   imageMessageSent: {
     alignSelf: 'flex-end',
@@ -447,32 +457,32 @@ const styles = StyleSheet.create({
   },
   imageLoadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: withAlpha(colors.background, '99'),
     alignItems: 'center',
     justifyContent: 'center',
   },
   uploadProgressContainer: {
     width: '60%',
     height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: withAlpha(colors.text, '4D'),
     borderRadius: 2,
     overflow: 'hidden',
   },
   uploadProgressBar: {
     height: '100%',
-    backgroundColor: '#8B5CF6',
+    backgroundColor: colors.accent,
   },
   uploadProgressText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text,
     marginTop: 8,
   },
 
   // Image Viewer
   viewerContainer: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: colors.background,
   },
   viewerHeader: {
     flexDirection: 'row',
