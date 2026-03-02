@@ -8,7 +8,7 @@ import it from '../i18n/locales/it.json';
 import ko from '../i18n/locales/ko.json';
 import zhCN from '../i18n/locales/zh-CN.json';
 
-import { FALLBACK_CHAIN, isRTL } from '../i18n';
+import { FALLBACK_CHAIN, SUPPORTED_LANGUAGES, isRTL } from '../i18n';
 
 type LocaleMap = Record<string, unknown>;
 
@@ -64,5 +64,54 @@ describe('i18n locale integrity', () => {
     expect(isRTL('fa')).toBe(true);
     expect(isRTL('ur')).toBe(true);
     expect(isRTL('en')).toBe(false);
+  });
+
+  test('rtl locale metadata snapshot remains stable', () => {
+    const rtlLocaleSnapshot = (['ar', 'he', 'fa', 'ur'] as const).map((locale) => ({
+      locale,
+      metadata: SUPPORTED_LANGUAGES[locale],
+      rtl: isRTL(locale),
+    }));
+
+    expect(rtlLocaleSnapshot).toMatchInlineSnapshot(`
+      [
+        {
+          "locale": "ar",
+          "metadata": {
+            "flag": "🇸🇦",
+            "name": "Arabic",
+            "nativeName": "العربية",
+          },
+          "rtl": true,
+        },
+        {
+          "locale": "he",
+          "metadata": {
+            "flag": "🇮🇱",
+            "name": "Hebrew",
+            "nativeName": "עברית",
+          },
+          "rtl": true,
+        },
+        {
+          "locale": "fa",
+          "metadata": {
+            "flag": "🇮🇷",
+            "name": "Persian",
+            "nativeName": "فارسی",
+          },
+          "rtl": true,
+        },
+        {
+          "locale": "ur",
+          "metadata": {
+            "flag": "🇵🇰",
+            "name": "Urdu",
+            "nativeName": "اردو",
+          },
+          "rtl": true,
+        },
+      ]
+    `);
   });
 });

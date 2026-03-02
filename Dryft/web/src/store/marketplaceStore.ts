@@ -1,6 +1,5 @@
 import { create } from 'zustand';
-import { apiClient } from '@/lib/api';
-import { api } from '@/lib/api';
+import { apiClient, api } from '@/lib/api';
 import {
   StoreItem,
   StoreItemsResponse,

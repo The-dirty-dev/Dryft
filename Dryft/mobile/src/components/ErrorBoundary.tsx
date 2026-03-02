@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { analytics } from '../services/analytics';
 import { DARK_THEME_COLORS } from '../theme/ThemeProvider';
+import { captureException as captureSentryException } from '../utils/sentry';
 
 // ============================================================================
 // Types
@@ -63,6 +64,12 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     this.setState({ errorInfo });
+
+    captureSentryException(error, {
+      error_boundary_level: this.props.level,
+      component_stack: errorInfo.componentStack?.substring(0, 2000) ?? null,
+      platform: Platform.OS,
+    });
 
     // Track error in analytics
     analytics.trackError(error, {

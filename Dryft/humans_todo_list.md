@@ -241,18 +241,14 @@ Status: **IN PROGRESS** (Feb 15). TLS is active for `api.dryft.site` on DreamHos
 
 ### Codex — Next Tasks
 
-**COD-1**: Add `desktop/out/` to `.gitignore` at the desktop level too (belt-and-suspenders)
-- Safe area: `desktop/.gitignore`
-- Add: `out/`, `dist/`, `release/`
+**COD-1**: ~~Add `desktop/out/` to `.gitignore` at the desktop level too (belt-and-suspenders)~~ ✅ COMPLETE (Mar 1)
+- [x] Added `desktop/.gitignore` with `out/`, `dist/`, and `release/`
 
-**COD-2**: Add RTL locale support tests for `mobile/src/i18n/`
-- Arabic, Hebrew, Farsi, Urdu were added to `SUPPORTED_LANGUAGES` in Feb — add snapshot tests
-- Safe area: `mobile/src/__tests__/`
+**COD-2**: ~~Add RTL locale support tests for `mobile/src/i18n/`~~ ✅ COMPLETE (Mar 1)
+- [x] Added RTL locale snapshot test coverage for Arabic, Hebrew, Farsi, and Urdu in `mobile/src/__tests__/i18n.locales.test.ts`
 
-**COD-3**: Add Sentry error boundary integration
-- Wire `@sentry/react-native` to `ErrorBoundary.componentDidCatch` in `mobile/src/components/ErrorBoundary.tsx`
-- Safe area: component-level Sentry calls only, no auth changes
+**COD-3**: ~~Add Sentry error boundary integration~~ ✅ COMPLETE (Mar 1)
+- [x] Wired Sentry exception capture into `ErrorBoundary.componentDidCatch` via `mobile/src/utils/sentry.ts`
 
-**COD-4**: Add a `desktop/src/renderer/src/styles.css` dark-mode media query check
-- The desktop shell is always dark (hardcoded). Add a CSS `@media (prefers-color-scheme: light)` no-op comment explaining it's intentional.
-- Safe area: `desktop/src/renderer/src/styles.css`
+**COD-4**: ~~Add a `desktop/src/renderer/src/styles.css` dark-mode media query check~~ ✅ COMPLETE (Mar 1)
+- [x] Added intentional no-op `@media (prefers-color-scheme: light)` note in `desktop/src/renderer/src/styles.css`
