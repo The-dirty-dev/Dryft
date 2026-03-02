@@ -168,8 +168,10 @@ No objections. Recommended: cross-compile on dev machine (`GOOS=linux GOARCH=amd
 - **Monitoring**: Consider `node_exporter` for system metrics when feasible.
 
 Subtasks (remaining for HUMAN-Grant):
-- [ ] Verify DreamHost proxy passes `X-Forwarded-For` and `X-Forwarded-Proto` headers
-- [ ] Test WebSocket upgrade through DreamHost proxy (`wss://api.dryft.site/ws`) once backend is stable
+- [x] **Switched web server from Apache → Nginx** (PHP 8.x) via DreamHost Panel (Mar 2 2026). Nginx is better for WebSocket proxying (`Upgrade`/`Connection` headers). Takes ~10 min to apply.
+- [ ] **After Nginx switch completes**: Re-check Panel proxy target is still `http://127.0.0.1:8080` (the web server switch may reset proxy config in the Panel).
+- [ ] Verify DreamHost Nginx proxy passes `X-Forwarded-For` and `X-Forwarded-Proto` headers (critical for rate limiter's `middleware.RealIP`)
+- [ ] **WebSocket test** (`wss://api.dryft.site/ws`) — priority with Nginx: if DreamHost's proxy config doesn't include `proxy_set_header Upgrade $http_upgrade` and `proxy_set_header Connection "upgrade"`, WebSockets will silently fail while HTTP works. File a DreamHost support ticket if this fails.
 - [x] Decided on final `DATABASE_URL` for VPS: **Neon** (free serverless Postgres). Update `1.env.prod` (local) and VPS `.env.prod` with Neon connection string once provisioned. *(Mar 2 2026, budget pivot)*
 - [ ] Re-run `dryft-api` on VPS and confirm `/health` returns 200 via `https://api.dryft.site/health`
 

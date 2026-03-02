@@ -261,6 +261,9 @@ echo "Started with PID $!"
 
 ## 8. Post-Deploy Verification
 
+> **After the Apache→Nginx switch**: Before deploying, re-check in the DreamHost Panel that the
+> proxy target is still `http://127.0.0.1:8080` — the web server switch may reset proxy config.
+
 ```bash
 # Health and readiness (from any machine)
 curl -fsS https://api.dryft.site/health
@@ -276,6 +279,23 @@ pm2 status dryft-api
 pm2 logs dryft-api --lines 50
 # or if nohup:
 tail -f ~/api.dryft.site/opt/dryft/dryft.log
+```
+
+### WebSocket verification (Nginx-specific)
+
+DreamHost's Nginx proxy must forward WebSocket upgrade headers. Test with:
+
+```bash
+# Install wscat if needed: npm install -g wscat
+wscat -c wss://api.dryft.site/v1/ws
+```
+
+If the connection is immediately rejected (not a 401/403 auth error, but a protocol error),
+DreamHost's Nginx config is missing the WebSocket proxy headers. File a support ticket asking
+them to add to the proxy config for `api.dryft.site`:
+```
+proxy_set_header Upgrade $http_upgrade;
+proxy_set_header Connection "upgrade";
 ```
 
 ---
@@ -315,7 +335,8 @@ Promtail ships `~/api.dryft.site/opt/dryft/dryft.log` to Loki.
 
 | Tool | Available on DreamHost VPS? | How we handle it |
 |---|---|---|
-| nginx | ❌ No write access to `/etc/nginx` | DreamHost Panel proxy replaces it |
+| nginx | ✅ **Active web server** (switched from Apache, Mar 2 2026) | DreamHost manages config — no direct `/etc/nginx` access; Panel proxy sets reverse-proxy target. Better WebSocket support than Apache. |
+| Apache | ➡️ Replaced by Nginx | See above |
 | supervisor | ❌ Not available | pm2 (or nohup) instead |
 | certbot / Let's Encrypt | ❌ No access | DreamHost Panel handles TLS automatically |
 | systemd unit files | ❌ User systemd not supported | pm2 startup hook instead |
