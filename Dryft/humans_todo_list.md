@@ -205,6 +205,122 @@ Subtasks:
 
 ---
 
+---
+
+## Phase 2 Task Assignments (CLAUDE-Architect, Mar 1 2026)
+
+> Context: Desktop app is now fully shelled and icons are in place. Mobile TS errors are at 0. Backend is clean. Git repo has been cleaned up (build artifacts + secrets removed/untracked). Next phase focuses on deploying to VPS and first external testing.
+
+---
+
+### 🚨 HUMAN-Grant — Immediate / Security-Critical
+
+**SEC-1**: **Rotate the SSH key committed in commit `e5578a8`**
+- [ ] Go to GitHub Settings → SSH and GPG keys → delete the key for `dirty@hazardpaygaming.com`
+- [ ] Generate a new ed25519 keypair: `ssh-keygen -t ed25519 -C "your_email" -f ~/.ssh/github_dryft`
+- [ ] Add new public key to GitHub
+- [ ] Update `~/.ssh/config` to use new key for github.com
+- [ ] Delete the old `Dryft/github` and `Dryft/github.pub` files from disk (they are now untracked)
+- [ ] Consider using `git filter-repo` or BFG to purge the private key from git history (or accept risk since repo is private)
+
+**SEC-2**: **Clarify `1.env.prod` at volume root**
+- [ ] Confirm what `/Volumes/dryft-code/1.env.prod` is — is this a backup of `.env.prod` or a different file?
+- [ ] If it contains real secrets, delete or secure it. It is now excluded from git by `.gitignore`.
+
+**SEC-3**: **Commit the cleanup work done by CLAUDE-Architect today**
+- [ ] Review `git status` and `git diff` in `/Volumes/dryft-code`
+- [ ] Commit: `.gitignore` fixes (SSH key exclusion, typo fix, `1.env.prod` added), `alertmanager.yml` branding fixes (`[DRIFT]`→`[DRYFT]`), untracked files (desktop/out, github keys)
+- [ ] Push to GitHub
+
+---
+
+### 🟠 HUMAN-Grant — VPS First Deploy (Next 1-2 weeks)
+
+These are the remaining gates before first external users can hit the backend.
+
+**H1 — APNs Keys** (deadline: whenever iOS push needed for testing)
+- [ ] Go to developer.apple.com → Certificates, Identifiers & Profiles → Keys → Create Key (APNs)
+- [ ] Download `.p8` file, record Key ID and Team ID
+- [ ] Set `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_AUTH_KEY` (contents of .p8), `APNS_BUNDLE_ID=com.dryft.app` in `/Volumes/dryft-code/.env.prod`
+- [ ] Update `/opt/dryft/.env.prod` on VPS once ready
+
+**H2 — Backend VPS Deploy**
+- [ ] Cross-compile: `cd Dryft/backend && GOOS=linux GOARCH=amd64 go build -o dryft-api ./cmd/dryft-api`
+- [ ] SCP binary and `.env.prod` to VPS: `scp dryft-api user@vps:/opt/dryft/` and `scp /Volumes/dryft-code/.env.prod user@vps:/opt/dryft/.env.prod`
+- [ ] Copy `infra/dryft-api.service` to `/etc/systemd/system/` on VPS, enable and start
+- [ ] Verify DreamHost proxy passes `X-Forwarded-For` and `X-Forwarded-Proto` headers
+- [ ] Test: `curl https://api.dryft.site/health` returns 200
+
+**H3 — WebSocket Proxy Test**
+- [ ] Test WebSocket upgrade through DreamHost proxy: `wss://api.dryft.site/ws`
+- [ ] Use a simple wscat test: `wscat -c "wss://api.dryft.site/ws?token=<test_token>"`
+
+**H4 — VPS Hardening**
+- [ ] Set up ufw: `ufw allow 22,80,443 && ufw enable`
+- [ ] Disable SSH password auth, enable key-only in `/etc/ssh/sshd_config`
+- [ ] Enable `unattended-upgrades`
+
+**H5 — Stripe Live Keys**
+- [ ] Go to Stripe Dashboard → swap test keys for live keys
+- [ ] Update `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` in `.env.prod`
+- [ ] Set webhook endpoint URL to `https://api.dryft.site/v1/webhooks/stripe`
+
+**H6 — Redis Managed**
+- [ ] Provision managed Redis (ElastiCache or Redis Cloud free tier)
+- [ ] Update `REDIS_URL` in `.env.prod` with new URL
+
+**H7 — Desktop App: First Package Build**
+- [ ] `cd Dryft/desktop && npm install && npm run package:mac`
+- [ ] Verify DMG installs and app connects to web app (dev or prod)
+- [ ] For production: update `NEXT_PUBLIC_API_URL` in web build before packaging
+
+**H8 — Mobile: `npm install` in all workspaces**
+- [ ] `cd Dryft/mobile && npm install`
+- [ ] `cd Dryft/web && npm install`
+- [ ] `cd Dryft/desktop && npm install`
+- [ ] Run `npm test` in each to verify suites still pass after install
+
+---
+
+### 🔵 CLAUDE-Architect — Next Tasks
+
+**CA-1**: Review `backend/internal/realtime/hub.go` WebSocket hub for Redis pub/sub routing prep
+- Before HPA is enabled, the hub needs to fan-out via Redis. Blocked on H6 (managed Redis).
+- When Grant confirms managed Redis is up, CLAUDE-Architect will implement the pub/sub routing layer.
+
+**CA-2**: Write migration test coverage for `internal/database/migrations/`
+- All 10 migrations have been reviewed but no automated up/down round-trip tests exist.
+- Codex can scaffold the test harness; CLAUDE-Architect reviews dangerous areas.
+
+**CA-3**: Review DreamHost proxy config once H2 deploy is done
+- Verify security headers aren't stripped by the proxy layer.
+- Verify `X-Forwarded-For` is trusted correctly by the rate limiter.
+
+**CA-4**: Web app — Zustand stores are stubs (`src/store/` exists but store dir exists as placeholder per CLAUDE.md)
+- Audit web store stubs and implement or connect to real API — needed before web users can auth.
+
+---
+
+### 🟢 Codex — Next Tasks
+
+**COD-1**: Add `desktop/out/` to `.gitignore` at the desktop level too (belt-and-suspenders)
+- Safe area: `desktop/.gitignore`
+- Add: `out/`, `dist/`, `release/`
+
+**COD-2**: Add RTL locale support tests for `mobile/src/i18n/`
+- Arabic, Hebrew, Farsi, Urdu were added to `SUPPORTED_LANGUAGES` in Feb — add snapshot tests
+- Safe area: `mobile/src/__tests__/`
+
+**COD-3**: Add Sentry error boundary integration
+- Wire `@sentry/react-native` to `ErrorBoundary.componentDidCatch` in `mobile/src/components/ErrorBoundary.tsx`
+- Safe area: component-level Sentry calls only, no auth changes
+
+**COD-4**: Add a `desktop/src/renderer/src/styles.css` dark-mode media query check
+- The desktop shell is always dark (hardcoded). Add a CSS `@media (prefers-color-scheme: light)` no-op comment explaining it's intentional.
+- Safe area: `desktop/src/renderer/src/styles.css`
+
+---
+
 ### Automated Test Suite Status (CLAUDE-Architect, Feb 15)
 
 **Backend**: 29/29 packages passing. Clean.
