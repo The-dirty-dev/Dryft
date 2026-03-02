@@ -158,23 +158,20 @@ Status: **IN PROGRESS** (Feb 15). TLS is active for `api.dryft.site` on DreamHos
 
 ### HUMAN-Grant — Immediate / Security-Critical
 
-**SEC-1**: **Rotate the SSH key committed in commit `e5578a8`**
-- [ ] Go to GitHub Settings → SSH and GPG keys → delete the key for `dirty@hazardpaygaming.com`
-- [ ] Generate a new ed25519 keypair: `ssh-keygen -t ed25519 -C "your_email" -f ~/.ssh/github_dryft`
-- [ ] Add new public key to GitHub
-- [ ] Update `~/.ssh/config` to use new key for github.com
-- [ ] Delete the old `Dryft/github` and `Dryft/github.pub` files from disk (they are now untracked)
-- [ ] Consider using `git filter-repo` or BFG to purge the private key from git history (or accept risk since repo is private)
+**SEC-1**: ~~**Rotate the SSH key committed in commit `e5578a8`**~~ ✅ COMPLETE (Mar 1)
+- [x] Old key revoked in GitHub Settings
+- [x] New ed25519 keypair generated and added to GitHub
+- [x] `Dryft/github` and `Dryft/github.pub` removed from git index and disk
+- [x] SSH key scrubbed from ALL git history via `git filter-repo --path Dryft/github --path Dryft/github.pub --invert-paths`; main force-pushed to GitHub
 
-**SEC-2**: **Clarify `1.env.prod` at volume root**
-- [ ] Confirm what `/Volumes/dryft-code/1.env.prod` is — is this the canonical prod secrets file (intentionally renamed from `.env.prod`)?
-- [ ] It is now excluded from git by `.gitignore`. Ensure it's backed up securely (e.g., 1Password or encrypted disk).
+**SEC-2**: ~~**Clarify `1.env.prod` at volume root**~~ ✅ COMPLETE (Mar 1)
+- [x] Confirmed: `/Volumes/dryft-code/1.env.prod` is the canonical prod secrets file (renamed from `.env.prod` to avoid Finder hidden-file UX)
+- [x] Excluded from git by `.gitignore`
+- [x] Backed up on a separate drive
 
-**SEC-3**: **Commit the cleanup work done by CLAUDE-Architect today**
-- [ ] Review `git status` and `git diff` in `/Volumes/dryft-code`
-- [ ] Stage all changes: `git add -A` (or selectively: `.gitignore`, `Dryft/AGENTS_COLLAB.md`, `Dryft/humans_todo_list.md`, `Dryft/infra/monitoring/alertmanager.yml`)
-- [ ] Commit: `.gitignore` fixes (SSH key exclusion + `1.env.prod`), `alertmanager.yml` branding fixes (`[DRIFT]`→`[DRYFT]`), untracked files (desktop/out, github keys), Phase 2 task assignments
-- [ ] Push to GitHub: `git push origin main`
+**SEC-3**: ~~**Commit the cleanup work done by CLAUDE-Architect today**~~ ✅ COMPLETE (Mar 1)
+- [x] All changes committed to `main` (`ba2e06f`) and pushed to GitHub
+- [x] Worktree branch `claude/objective-matsumoto` committed and pushed; PR opened
 
 ---
 
