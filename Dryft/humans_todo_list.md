@@ -17,7 +17,7 @@ It is also the coordination point between HUMAN-Grant, CLAUDE-Architect, and Per
 - [x] Create private GitHub repository for Dryft.
 - [x] Add GitHub remote (`origin`) to local repo.
 - [x] Push `main` branch to GitHub and verify files/commits in the web UI.
-- [x] Ensure local secrets files at volume root (`Secrets.rtf`, `.env.prod`, Firebase JSON, etc.) are not tracked or pushed.
+- [x] Ensure local secrets files at volume root (`Secrets.rtf`, `1.env.prod`, Firebase JSON, etc.) are not tracked or pushed.
 
 ## Production Readiness Tasks
 
@@ -117,25 +117,25 @@ Status: **MOSTLY COMPLETE** (Feb 15). 7/8 secrets provisioned (Postgres RDS, JWT
 
 3.1 Choose where secrets live
 - [x] Decide: `.env.prod` file (simple) vs managed secret store (AWS Secrets Manager, 1Password, etc.). Decision (Feb 14): start with a local `.env.prod` on the prod box, plan to migrate to a managed secrets store once infra stabilizes.
-- [x] **Location update (Mar 1)**: `.env.prod` was recreated after accidental loss. **Canonical local path: `/Volumes/dryft-code/.env.prod`** (drive root, outside `Dryft/` project folder). VPS path unchanged: `/opt/dryft/.env.prod`. `docker-compose.prod.yml` updated to `../.env.prod`. All deploy scripts updated to use full absolute path.
+- [x] **Location update (Mar 1)**: `.env.prod` was recreated after accidental loss and renamed to `1.env.prod` locally to avoid hidden-file UX in Finder. **Canonical local path: `/Volumes/dryft-code/1.env.prod`** (drive root, outside `Dryft/` project folder). VPS path unchanged: `/opt/dryft/.env.prod`. `docker-compose.prod.yml` updated to `../1.env.prod`. All deploy scripts updated to use full absolute path.
 
 3.2 Provision each secret
 
-- [x] **Postgres**: RDS instance `drift-prod-db` provisioned in `us-west-2`, connection string in `.env.prod`. *(Feb 14)*
-- [x] **JWT_SECRET_KEY**: Generated and set in `.env.prod` (50 chars). *(Feb 14)*
-- [x] **ENCRYPTION_KEY**: Generated and set in `.env.prod` (32 bytes, AES-256 compatible). *(Feb 14)*
+- [x] **Postgres**: RDS instance `drift-prod-db` provisioned in `us-west-2`, connection string in `1.env.prod`. *(Feb 14, path updated Mar 1)*
+- [x] **JWT_SECRET_KEY**: Generated and set in `1.env.prod` (50 chars). *(Feb 14, path updated Mar 1)*
+- [x] **ENCRYPTION_KEY**: Generated and set in `1.env.prod` (32 bytes, AES-256 compatible). *(Feb 14, path updated Mar 1)*
 - [ ] **Redis**: Currently using Docker service URL (`redis://redis:6379/0`). **Needs managed Redis (ElastiCache or similar) for production.**
 - [ ] **Stripe**: Test keys wired (`sk_test_...`). **Needs live keys (`sk_live_...`) + new webhook endpoint before real launch.**
-- [x] **AWS/S3**: IAM user `drift-s3-uploader` created, access key + secret in `.env.prod`, bucket `drift-prod-uploads` in `us-west-1`. *(Feb 14)*
-- [x] **Firebase**: Admin service account created, full JSON set in `FIREBASE_CREDENTIALS_JSON` in `.env.prod`. JSON compacted to single-line for Docker Compose compatibility. *(Feb 14)*
-- [ ] **APNs**: Get key from Apple Developer portal (placeholder values in `.env.prod`)
+- [x] **AWS/S3**: IAM user `drift-s3-uploader` created, access key + secret in `1.env.prod`, bucket `drift-prod-uploads` in `us-west-1`. *(Feb 14, path updated Mar 1)*
+- [x] **Firebase**: Admin service account created, full JSON set in `FIREBASE_CREDENTIALS_JSON` in `1.env.prod`. JSON compacted to single-line for Docker Compose compatibility. *(Feb 14, path updated Mar 1)*
+- [ ] **APNs**: Get key from Apple Developer portal (placeholder values in `1.env.prod`)
 
 3.3 Wire secrets into runtime
 - [ ] Create `backend/.env.prod` (or configure secret manager)
-- [ ] For docker-compose: use `env_file: .env.prod` in `docker-compose.prod.yml`
+- [ ] For docker-compose: use `env_file: 1.env.prod` in `docker-compose.prod.yml`
 
 3.4 Smoke-test app startup
-- [x] Boot backend with production-like stack via `docker-compose.prod.yml` and `.env.prod` (ENVIRONMENT=staging, Stripe keys passed through, Jumio disabled for local stack)
+- [x] Boot backend with production-like stack via `docker-compose.prod.yml` and `1.env.prod` (ENVIRONMENT=staging, Stripe keys passed through, Jumio disabled for local stack)
 - [x] Verify `/health` endpoint returns 200
 - [x] Verify `/metrics` endpoint exposes app and Go runtime metrics
 - [x] Verify Redis connection from inside container via `/ready` (checks.redis = "ok")
@@ -146,72 +146,116 @@ Status: **MOSTLY COMPLETE** (Feb 15). 7/8 secrets provisioned (Postgres RDS, JWT
 
 ### 4. Configure TLS/SSL at the edge
 
-Status: **IN PROGRESS** (Feb 15). TLS is active for `api.dryft.site` on DreamHost using a free Let's Encrypt certificate. Placeholder page loads over HTTPS. Pending Claude-Architect review before first backend deploy to this VPS.
+Status: **IN PROGRESS** (Feb 15). TLS is active for `api.dryft.site` on DreamHost using a free Let's Encrypt certificate. Placeholder page loads over HTTPS. Pending Claude-Architect review...
 
-Planned approach (for Claude-Architect review)
-- Keep TLS termination and certificate management on DreamHost for `api.dryft.site` (Let’s Encrypt, auto-renew), no custom cert handling in the Dryft repo.
-- Run a single Dryft backend instance on the DreamHost VPS, bound to `127.0.0.1:8080`.
-- Use DreamHost’s supported proxy configuration so `https://api.dryft.site` reverse-proxies to `http://127.0.0.1:8080`, keeping the backend off the public internet.
-- Start without Docker on the VPS: build a Linux binary (or process) from the existing repo on the dev machine, copy it + .env.prod to the VPS, and run under a simple supervisor.
-- Optionally revisit Docker on the VPS later if resource limits and DreamHost policies allow it.
+---
 
-#### Claude-Architect Review (Feb 15) — **APPROVED**
+## Phase 2 Task Assignments (CLAUDE-Architect, Mar 1 2026)
 
-**Q1: DreamHost TLS + local HTTP backend on 127.0.0.1:8080?**
-Yes, approved. Key requirements: (1) Ensure proxy passes `X-Forwarded-For` and `X-Forwarded-Proto` headers — the rate limiter uses `middleware.RealIP` which reads these. (2) WebSocket upgrade must work through the proxy for the `/ws` path — test this early. (3) Set `ALLOWED_ORIGINS` to `https://dryft.site` before go-live.
+> Context: Desktop app is now fully shelled and icons are in place. Mobile TS errors are at 0. Backend is clean. Git repo has been cleaned up (build artifacts + secrets removed/untracked). Next phase focuses on deploying to VPS and first external testing.
 
-**Q2: Defer Docker, start with a single long-lived process?**
-No objections. Recommended: cross-compile on dev machine (`GOOS=linux GOARCH=amd64 go build -o dryft-api ./cmd/dryft-api`), scp binary + .env.prod to VPS, run under systemd with `Restart=always`.
+---
 
-**Q3: DreamHost VPS hardening?**
-- **Firewall**: `ufw allow 22,80,443` — close everything else. Backend on 8080 only reachable via localhost.
-- **SSH**: Key-only auth, disable root login, consider non-standard port.
-- **Headers**: Backend already sets security headers. Verify DreamHost proxy doesn't strip them.
-- **Updates**: Enable `unattended-upgrades`.
-- **Monitoring**: Consider `node_exporter` for system metrics.
+### HUMAN-Grant — Immediate / Security-Critical
 
-Subtasks (remaining for HUMAN-Grant):
+**SEC-1**: **Rotate the SSH key committed in commit `e5578a8`**
+- [ ] Go to GitHub Settings → SSH and GPG keys → delete the key for `dirty@hazardpaygaming.com`
+- [ ] Generate a new ed25519 keypair: `ssh-keygen -t ed25519 -C "your_email" -f ~/.ssh/github_dryft`
+- [ ] Add new public key to GitHub
+- [ ] Update `~/.ssh/config` to use new key for github.com
+- [ ] Delete the old `Dryft/github` and `Dryft/github.pub` files from disk (they are now untracked)
+- [ ] Consider using `git filter-repo` or BFG to purge the private key from git history (or accept risk since repo is private)
+
+**SEC-2**: **Clarify `1.env.prod` at volume root**
+- [ ] Confirm what `/Volumes/dryft-code/1.env.prod` is — is this the canonical prod secrets file (intentionally renamed from `.env.prod`)?
+- [ ] It is now excluded from git by `.gitignore`. Ensure it's backed up securely (e.g., 1Password or encrypted disk).
+
+**SEC-3**: **Commit the cleanup work done by CLAUDE-Architect today**
+- [ ] Review `git status` and `git diff` in `/Volumes/dryft-code`
+- [ ] Stage all changes: `git add -A` (or selectively: `.gitignore`, `Dryft/AGENTS_COLLAB.md`, `Dryft/humans_todo_list.md`, `Dryft/infra/monitoring/alertmanager.yml`)
+- [ ] Commit: `.gitignore` fixes (SSH key exclusion + `1.env.prod`), `alertmanager.yml` branding fixes (`[DRIFT]`→`[DRYFT]`), untracked files (desktop/out, github keys), Phase 2 task assignments
+- [ ] Push to GitHub: `git push origin main`
+
+---
+
+### HUMAN-Grant — VPS First Deploy (Next 1-2 weeks)
+
+**H1 — APNs Keys** (deadline: whenever iOS push needed for testing)
+- [ ] Go to developer.apple.com → Certificates, Identifiers & Profiles → Keys → Create Key (APNs)
+- [ ] Download `.p8` file, record Key ID and Team ID
+- [ ] Set `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_AUTH_KEY` (contents of .p8), `APNS_BUNDLE_ID=com.dryft.app` in `/Volumes/dryft-code/1.env.prod`
+- [ ] Update `/opt/dryft/.env.prod` on VPS once ready
+
+**H2 — Backend VPS Deploy**
+- [ ] Cross-compile: `cd Dryft/backend && GOOS=linux GOARCH=amd64 go build -o dryft-api ./cmd/dryft-api`
+- [ ] SCP binary and `.env.prod` to VPS: `scp dryft-api user@vps:/opt/dryft/` and `scp /Volumes/dryft-code/1.env.prod user@vps:/opt/dryft/.env.prod`
+- [ ] Copy `infra/dryft-api.service` to `/etc/systemd/system/` on VPS, enable and start
 - [ ] Verify DreamHost proxy passes `X-Forwarded-For` and `X-Forwarded-Proto` headers
-- [ ] Test WebSocket upgrade through DreamHost proxy (`wss://api.dryft.site/ws`)
-- [ ] Set up `ufw` firewall rules on VPS
-- [ ] Disable SSH password auth, enable key-only
-- [ ] Cross-compile backend binary and deploy to VPS
-- [ ] Create systemd unit file for dryft-api
-- [ ] Set `ALLOWED_ORIGINS=https://dryft.site` in `.env.prod`
+- [ ] Test: `curl https://api.dryft.site/health` returns 200
+
+**H3 — WebSocket Proxy Test**
+- [ ] Test WebSocket upgrade through DreamHost proxy: `wss://api.dryft.site/ws`
+- [ ] Use a simple wscat test: `wscat -c "wss://api.dryft.site/ws?token=<test_token>"`
+
+**H4 — VPS Hardening**
+- [ ] Set up ufw: `ufw allow 22,80,443 && ufw enable`
+- [ ] Disable SSH password auth, enable key-only in `/etc/ssh/sshd_config`
+- [ ] Enable `unattended-upgrades`
+
+**H5 — Stripe Live Keys**
+- [ ] Go to Stripe Dashboard → swap test keys for live keys
+- [ ] Update `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` in `1.env.prod`
+- [ ] Set webhook endpoint URL to `https://api.dryft.site/v1/webhooks/stripe`
+
+**H6 — Redis Managed**
+- [ ] Provision managed Redis (ElastiCache or Redis Cloud free tier)
+- [ ] Update `REDIS_URL` in `1.env.prod` with new URL
+
+**H7 — Desktop App: First Package Build**
+- [ ] `cd Dryft/desktop && npm install && npm run package:mac`
+- [ ] Verify DMG installs and app connects to web app (dev or prod)
+
+**H8 — Mobile: `npm install` in all workspaces**
+- [ ] `cd Dryft/mobile && npm install`
+- [ ] `cd Dryft/web && npm install`
+- [ ] `cd Dryft/desktop && npm install`
+- [ ] Run `npm test` in each to verify suites still pass after install
 
 ---
 
-### 5. Deploy Prometheus/Grafana monitoring
+### CLAUDE-Architect — Next Tasks
 
-Status: Not started (docker-compose.monitoring.yml exists but not deployed to prod).
+**CA-1**: Review `backend/internal/realtime/hub.go` WebSocket hub for Redis pub/sub routing prep
+- Before HPA is enabled, the hub needs to fan-out via Redis. Blocked on H6 (managed Redis).
+- When Grant confirms managed Redis is up, CLAUDE-Architect will implement the pub/sub routing layer.
 
-Subtasks:
+**CA-2**: Write migration test coverage for `internal/database/migrations/`
+- All 10 migrations have been reviewed but no automated up/down round-trip tests exist.
+- Codex can scaffold the test harness; CLAUDE-Architect reviews dangerous areas.
 
-5.1 Prepare production monitoring config
-- [ ] Review `infra/monitoring/` configs for production readiness.
-- [ ] Set persistent storage volumes for Prometheus and Grafana data.
+**CA-3**: Review DreamHost proxy config once H2 deploy is done
+- Verify security headers aren't stripped by the proxy layer.
+- Verify `X-Forwarded-For` is trusted correctly by the rate limiter.
 
-5.2 Deploy monitoring containers
-- [ ] Run `docker compose -f docker-compose.monitoring.yml up -d` on prod server.
-- [ ] Verify Prometheus can scrape `/metrics` from dryft-api.
-
-5.3 Import/verify Grafana dashboards
-- [ ] Access Grafana UI and confirm `dryft.json` dashboard loads.
-- [ ] Verify panels show real data (request rate, error rate, latency, WebSocket connections).
-
-5.4 Lock down access
-- [ ] Set strong Grafana admin password.
-- [ ] Restrict Prometheus/Grafana to internal network or VPN.
+**CA-4**: Web app — Zustand stores are stubs (`src/store/` exists but store dir exists as placeholder per CLAUDE.md)
+- Audit web store stubs and implement or connect to real API — needed before web users can auth.
 
 ---
 
-### Automated Test Suite Status (CLAUDE-Architect, Feb 15)
+### Codex — Next Tasks
 
-**Backend**: 29/29 packages passing. Clean.
+**COD-1**: Add `desktop/out/` to `.gitignore` at the desktop level too (belt-and-suspenders)
+- Safe area: `desktop/.gitignore`
+- Add: `out/`, `dist/`, `release/`
 
-**Web**: 25/25 test suites passing, 58/58 tests passing.
-- Fixed: setup.ts → setup.tsx (JSX in .ts file), vi.mock hoisting (vi.hoisted()), vi globals, require→import for store tests, test data/assertion fixes.
+**COD-2**: Add RTL locale support tests for `mobile/src/i18n/`
+- Arabic, Hebrew, Farsi, Urdu were added to `SUPPORTED_LANGUAGES` in Feb — add snapshot tests
+- Safe area: `mobile/src/__tests__/`
 
-**Mobile**: **46/46 test suites passing, 123/123 tests passing.** Clean.
-- Fixed (Feb 14): @sentry/react-native mock, expo-constants mock, missing placeholder.png, i18n locale sync (32 missing keys added to all 8 locales), CreatorScreen assertion, moduleNameMapper for @/ paths.
-- Fixed (Feb 15): Root cause identified — `babel-preset-expo` does NOT hoist `jest.mock()` above `import` statements. All 8 remaining failures were caused by mocks being registered after the module-under-test had already loaded its real dependencies. Fix: converted `import` to late `require()` for module-under-test in 8 test files (useCalls, useChatSocket, useDiscoveryFilters, useNotifications, useSafety, authMatchingChatFlow, authMarketplaceFlow, marketplaceStore).
+**COD-3**: Add Sentry error boundary integration
+- Wire `@sentry/react-native` to `ErrorBoundary.componentDidCatch` in `mobile/src/components/ErrorBoundary.tsx`
+- Safe area: component-level Sentry calls only, no auth changes
+
+**COD-4**: Add a `desktop/src/renderer/src/styles.css` dark-mode media query check
+- The desktop shell is always dark (hardcoded). Add a CSS `@media (prefers-color-scheme: light)` no-op comment explaining it's intentional.
+- Safe area: `desktop/src/renderer/src/styles.css`

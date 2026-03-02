@@ -11,10 +11,14 @@ Thumbs.db
 Secrets.rtf
 .env
 .env.*
+1.env.prod
 !.env.example
 drift-9fa41-firebase-adminsdk-fbsvc-89c5a23273.json
 *.p8
 *.p12
+# SSH keys (should never be in repo — rotate immediately if committed)
+Dryft/github
+Dryft/github.pub
 
 # === Dependencies ===
 **/node_modules/

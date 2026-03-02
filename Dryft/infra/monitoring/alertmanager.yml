@@ -21,7 +21,7 @@ receivers:
       - api_url: '${SLACK_WEBHOOK_URL}'
         channel: '#dryft-prod-alerts'
         send_resolved: true
-        title: '[DRIFT][{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
+        title: '[DRYFT][{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
         text: |
           *Status:* {{ .Status | toUpper }}
           *Severity:* {{ .CommonLabels.severity }}
@@ -34,7 +34,7 @@ receivers:
       - api_url: '${SLACK_WEBHOOK_URL}'
         channel: '#dryft-prod-alerts'
         send_resolved: true
-        title: ':rotating_light: [DRIFT][{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
+        title: ':rotating_light: [DRYFT][{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
         text: |
           *Status:* {{ .Status | toUpper }}
           *Severity:* {{ .CommonLabels.severity }}
@@ -47,7 +47,7 @@ receivers:
       - api_url: '${SLACK_WEBHOOK_URL}'
         channel: '#dryft-prod-alerts'
         send_resolved: true
-        title: ':warning: [DRIFT][{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
+        title: ':warning: [DRYFT][{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
         text: |
           *Status:* {{ .Status | toUpper }}
           *Severity:* {{ .CommonLabels.severity }}
