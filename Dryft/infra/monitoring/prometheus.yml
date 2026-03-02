@@ -12,9 +12,33 @@ rule_files:
   - /etc/prometheus/alerts.yml
 
 scrape_configs:
+  # ---------------------------------------------------------------------------
+  # dryft-api application metrics
+  #
+  # Two deployment modes — uncomment the correct target for your environment:
+  #
+  # MODE A — Docker Compose (API runs as a container named "dryft-api"):
+  #   Use "dryft-api:8080". Works when Prometheus and the API share the
+  #   same Docker network (docker-compose.prod.yml + docker-compose.monitoring.yml).
+  #
+  # MODE B — VPS / nohup (API runs natively on the host):
+  #   Use "host.docker.internal:8080". Docker resolves this to the host's
+  #   loopback via the `extra_hosts: [host.docker.internal:host-gateway]`
+  #   entry on the prometheus service in docker-compose.monitoring.yml.
+  # ---------------------------------------------------------------------------
   - job_name: dryft-api
     metrics_path: /metrics
     static_configs:
       - targets:
-          - dryft-api:8080
-    # TODO: Update targets if metrics exporter runs elsewhere.
+          - host.docker.internal:8080   # MODE B: VPS / nohup
+          # - dryft-api:8080            # MODE A: Docker Compose (comment out the line above)
+
+  # ---------------------------------------------------------------------------
+  # node_exporter — host-level metrics (CPU, memory, disk, network)
+  # Required for DryftLowDiskSpace and host resource alerts.
+  # node_exporter runs as a container in docker-compose.monitoring.yml.
+  # ---------------------------------------------------------------------------
+  - job_name: node
+    static_configs:
+      - targets:
+          - node_exporter:9100

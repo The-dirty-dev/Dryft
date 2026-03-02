@@ -8,16 +8,16 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB:-drift}
+      POSTGRES_DB: ${POSTGRES_DB:-dryft}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB:-drift}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB:-dryft}"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
-      - drift
+      - dryft
 
   redis:
     image: redis:7-alpine
@@ -31,10 +31,10 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - drift
+      - dryft
 
   api:
-    image: ${DRIFT_API_IMAGE:-drift-backend:latest}
+    image: ${DRYFT_API_IMAGE:-dryft-backend:latest}
     container_name: dryft-api
     restart: unless-stopped
     depends_on:
@@ -52,7 +52,7 @@ services:
       # When using managed RDS (production), set DATABASE_URL in .env.prod instead.
       PORT: ${PORT:-8080}
       ENVIRONMENT: ${ENVIRONMENT:-production}
-      DATABASE_URL: ${DATABASE_URL:-postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-drift}?sslmode=disable}
+      DATABASE_URL: ${DATABASE_URL:-postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-dryft}?sslmode=disable}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY}
@@ -60,12 +60,12 @@ services:
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
     networks:
-      - drift
+      - dryft
 
 volumes:
   postgres_data:
   redis_data:
 
 networks:
-  drift:
+  dryft:
     driver: bridge

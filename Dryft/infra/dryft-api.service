@@ -1,3 +1,29 @@
+# =============================================================================
+# dryft-api.service — systemd unit for traditional Linux servers
+#
+# ⚠️  NOT USED ON DREAMHOST VPS
+# DreamHost VPS does not support user-level systemd units.
+# Use pm2 or nohup instead — see infra/DREAMHOST_DEPLOYMENT.md.
+#
+# This file is intended for:
+#   - Future migration to EC2 / DigitalOcean / Hetzner with full systemd
+#   - Reference for sysadmins setting up a standard Linux deployment
+#
+# To deploy on a systemd server:
+#   sudo cp infra/dryft-api.service /etc/systemd/system/dryft-api.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now dryft-api
+#   sudo journalctl -u dryft-api -f
+#
+# Paths assume:
+#   User:  dryft  (create with: sudo useradd --system --no-create-home dryft)
+#   Binary: /opt/dryft/bin/dryft-api
+#   Env:    /opt/dryft/.env.prod
+#
+# On DreamHost VPS the actual user is thedirtyadmin and the deploy path
+# is /opt/dryft/ — adjust accordingly if adapting this file.
+# =============================================================================
+
 [Unit]
 Description=Dryft API Server
 Documentation=https://github.com/dryft-app/backend
@@ -11,6 +37,7 @@ Group=dryft
 WorkingDirectory=/opt/dryft
 
 # Load all env vars from .env.prod (DATABASE_URL, JWT_SECRET, REDIS_URL, etc.)
+# The binary has NO dotenv loader — all vars must come from here or the environment.
 EnvironmentFile=/opt/dryft/.env.prod
 
 ExecStart=/opt/dryft/bin/dryft-api

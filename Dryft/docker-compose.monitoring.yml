@@ -5,13 +5,17 @@ services:
     image: prom/prometheus:v2.50.1
     container_name: dryft-prometheus
     restart: unless-stopped
+    # host.docker.internal resolves to the Docker host (needed to scrape the
+    # dryft-api binary running natively on the VPS via nohup/pm2).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./infra/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./infra/monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
     ports:
       - "127.0.0.1:9090:9090"
     networks:
-      - drift
+      - dryft
 
   alertmanager:
     image: prom/alertmanager:v0.27.0
@@ -22,7 +26,7 @@ services:
     ports:
       - "127.0.0.1:9093:9093"
     networks:
-      - drift
+      - dryft
 
   loki:
     image: grafana/loki:2.9.4
@@ -35,22 +39,46 @@ services:
     ports:
       - "127.0.0.1:3100:3100"
     networks:
-      - drift
+      - dryft
 
   promtail:
     image: grafana/promtail:2.9.4
-    container_name: drift-promtail
+    container_name: dryft-promtail
     restart: unless-stopped
     volumes:
       - ./infra/monitoring/promtail.yml:/etc/promtail/config.yml:ro
       - /var/log:/var/log:ro
+      # VPS deployment: mount the deploy directory so promtail can tail
+      # dryft.log and dryft-error.log written by nohup / pm2.
+      # Host path = /home/thedirtyadmin/api.dryft.site/opt/dryft
+      # Container path = /opt/dryft (matches promtail.yml log path)
+      - /home/thedirtyadmin/api.dryft.site/opt/dryft:/opt/dryft:ro
     command: -config.file=/etc/promtail/config.yml
     networks:
-      - drift
+      - dryft
+
+  node_exporter:
+    image: prom/node-exporter:v1.7.0
+    container_name: dryft-node-exporter
+    restart: unless-stopped
+    pid: host
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - "127.0.0.1:9100:9100"
+    networks:
+      - dryft
 
   grafana:
     image: grafana/grafana:10.4.1
-    container_name: drift-grafana
+    container_name: dryft-grafana
     restart: unless-stopped
     environment:
       GF_AUTH_ANONYMOUS_ENABLED: "false"
@@ -61,12 +89,12 @@ services:
     ports:
       - "127.0.0.1:3001:3000"
     networks:
-      - drift
+      - dryft
 
 volumes:
   loki_data:
 
 networks:
-  drift:
+  dryft:
     external: true
-    name: drift
+    name: dryft

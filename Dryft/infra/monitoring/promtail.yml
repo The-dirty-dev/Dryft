@@ -9,11 +9,32 @@ clients:
   - url: http://loki:3100/loki/api/v1/push
 
 scrape_configs:
+  # ---------------------------------------------------------------------------
+  # dryft-api application logs
+  #
+  # VPS / nohup deployment: binary logs to /opt/dryft/dryft.log (stdout+stderr
+  # via nohup redirect) and /opt/dryft/dryft-error.log (pm2 error log).
+  # The /opt/dryft directory is mounted read-only into the promtail container
+  # in docker-compose.monitoring.yml.
+  #
+  # Docker Compose deployment: switch __path__ to the container log path or
+  # use Docker service discovery instead (see commented block below).
+  # ---------------------------------------------------------------------------
   - job_name: dryft-api
     static_configs:
       - targets:
           - localhost
         labels:
           job: dryft-api
-          __path__: /var/log/dryft/*.log
-    # TODO: Update log path or switch to Docker/Kubernetes log scraping.
+          __path__: /opt/dryft/*.log
+
+  # ---------------------------------------------------------------------------
+  # System logs (syslog, auth, kernel) from /var/log on the host
+  # ---------------------------------------------------------------------------
+  - job_name: system
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: system
+          __path__: /var/log/{syslog,auth.log,kern.log}

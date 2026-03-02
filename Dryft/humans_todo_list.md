@@ -121,12 +121,12 @@ Status: **MOSTLY COMPLETE** (Feb 15). 7/8 secrets provisioned (Postgres RDS, JWT
 
 3.2 Provision each secret
 
-- [x] **Postgres**: RDS instance provisioned in `us-west-2`; connection details stored in `1.env.prod` (local) and copied to VPS `.env.prod`. **Next session:** confirm the correct `DATABASE_URL` string for DreamHost VPS (currently app is still trying to reach `127.0.0.1:5432`).
+- [x] **Postgres**: ~~RDS (us-west-2)~~ → **Neon** (serverless, free tier). **Budget pivot (Mar 2 2026)**: AWS RDS billing started unexpectedly; all AWS services halted. Replaced with Neon free tier (0.5 GB, auto-suspend, standard wire protocol). Action: sign up at neon.tech, create project + `dryft` DB, run migrations from dev machine (`DATABASE_URL=<neon-url> go run ./cmd/migrate`), update `.env.prod` on VPS with the `*.neon.tech` connection string. See `infra/DREAMHOST_DEPLOYMENT.md` §3a for full setup steps.
 - [x] **JWT_SECRET_KEY**: Generated and set in `1.env.prod` (50 chars). *(Feb 14, path updated Mar 1)*
 - [x] **ENCRYPTION_KEY**: Generated and set in `1.env.prod` (32 bytes, AES-256 compatible). *(Feb 14, path updated Mar 1)*
-- [ ] **Redis**: Currently using Docker service URL (`redis://redis:6379/0`). **Needs managed Redis (ElastiCache or similar) for production.**
+- [x] **Redis**: **No managed Redis needed — resolved (Mar 2 2026).** DreamHost VPS cannot install Redis (no root/apt-get), and ElastiCache was halted with other AWS services. Backend already has an in-memory fallback for rate limiting and caching when `REDIS_URL` is unset — confirmed graceful degradation. Decision: leave `REDIS_URL=` empty in `.env.prod` for single-instance VPS deployment. Revisit only if running multiple API replicas (then use Upstash free tier: 10K commands/day, 256 MB).
 - [ ] **Stripe**: Test keys wired (`sk_test_...`). **Needs live keys (`sk_live_...`) + new webhook endpoint before real launch.**
-- [x] **AWS/S3**: IAM user `drift-s3-uploader` created, access key + secret in `1.env.prod`, bucket `drift-prod-uploads` in `us-west-1`. *(Feb 14, path updated Mar 1)*
+- [ ] **Object Storage**: ~~AWS S3 (us-west-1)~~ → **Cloudflare R2** (free tier: 10 GB, $0 egress). **Budget pivot (Mar 2 2026)**: S3 billing halted alongside other AWS services. R2 is S3-compatible — `storage/s3.go` already reads `S3_ENDPOINT`, so zero code changes needed. Action for HUMAN-Grant: (1) Sign up at cloudflare.com → R2 → create bucket `dryft-prod-uploads` → generate API token (R2 Read+Write); (2) update `1.env.prod` and VPS `.env.prod`: `AWS_ACCESS_KEY_ID=<r2-key>`, `AWS_SECRET_ACCESS_KEY=<r2-secret>`, `S3_BUCKET=dryft-prod-uploads`, `S3_REGION=auto`, `S3_ENDPOINT=https://<cf-account-id>.r2.cloudflarestorage.com`. Old AWS IAM user `drift-s3-uploader` and bucket are deactivated.
 - [x] **Firebase**: Admin service account created, full JSON set in `FIREBASE_CREDENTIALS_JSON` in `1.env.prod`. JSON compacted to single-line for Docker Compose compatibility. *(Feb 14, path updated Mar 1)*
 - [ ] **APNs**: Get key from Apple Developer portal (placeholder values in `1.env.prod`). **Blocked until Apple Developer subscription is renewed (after Mar 28).**
 
@@ -139,7 +139,7 @@ Status: **MOSTLY COMPLETE** (Feb 15). 7/8 secrets provisioned (Postgres RDS, JWT
 - [x] Verify `/health` endpoint returns 200 (local)
 - [x] Verify `/metrics` endpoint exposes app and Go runtime metrics (local)
 - [x] Verify Redis connection from inside container via `/ready` (checks.redis = "ok")
-- [ ] **DreamHost VPS**: `dryft-api` currently exits with `failed to connect to database ... 127.0.0.1:5432` — needs correct `DATABASE_URL` to RDS or other managed Postgres before external `/health` can be wired.
+- [ ] **DreamHost VPS**: Next steps — (1) provision Neon DB + run migrations; (2) provision Cloudflare R2 bucket + API token; (3) update VPS `.env.prod` with Neon `DATABASE_URL`, R2 storage vars, empty `REDIS_URL`; (4) run `export DRYFT_VPS_HOST=thedirtyadmin@YOUR_VPS_IP && ./infra/scripts/deploy-vps.sh`; (5) verify `https://api.dryft.site/health` returns 200. *(Previous blocker was `DATABASE_URL` pointing to halted RDS — Neon pivot resolves this.)*
 
 ---
 
@@ -170,7 +170,7 @@ No objections. Recommended: cross-compile on dev machine (`GOOS=linux GOARCH=amd
 Subtasks (remaining for HUMAN-Grant):
 - [ ] Verify DreamHost proxy passes `X-Forwarded-For` and `X-Forwarded-Proto` headers
 - [ ] Test WebSocket upgrade through DreamHost proxy (`wss://api.dryft.site/ws`) once backend is stable
-- [ ] Decide on final `DATABASE_URL` for VPS and update `1.env.prod` / `.env.prod` accordingly
+- [x] Decided on final `DATABASE_URL` for VPS: **Neon** (free serverless Postgres). Update `1.env.prod` (local) and VPS `.env.prod` with Neon connection string once provisioned. *(Mar 2 2026, budget pivot)*
 - [ ] Re-run `dryft-api` on VPS and confirm `/health` returns 200 via `https://api.dryft.site/health`
 
 ---
