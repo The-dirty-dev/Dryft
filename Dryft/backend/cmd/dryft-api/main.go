@@ -14,7 +14,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-chi/cors"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 
@@ -494,7 +493,7 @@ func main() {
 	r := chi.NewRouter()
 
 	// Middleware
-	r.Use(middleware.RequestID)
+	r.Use(authmw.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
@@ -524,14 +523,7 @@ func main() {
 	})
 
 	// CORS - configure for production
-	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   cfg.AllowedOrigins,
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Request-ID"},
-		ExposedHeaders:   []string{"X-Request-ID"},
-		AllowCredentials: true,
-		MaxAge:           300,
-	}))
+	r.Use(authmw.CORS(cfg.AllowedOrigins))
 
 	// Health check (liveness probe) - basic check that app is running
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {

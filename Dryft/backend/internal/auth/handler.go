@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -11,7 +12,20 @@ import (
 
 // Handler handles HTTP requests for authentication
 type Handler struct {
-	service *Service
+	service authHandlerService
+}
+
+type authHandlerService interface {
+	Register(ctx context.Context, req *RegisterRequest) (*AuthResponse, error)
+	Login(ctx context.Context, req *LoginRequest) (*AuthResponse, error)
+	RefreshToken(ctx context.Context, refreshToken string) (*AuthResponse, error)
+	GetCurrentUser(ctx context.Context, userID uuid.UUID) (*UserResponse, error)
+	UpdateProfile(ctx context.Context, userID uuid.UUID, displayName, bio string) (*UserResponse, error)
+	Logout(ctx context.Context, refreshToken string) error
+	RevokeAllSessions(ctx context.Context, userID uuid.UUID) error
+	GetActiveSessions(ctx context.Context, userID uuid.UUID) ([]Session, error)
+	RevokeSession(ctx context.Context, userID, sessionID uuid.UUID) error
+	ChangePassword(ctx context.Context, userID uuid.UUID, currentPassword, newPassword string, revokeOtherSessions bool) error
 }
 
 // NewHandler creates a new auth handler

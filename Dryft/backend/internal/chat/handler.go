@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -14,7 +15,16 @@ import (
 
 // Handler handles HTTP requests for chat
 type Handler struct {
-	service *Service
+	service chatHandlerService
+}
+
+type chatHandlerService interface {
+	GetConversations(ctx context.Context, userID uuid.UUID, limit, offset int) ([]models.ConversationPreview, error)
+	GetConversation(ctx context.Context, userID, conversationID uuid.UUID) (*models.ConversationPreview, error)
+	GetMessages(ctx context.Context, userID, conversationID uuid.UUID, limit, offset int) ([]models.Message, error)
+	SendMessage(ctx context.Context, userID, conversationID uuid.UUID, msgType models.MessageType, content string) (*models.Message, error)
+	MarkAsRead(ctx context.Context, userID, conversationID uuid.UUID) error
+	GetConversationByMatch(ctx context.Context, userID, matchID uuid.UUID) (*models.ConversationPreview, error)
 }
 
 // NewHandler creates a new chat handler
@@ -24,7 +34,7 @@ func NewHandler(service *Service) *Handler {
 
 // SendMessageRequest represents a request to send a message
 type SendMessageRequest struct {
-	Type    string `json:"type"`    // "text", "image", "gif"
+	Type    string `json:"type"` // "text", "image", "gif"
 	Content string `json:"content"`
 }
 
@@ -230,4 +240,3 @@ func getUserIDFromContext(r *http.Request) (uuid.UUID, error) {
 	}
 	return uuid.Nil, http.ErrNoCookie
 }
-

@@ -1,6 +1,7 @@
 package matching
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -14,7 +15,15 @@ import (
 
 // Handler handles HTTP requests for matching
 type Handler struct {
-	service *Service
+	service matchingHandlerService
+}
+
+type matchingHandlerService interface {
+	Swipe(ctx context.Context, swiperID, swipedID uuid.UUID, direction models.SwipeDirection) (*SwipeResult, error)
+	GetDiscoverProfiles(ctx context.Context, userID uuid.UUID, limit int) ([]models.DiscoverProfile, error)
+	GetMatches(ctx context.Context, userID uuid.UUID, limit, offset int) ([]models.MatchWithUser, error)
+	GetMatch(ctx context.Context, userID, matchID uuid.UUID) (*models.MatchWithUser, error)
+	Unmatch(ctx context.Context, userID, matchID uuid.UUID) error
 }
 
 // NewHandler creates a new matching handler
@@ -192,4 +201,3 @@ func getUserIDFromContext(r *http.Request) (uuid.UUID, error) {
 	}
 	return uuid.Nil, http.ErrNoCookie
 }
-
