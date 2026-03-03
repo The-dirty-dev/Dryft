@@ -10,6 +10,7 @@ import (
 	"github.com/gorilla/websocket"
 
 	"github.com/dryft-app/backend/internal/chat"
+	"github.com/dryft-app/backend/internal/httputil"
 )
 
 // allowedOrigins is set at handler creation from config.
@@ -120,19 +121,19 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 		// Fallback: check for token in query param (for browser WebSocket)
 		token := extractTokenFromQuery(r)
 		if token == "" {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			httputil.RespondError(w, http.StatusUnauthorized, "Unauthorized")
 			return
 		}
 
 		claims, err := h.tokenValidator.ValidateToken(token)
 		if err != nil {
-			http.Error(w, "Invalid token", http.StatusUnauthorized)
+			httputil.RespondError(w, http.StatusUnauthorized, "Invalid token")
 			return
 		}
 
 		parsedID, err := uuid.Parse(claims.UserID)
 		if err != nil {
-			http.Error(w, "Invalid user ID", http.StatusUnauthorized)
+			httputil.RespondError(w, http.StatusUnauthorized, "Invalid user ID")
 			return
 		}
 
@@ -146,13 +147,13 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 		ctx = context.WithValue(ctx, verifiedContextKey, verified)
 		r = r.WithContext(ctx)
 	} else {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		httputil.RespondError(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
 
 	// Require verification for WebSocket access
 	if !verified {
-		http.Error(w, "Age verification required", http.StatusForbidden)
+		httputil.RespondError(w, http.StatusForbidden, "Age verification required")
 		return
 	}
 

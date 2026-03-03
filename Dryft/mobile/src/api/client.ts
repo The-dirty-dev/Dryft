@@ -15,6 +15,7 @@ import {
   useNetworkStore,
   reportError,
 } from '../utils/errorHandler';
+import { API_BASE_URL } from '../config';
 
 /**
  * Get localized error message for an error code.
@@ -30,7 +31,6 @@ function getLocalizedErrorMessage(errorCode: ErrorCode): string {
   return translated;
 }
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8080';
 const TOKEN_KEY = 'dryft_auth_tokens';
 const REQUEST_TIMEOUT = 30000; // 30 seconds
 

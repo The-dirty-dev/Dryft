@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -14,7 +15,21 @@ import (
 
 // Handler handles admin HTTP requests
 type Handler struct {
-	service *Service
+	service adminHandlerService
+}
+
+type adminHandlerService interface {
+	IsAdmin(ctx context.Context, userID uuid.UUID) (bool, error)
+	GetDashboardStats(ctx context.Context) (*DashboardStats, error)
+	GetVerifications(ctx context.Context, status string, limit, offset int) ([]VerificationReview, int, error)
+	GetVerification(ctx context.Context, verificationID uuid.UUID) (*VerificationReview, error)
+	ApproveVerification(ctx context.Context, adminID, verificationID uuid.UUID, notes string) error
+	RejectVerification(ctx context.Context, adminID, verificationID uuid.UUID, reason, notes string) error
+	GetPendingReports(ctx context.Context, limit, offset int) ([]UserReport, int, error)
+	ReviewReport(ctx context.Context, adminID, reportID uuid.UUID, action, notes string) error
+	GetUser(ctx context.Context, userID uuid.UUID) (*UserOverview, error)
+	BanUser(ctx context.Context, adminID, userID uuid.UUID, reason, notes string) error
+	UnbanUser(ctx context.Context, adminID, userID uuid.UUID, notes string) error
 }
 
 // NewHandler creates a new admin handler
@@ -58,8 +73,13 @@ func (h *Handler) GetDashboard(w http.ResponseWriter, r *http.Request) {
 
 // GetVerifications handles GET /admin/verifications with optional status filter
 func (h *Handler) GetVerifications(w http.ResponseWriter, r *http.Request) {
-	pg := httputil.ParsePagination(r, 20, 100)
+	pg := httputil.ParseLimitOffset(r, 20, 100)
 	limit, offset := pg.Limit, pg.Offset
+	if r.URL.Query().Get("page") != "" || r.URL.Query().Get("per_page") != "" {
+		page, perPage := httputil.ParsePagination(r)
+		limit = perPage
+		offset = (page - 1) * perPage
+	}
 	status := r.URL.Query().Get("status")
 
 	reviews, total, err := h.service.GetVerifications(r.Context(), status, limit, offset)
@@ -78,8 +98,13 @@ func (h *Handler) GetVerifications(w http.ResponseWriter, r *http.Request) {
 
 // GetPendingVerifications handles GET /admin/verifications/pending
 func (h *Handler) GetPendingVerifications(w http.ResponseWriter, r *http.Request) {
-	pg := httputil.ParsePagination(r, 20, 100)
+	pg := httputil.ParseLimitOffset(r, 20, 100)
 	limit, offset := pg.Limit, pg.Offset
+	if r.URL.Query().Get("page") != "" || r.URL.Query().Get("per_page") != "" {
+		page, perPage := httputil.ParsePagination(r)
+		limit = perPage
+		offset = (page - 1) * perPage
+	}
 
 	reviews, total, err := h.service.GetVerifications(r.Context(), "pending", limit, offset)
 	if err != nil {
@@ -202,8 +227,13 @@ func (h *Handler) RejectVerification(w http.ResponseWriter, r *http.Request) {
 
 // GetPendingReports handles GET /admin/reports/pending
 func (h *Handler) GetPendingReports(w http.ResponseWriter, r *http.Request) {
-	pg := httputil.ParsePagination(r, 20, 100)
+	pg := httputil.ParseLimitOffset(r, 20, 100)
 	limit, offset := pg.Limit, pg.Offset
+	if r.URL.Query().Get("page") != "" || r.URL.Query().Get("per_page") != "" {
+		page, perPage := httputil.ParsePagination(r)
+		limit = perPage
+		offset = (page - 1) * perPage
+	}
 
 	reports, total, err := h.service.GetPendingReports(r.Context(), limit, offset)
 	if err != nil {
@@ -411,4 +441,3 @@ func getUserIDFromContext(r *http.Request) *uuid.UUID {
 	}
 	return nil
 }
-

@@ -1,16 +1,31 @@
 package avatar
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+
+	"github.com/dryft-app/backend/internal/httputil"
 )
 
 // Handler handles avatar HTTP requests
 type Handler struct {
-	service *Service
+	service avatarHandlerService
+}
+
+type avatarHandlerService interface {
+	GetAvatarState(ctx context.Context, userID uuid.UUID) (*AvatarState, error)
+	UpdateAvatarState(ctx context.Context, userID uuid.UUID, updates map[string]interface{}) error
+	EquipItem(ctx context.Context, userID uuid.UUID, itemID, itemType string) error
+	UnequipItem(ctx context.Context, userID uuid.UUID, itemType string) error
+	SetColors(ctx context.Context, userID uuid.UUID, skinTone, hairColor, eyeColor string) error
+	SetDisplayName(ctx context.Context, userID uuid.UUID, displayName string) error
+	SetVisibility(ctx context.Context, userID uuid.UUID, visible bool) error
+	GetEquipHistory(ctx context.Context, userID uuid.UUID, limit int) ([]EquipHistory, error)
+	GetMultipleAvatarStates(ctx context.Context, userIDs []uuid.UUID) (map[uuid.UUID]*AvatarState, error)
 }
 
 // NewHandler creates a new avatar handler
@@ -331,14 +346,10 @@ func getUserIDFromContext(r *http.Request) uuid.UUID {
 }
 
 func writeJSON(w http.ResponseWriter, status int, data interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(data)
+	httputil.RespondJSON(w, status, data)
 }
 
 func writeError(w http.ResponseWriter, status int, code, message string) {
-	writeJSON(w, status, map[string]interface{}{
-		"error":   code,
-		"message": message,
-	})
+	_ = code
+	httputil.RespondError(w, status, message)
 }

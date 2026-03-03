@@ -1,16 +1,35 @@
 package verification
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+
+	"github.com/dryft-app/backend/internal/httputil"
 )
 
 type Handler struct {
-	service        *Service
+	service         verificationHandlerService
 	socialValidator SocialTokenValidator
+}
+
+type verificationHandlerService interface {
+	GetUserVerifications(ctx context.Context, userID string) ([]Verification, error)
+	CalculateTrustScore(ctx context.Context, userID string) (int, error)
+	IsUserVerified(ctx context.Context, userID string) (bool, error)
+	SubmitPhotoVerification(ctx context.Context, userID string, photoData io.Reader, filename, poseType string) (*Verification, error)
+	SendPhoneVerification(ctx context.Context, userID, phoneNumber string) (*VerificationCode, error)
+	VerifyPhoneCode(ctx context.Context, userID, verificationID, code string) (*Verification, error)
+	SendEmailVerification(ctx context.Context, userID, email string) (*VerificationCode, error)
+	VerifyEmailCode(ctx context.Context, userID, token string) (*Verification, error)
+	SubmitIDVerification(ctx context.Context, userID string, frontData io.Reader, backData io.Reader) (*Verification, error)
+	ConnectSocialAccount(ctx context.Context, userID, provider, socialID, socialEmail string) (*Verification, error)
+	GetPendingVerifications(ctx context.Context, vType VerificationType, limit, offset int) ([]Verification, int64, error)
+	ReviewVerification(ctx context.Context, verificationID, reviewerID string, approved bool, reason string) error
 }
 
 func NewHandler(service *Service, socialValidator SocialTokenValidator) *Handler {
@@ -71,7 +90,7 @@ func (h *Handler) GetVerificationStatus(w http.ResponseWriter, r *http.Request) 
 
 	verifications, err := h.service.GetUserVerifications(r.Context(), userID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httputil.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -105,8 +124,7 @@ func (h *Handler) GetVerificationStatus(w http.ResponseWriter, r *http.Request) 
 		response.Verifications = append(response.Verifications, vr)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	httputil.RespondJSON(w, http.StatusOK, response)
 }
 
 // GetTrustScore returns the user's trust score
@@ -115,12 +133,11 @@ func (h *Handler) GetTrustScore(w http.ResponseWriter, r *http.Request) {
 
 	score, err := h.service.CalculateTrustScore(r.Context(), userID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httputil.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]int{"trust_score": score})
+	httputil.RespondJSON(w, http.StatusOK, map[string]int{"trust_score": score})
 }
 
 // SubmitPhotoVerification handles photo verification submission
@@ -128,13 +145,13 @@ func (h *Handler) SubmitPhotoVerification(w http.ResponseWriter, r *http.Request
 	userID := r.Context().Value("user_id").(string)
 
 	if err := r.ParseMultipartForm(10 << 20); err != nil { // 10MB max
-		http.Error(w, "File too large", http.StatusBadRequest)
+		httputil.RespondError(w, http.StatusBadRequest, "File too large")
 		return
 	}
 
 	file, header, err := r.FormFile("photo")
 	if err != nil {
-		http.Error(w, "Photo required", http.StatusBadRequest)
+		httputil.RespondError(w, http.StatusBadRequest, "Photo required")
 		return
 	}
 	defer file.Close()
@@ -147,15 +164,14 @@ func (h *Handler) SubmitPhotoVerification(w http.ResponseWriter, r *http.Request
 	verification, err := h.service.SubmitPhotoVerification(r.Context(), userID, file, header.Filename, poseType)
 	if err != nil {
 		if err == ErrAlreadyVerified {
-			http.Error(w, "Already verified", http.StatusConflict)
+			httputil.RespondError(w, http.StatusConflict, "Already verified")
 			return
 		}
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httputil.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{
+	httputil.RespondJSON(w, http.StatusOK, map[string]any{
 		"success":         true,
 		"verification_id": verification.ID,
 		"status":          verification.Status,
@@ -172,18 +188,17 @@ func (h *Handler) SendPhoneVerification(w http.ResponseWriter, r *http.Request) 
 
 	var req SendPhoneRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
+		httputil.RespondError(w, http.StatusBadRequest, "Invalid request")
 		return
 	}
 
 	vc, err := h.service.SendPhoneVerification(r.Context(), userID, req.PhoneNumber)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httputil.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{
+	httputil.RespondJSON(w, http.StatusOK, map[string]any{
 		"success":         true,
 		"verification_id": vc.ID,
 		"expires_at":      vc.ExpiresAt.Unix(),
@@ -201,7 +216,7 @@ func (h *Handler) VerifyPhoneCode(w http.ResponseWriter, r *http.Request) {
 
 	var req VerifyCodeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
+		httputil.RespondError(w, http.StatusBadRequest, "Invalid request")
 		return
 	}
 
@@ -211,17 +226,11 @@ func (h *Handler) VerifyPhoneCode(w http.ResponseWriter, r *http.Request) {
 		if err == ErrVerificationNotFound {
 			status = http.StatusNotFound
 		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(status)
-		json.NewEncoder(w).Encode(map[string]any{
-			"success": false,
-			"error":   err.Error(),
-		})
+		httputil.RespondError(w, status, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{
+	httputil.RespondJSON(w, http.StatusOK, map[string]any{
 		"success": true,
 		"status":  verification.Status,
 	})
@@ -233,18 +242,17 @@ func (h *Handler) SendEmailVerification(w http.ResponseWriter, r *http.Request) 
 	// Get email from user profile (simplified - would fetch from user service)
 	email := r.URL.Query().Get("email")
 	if email == "" {
-		http.Error(w, "Email required", http.StatusBadRequest)
+		httputil.RespondError(w, http.StatusBadRequest, "Email required")
 		return
 	}
 
 	vc, err := h.service.SendEmailVerification(r.Context(), userID, email)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httputil.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{
+	httputil.RespondJSON(w, http.StatusOK, map[string]any{
 		"success":    true,
 		"expires_at": vc.ExpiresAt.Unix(),
 	})
@@ -260,23 +268,17 @@ func (h *Handler) VerifyEmailCode(w http.ResponseWriter, r *http.Request) {
 
 	var req VerifyEmailRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
+		httputil.RespondError(w, http.StatusBadRequest, "Invalid request")
 		return
 	}
 
 	verification, err := h.service.VerifyEmailCode(r.Context(), userID, req.Token)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]any{
-			"success": false,
-			"error":   err.Error(),
-		})
+		httputil.RespondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{
+	httputil.RespondJSON(w, http.StatusOK, map[string]any{
 		"success": true,
 		"status":  verification.Status,
 	})
@@ -287,13 +289,13 @@ func (h *Handler) SubmitIDVerification(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value("user_id").(string)
 
 	if err := r.ParseMultipartForm(20 << 20); err != nil { // 20MB max
-		http.Error(w, "File too large", http.StatusBadRequest)
+		httputil.RespondError(w, http.StatusBadRequest, "File too large")
 		return
 	}
 
 	frontFile, _, err := r.FormFile("front")
 	if err != nil {
-		http.Error(w, "Front image required", http.StatusBadRequest)
+		httputil.RespondError(w, http.StatusBadRequest, "Front image required")
 		return
 	}
 	defer frontFile.Close()
@@ -306,12 +308,11 @@ func (h *Handler) SubmitIDVerification(w http.ResponseWriter, r *http.Request) {
 
 	verification, err := h.service.SubmitIDVerification(r.Context(), userID, frontFile, backFile)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httputil.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{
+	httputil.RespondJSON(w, http.StatusOK, map[string]any{
 		"success":         true,
 		"verification_id": verification.ID,
 		"status":          verification.Status,
@@ -329,12 +330,12 @@ func (h *Handler) ConnectSocialAccount(w http.ResponseWriter, r *http.Request) {
 
 	var req SocialConnectRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
+		httputil.RespondError(w, http.StatusBadRequest, "Invalid request")
 		return
 	}
 
 	if req.Provider == "" || req.Token == "" {
-		http.Error(w, "provider and token are required", http.StatusBadRequest)
+		httputil.RespondError(w, http.StatusBadRequest, "provider and token are required")
 		return
 	}
 
@@ -344,23 +345,17 @@ func (h *Handler) ConnectSocialAccount(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, ErrUnsupportedProvider) {
 			status = http.StatusBadRequest
 		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(status)
-		json.NewEncoder(w).Encode(map[string]any{
-			"success": false,
-			"error":   err.Error(),
-		})
+		httputil.RespondError(w, status, err.Error())
 		return
 	}
 
 	verification, err := h.service.ConnectSocialAccount(r.Context(), userID, req.Provider, profile.ID, profile.Email)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httputil.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{
+	httputil.RespondJSON(w, http.StatusOK, map[string]any{
 		"success": true,
 		"status":  verification.Status,
 	})
@@ -376,12 +371,11 @@ func (h *Handler) GetPendingVerifications(w http.ResponseWriter, r *http.Request
 
 	verifications, count, err := h.service.GetPendingVerifications(r.Context(), vType, limit, offset)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httputil.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{
+	httputil.RespondJSON(w, http.StatusOK, map[string]any{
 		"verifications": verifications,
 		"total":         count,
 	})
@@ -399,15 +393,14 @@ func (h *Handler) ReviewVerification(w http.ResponseWriter, r *http.Request) {
 
 	var req ReviewRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
+		httputil.RespondError(w, http.StatusBadRequest, "Invalid request")
 		return
 	}
 
 	if err := h.service.ReviewVerification(r.Context(), verificationID, reviewerID, req.Approved, req.Reason); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httputil.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]bool{"success": true})
+	httputil.RespondJSON(w, http.StatusOK, map[string]bool{"success": true})
 }

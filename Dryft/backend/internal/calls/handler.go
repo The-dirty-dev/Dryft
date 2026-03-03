@@ -3,7 +3,7 @@ package calls
 import (
 	"context"
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -29,9 +29,18 @@ type MatchLookup interface {
 
 // Handler handles WebRTC signaling HTTP requests
 type Handler struct {
-	hub         *SignalingHub
+	hub         signalingHub
 	callRepo    CallRepository
 	matchLookup MatchLookup
+}
+
+type signalingHub interface {
+	RegisterConnection(userID uuid.UUID, conn *websocket.Conn)
+	UnregisterConnection(userID uuid.UUID)
+	HandleMessage(ctx context.Context, msg SignalMessage) error
+	IsUserInCall(userID uuid.UUID) bool
+	GetUserActiveCall(userID uuid.UUID) *ActiveCall
+	GetActiveCall(callID uuid.UUID) *ActiveCall
 }
 
 // NewHandler creates a new calls handler
@@ -47,13 +56,13 @@ func NewHandler(hub *SignalingHub, repo CallRepository, matchLookup MatchLookup)
 func (h *Handler) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	userID, err := getUserIDFromContext(r)
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httputil.RespondError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("[Calls] WebSocket upgrade failed: %v", err)
+		slog.Warn("calls websocket upgrade failed", "error", err)
 		return
 	}
 
@@ -65,14 +74,14 @@ func (h *Handler) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("[Calls] WebSocket error: %v", err)
+				slog.Warn("calls websocket read failed", "user_id", userID, "error", err)
 			}
 			break
 		}
 
 		var msg SignalMessage
 		if err := json.Unmarshal(message, &msg); err != nil {
-			log.Printf("[Calls] Invalid message: %v", err)
+			slog.Warn("calls websocket invalid signal payload", "user_id", userID, "error", err)
 			continue
 		}
 
@@ -80,7 +89,7 @@ func (h *Handler) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		msg.Timestamp = time.Now()
 
 		if err := h.hub.HandleMessage(r.Context(), msg); err != nil {
-			log.Printf("[Calls] Error handling message: %v", err)
+			slog.Warn("calls websocket message handling failed", "user_id", userID, "type", msg.Type, "error", err)
 		}
 	}
 }

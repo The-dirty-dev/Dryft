@@ -395,10 +395,7 @@ func TestWriteError(t *testing.T) {
 
 	var body map[string]interface{}
 	json.NewDecoder(rr.Body).Decode(&body)
-	if body["error"] != "invalid_request" {
-		t.Errorf("expected error 'invalid_request', got %v", body["error"])
-	}
-	if body["message"] != "Invalid request body" {
-		t.Errorf("expected message 'Invalid request body', got %v", body["message"])
+	if body["error"] != "Invalid request body" {
+		t.Errorf("expected error 'Invalid request body', got %v", body["error"])
 	}
 }

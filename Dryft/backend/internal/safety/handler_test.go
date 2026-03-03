@@ -83,11 +83,8 @@ func TestSafetyWriteError(t *testing.T) {
 	}
 	var body map[string]string
 	json.NewDecoder(rr.Body).Decode(&body)
-	if body["error"] != "invalid_input" {
-		t.Errorf("expected error code 'invalid_input', got %q", body["error"])
-	}
-	if body["message"] != "bad request" {
-		t.Errorf("expected message 'bad request', got %q", body["message"])
+	if body["error"] != "bad request" {
+		t.Errorf("expected error 'bad request', got %q", body["error"])
 	}
 }
 

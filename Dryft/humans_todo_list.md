@@ -91,7 +91,7 @@ Subtasks (remaining for HUMAN-Grant):
 
 ### 6. DreamCompute Migration
 
-Status: **PLANNING** (Mar 3). DreamHost VPS cannot support WebSocket proxying. DreamCompute provides root-access Ubuntu VMs where we control Nginx directly. This migration replaces the managed VPS with a self-managed DreamCompute instance.
+Status: **IN PROGRESS** (Mar 3). DreamHost VPS cannot support WebSocket proxying. DreamCompute provides root-access Ubuntu VMs where we control Nginx directly. This migration replaces the managed VPS with a self-managed DreamCompute instance.
 
 **Context for Perplexity**: DreamHost DreamCompute is OpenStack-based cloud VMs. We need to move from a managed VPS (no root Nginx access) to a DreamCompute instance (full root, systemd, own Nginx). The infra files are already written — this is about provisioning the VM and cutting over.
 
@@ -102,41 +102,50 @@ Status: **PLANNING** (Mar 3). DreamHost VPS cannot support WebSocket proxying. D
 - `infra/ecosystem.config.js` — pm2 config (fallback/alternative to systemd)
 
 #### Phase 1: Provision DreamCompute VM
-- [ ] Log into DreamHost panel → DreamCompute → launch Ubuntu 22.04 instance
-- [ ] Pick instance size (start small: $4.50/mo 512MB or $6/mo 1GB — discuss with Perplexity based on Go memory footprint)
-- [ ] Assign a public floating IP
-- [ ] Set up SSH key access (add your existing pubkey)
-- [ ] Update DNS: point `api.dryft.site` A record to the new floating IP
-- [ ] Note the old VPS IP so you can revert DNS if needed
+- [x] Log into DreamHost panel → DreamCompute → launch Ubuntu 24.04 instance (`dryft-api-1`).
+- [x] Assign a public IP (208.113.200.211) and confirm SSH works with `dryft-main-ssh-key.key`.
+- [x] Update DNS: point `api.dryft.site` A record to the new DreamCompute IP.
+- [x] Note the old VPS IP so you can revert DNS if needed.
 
 #### Phase 2: Run setup script
-- [ ] SSH into the new instance as `ubuntu` (or whatever default user DreamCompute provides)
-- [ ] Clone the repo (or scp the infra/ directory)
-- [ ] Dry-run first: `sudo bash infra/scripts/setup-dreamcompute.sh --dry-run`
-- [ ] Review output, then run for real: `sudo bash infra/scripts/setup-dreamcompute.sh`
-- [ ] Verify: Nginx running, certbot cert obtained, UFW rules active, `dryft` user created
+- [x] SSH into the new instance as `ubuntu`.
+- [x] Copy `infra` artifacts up and place them under `/opt/dryft-repo/infra`.
+- [x] Run dry-run: `sudo ./infra/scripts/setup-dreamcompute.sh --dry-run` (validated apt, nginx, ufw, certbot, systemd steps).
+- [x] Run for real: `sudo ./infra/scripts/setup-dreamcompute.sh` (nginx + certbot installed; cert initially wired into default site).
+- [x] Verify: `nginx` active, `dryft` system user exists, base directories `/opt/dryft` and `/var/log/dryft` created.
 
 #### Phase 3: Deploy the binary + env
-- [ ] Copy `.env.prod` to `/opt/dryft/.env.prod` on the new instance (update paths if needed)
-- [ ] Cross-compile and upload binary: `GOOS=linux GOARCH=amd64 go build -o dryft-api ./cmd/dryft-api` then scp to `/opt/dryft/dryft-api`
-- [ ] `sudo systemctl start dryft-api && sudo systemctl status dryft-api`
-- [ ] Check `journalctl -u dryft-api -f` for clean startup + Neon DB connection
-- [ ] Test: `curl -i https://api.dryft.site/health` (should return 200 through your own Nginx + LE cert)
+- [x] Copy `.env.prod` from Mac (`/Volumes/dryft-code/1.env.prod`) to DreamCompute as `/opt/dryft/.env.prod` and set owner/mode (`dryft:dryft`, `600`).
+- [x] Upload `dryft-api` binary to `/opt/dryft/dryft-api` and `chown dryft:dryft`.
+- [x] Install systemd unit: `sudo install -m 0644 infra/dryft-api.service /etc/systemd/system/dryft-api.service && sudo systemctl daemon-reload`.
+- [x] Enable and start: `sudo systemctl enable --now dryft-api`.
+- [x] Confirm service: `systemctl status dryft-api` shows active (running) with port 8080 listening and S3/Firebase/SES initialized; Redis unreachable warning is expected (falls back to in-memory rate limiter).
+- [x] Confirm local health: `curl -i http://127.0.0.1:8080/health` returns 200 JSON.
+- [x] Set `ENVIRONMENT=production` in `/opt/dryft/.env.prod` and restart service; logs now show `environment":"production"` on startup.
 
-#### Phase 4: Verify WebSocket through Nginx (the whole point)
-- [ ] Test: `wscat -c wss://api.dryft.site/v1/ws` — expect 101 Switching Protocols
-- [ ] If 101 works: update all client defaults from `ws://api.dryft.site:8080` to `wss://api.dryft.site/v1/ws`
-- [ ] Remove port 8080 from UFW (no longer needed — all traffic through Nginx)
-- [ ] Celebrate: single-port TLS architecture achieved
+#### Phase 4: Nginx + TLS on DreamCompute
+- [x] Obtain Let's Encrypt cert using `certbot --nginx -d api.dryft.site --non-interactive --agree-tos -m admin@dryft.site` (certificate stored under `/etc/letsencrypt/live/api.dryft.site/`).
+- [x] Install custom Nginx site config at `/etc/nginx/sites-available/api.dryft.site.conf` with:
+  - HTTP (80) redirecting `api.dryft.site` to HTTPS.
+  - HTTPS (443) terminating TLS and proxying `location /` to `http://127.0.0.1:8080`.
+  - WebSocket-friendly settings (`proxy_http_version 1.1`, `Upgrade`/`Connection` headers) and X-Forwarded-* headers.
+- [x] Enable the site: `ln -s /etc/nginx/sites-available/api.dryft.site.conf /etc/nginx/sites-enabled/api.dryft.site.conf`.
+- [x] Simplify `/etc/nginx/sites-available/default` to:
+  - Serve only generic HTTP on port 80 as default_server.
+  - Provide a small HTTP redirect server block for `api.dryft.site` → HTTPS.
+  - Avoid listening on 443 or claiming `api.dryft.site` in the default site (prevents duplicate listen and static 404s).
+- [x] Validate Nginx config with `nginx -t` and reload via `systemctl reload nginx`.
+- [x] Verify external health: `curl -i https://api.dryft.site/health` from Mac now returns `HTTP/2 200` with the JSON health payload via DreamCompute Nginx.
 
-#### Phase 5: Decommission old VPS
-- [ ] Confirm everything works on DreamCompute for 24-48hrs
-- [ ] Cancel / downgrade the DreamHost managed VPS
-- [ ] Update `infra/DREAMHOST_DEPLOYMENT.md` and `RUNBOOK.md` with new SSH details and deploy paths
+#### Phase 5: Wire web + mobile clients to DreamCompute API
+- [x] **Web** (`web/src/lib/api.ts`): set `NEXT_PUBLIC_API_BASE_URL=https://api.dryft.site` (or `NEXT_PUBLIC_API_URL`) in production env so the web app talks to DreamCompute instead of Heroku.
+- [x] **Mobile** (`mobile/src/config.ts`, `mobile/src/api/client.ts`): centralize `API_BASE_URL` in `config.ts` and read from `EXPO_PUBLIC_API_URL`, then set `EXPO_PUBLIC_API_URL=https://api.dryft.site` for production builds.
+- [ ] Rebuild and deploy web + mobile clients, then verify real user flows (login, feed, chat) hit DreamCompute (check `journalctl -u dryft-api.service`).
 
-#### Questions for Perplexity
-- DreamCompute instance sizing: 512MB vs 1GB for a Go binary + Nginx + certbot? (Go binary uses ~30-50MB at idle)
-- DreamCompute networking: is floating IP included or extra cost? Any bandwidth limits?
-- DreamCompute storage: boot volume size options? Need enough for binary + logs + certs
-- DNS TTL: what should we set before the cutover to minimize downtime?
-- Backup strategy: DreamCompute snapshots vs external backups?
+Status update (Mar 3, 2026): wiring changes completed by Codex. Web now resolves API host from `NEXT_PUBLIC_API_BASE_URL` in production (`web/.env.production`), and mobile production EAS profile now exports `EXPO_PUBLIC_API_URL=https://api.dryft.site`; remaining work is rebuild/deploy + runtime flow verification.
+
+#### Phase 6: WebSocket verification and cleanup
+- [ ] Test `wss://api.dryft.site/v1/ws` through DreamCompute Nginx using `wscat`.
+- [ ] Once confirmed, update clients from any `ws://api.dryft.site:8080` URLs to `wss://api.dryft.site/v1/ws`.
+- [ ] Lock down firewall (UFW) to expose only 80/443; remove external access to port 8080.
+- [ ] After a stable period, decommission the old DreamHost VPS and update runbooks (`DREAMHOST_DEPLOYMENT.md`, `RUNBOOK.md`) to describe DreamCompute as the primary API host.

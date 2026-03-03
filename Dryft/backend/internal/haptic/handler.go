@@ -1,6 +1,7 @@
 package haptic
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -15,7 +16,22 @@ import (
 
 // Handler handles HTTP requests for haptic device management
 type Handler struct {
-	service *Service
+	service hapticHandlerService
+}
+
+type hapticHandlerService interface {
+	RegisterDevice(ctx context.Context, userID uuid.UUID, req *models.RegisterDeviceRequest) (*models.HapticDevice, error)
+	GetUserDevices(ctx context.Context, userID uuid.UUID) ([]models.HapticDevice, error)
+	GetDevice(ctx context.Context, userID, deviceID uuid.UUID) (*models.HapticDevice, error)
+	UpdateDevice(ctx context.Context, userID, deviceID uuid.UUID, req *models.UpdateDeviceRequest) (*models.HapticDevice, error)
+	DeleteDevice(ctx context.Context, userID, deviceID uuid.UUID) error
+	SetPermission(ctx context.Context, ownerID uuid.UUID, req *models.SetPermissionRequest) (*models.HapticPermission, error)
+	GetPermissionsForMatch(ctx context.Context, userID, matchID uuid.UUID) ([]models.HapticPermission, error)
+	RevokePermission(ctx context.Context, ownerID, controllerID, matchID uuid.UUID) error
+	SendCommand(ctx context.Context, senderID uuid.UUID, cmd *models.HapticCommand) error
+	GetPublicPatterns(ctx context.Context, limit, offset int) ([]models.HapticPattern, error)
+	GetPattern(ctx context.Context, patternID uuid.UUID) (*models.HapticPattern, error)
+	GetMatchOtherUser(ctx context.Context, userID, matchID uuid.UUID) (uuid.UUID, error)
 }
 
 // NewHandler creates a new haptic handler
@@ -385,13 +401,7 @@ func (h *Handler) GetMatchDevices(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get the other user's ID from the match
-	var otherUserID uuid.UUID
-	err = h.service.db.Pool.QueryRow(r.Context(), `
-		SELECT CASE WHEN user_a = $1 THEN user_b ELSE user_a END
-		FROM matches WHERE id = $2 AND (user_a = $1 OR user_b = $1)
-	`, userID, matchID).Scan(&otherUserID)
-
+	otherUserID, err := h.service.GetMatchOtherUser(r.Context(), userID, matchID)
 	if err != nil {
 		httputil.WriteError(w, http.StatusNotFound, "match not found")
 		return
@@ -425,4 +435,3 @@ func getUserIDFromContext(r *http.Request) (uuid.UUID, error) {
 	}
 	return uuid.Nil, http.ErrNoCookie
 }
-

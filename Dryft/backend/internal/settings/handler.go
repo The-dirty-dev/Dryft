@@ -3,13 +3,25 @@ package settings
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
+
+	"github.com/dryft-app/backend/internal/httputil"
 )
 
 // Handler handles HTTP requests for settings
 type Handler struct {
-	service *Service
+	service settingsHandlerService
+}
+
+type settingsHandlerService interface {
+	GetSettings(userID string) (*AllSettings, error)
+	UpdateSettings(userID string, settings AllSettings) error
+	UpdateCategory(userID string, category string, data interface{}) error
+	SyncSettings(userID string, req SyncRequest) (*SyncResult, error)
+	ResetSettings(userID string) (*AllSettings, error)
+	GetUpdatedAt(userID string) (*time.Time, error)
 }
 
 // NewHandler creates a new settings handler
@@ -49,13 +61,13 @@ func getUserID(r *http.Request) string {
 func (h *Handler) GetSettings(w http.ResponseWriter, r *http.Request) {
 	userID := getUserID(r)
 	if userID == "" {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httputil.RespondError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
 	settings, err := h.service.GetSettings(userID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httputil.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -73,26 +85,25 @@ func (h *Handler) GetSettings(w http.ResponseWriter, r *http.Request) {
 		response.UpdatedAt = &t
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	httputil.RespondJSON(w, http.StatusOK, response)
 }
 
 // UpdateSettings updates all user settings
 func (h *Handler) UpdateSettings(w http.ResponseWriter, r *http.Request) {
 	userID := getUserID(r)
 	if userID == "" {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httputil.RespondError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
 	var settings AllSettings
 	if err := json.NewDecoder(r.Body).Decode(&settings); err != nil {
-		http.Error(w, "invalid request body", http.StatusBadRequest)
+		httputil.RespondError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
 	if err := h.service.UpdateSettings(userID, settings); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httputil.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -104,37 +115,36 @@ func (h *Handler) UpdateSettings(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) SyncSettings(w http.ResponseWriter, r *http.Request) {
 	userID := getUserID(r)
 	if userID == "" {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httputil.RespondError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
 	var req SyncRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid request body", http.StatusBadRequest)
+		httputil.RespondError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
 	result, err := h.service.SyncSettings(userID, req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httputil.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	httputil.RespondJSON(w, http.StatusOK, result)
 }
 
 // ResetSettings resets user settings to defaults
 func (h *Handler) ResetSettings(w http.ResponseWriter, r *http.Request) {
 	userID := getUserID(r)
 	if userID == "" {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httputil.RespondError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
 	settings, err := h.service.ResetSettings(userID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httputil.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -144,26 +154,25 @@ func (h *Handler) ResetSettings(w http.ResponseWriter, r *http.Request) {
 		Settings: settings,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	httputil.RespondJSON(w, http.StatusOK, response)
 }
 
 // UpdateNotifications updates notification settings
 func (h *Handler) UpdateNotifications(w http.ResponseWriter, r *http.Request) {
 	userID := getUserID(r)
 	if userID == "" {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httputil.RespondError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
 	var settings NotificationSettings
 	if err := json.NewDecoder(r.Body).Decode(&settings); err != nil {
-		http.Error(w, "invalid request body", http.StatusBadRequest)
+		httputil.RespondError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
 	if err := h.service.UpdateCategory(userID, "notifications", settings); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httputil.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -174,18 +183,18 @@ func (h *Handler) UpdateNotifications(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) UpdatePrivacy(w http.ResponseWriter, r *http.Request) {
 	userID := getUserID(r)
 	if userID == "" {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httputil.RespondError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
 	var settings PrivacySettings
 	if err := json.NewDecoder(r.Body).Decode(&settings); err != nil {
-		http.Error(w, "invalid request body", http.StatusBadRequest)
+		httputil.RespondError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
 	if err := h.service.UpdateCategory(userID, "privacy", settings); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httputil.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -196,18 +205,18 @@ func (h *Handler) UpdatePrivacy(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) UpdateAppearance(w http.ResponseWriter, r *http.Request) {
 	userID := getUserID(r)
 	if userID == "" {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httputil.RespondError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
 	var settings AppearanceSettings
 	if err := json.NewDecoder(r.Body).Decode(&settings); err != nil {
-		http.Error(w, "invalid request body", http.StatusBadRequest)
+		httputil.RespondError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
 	if err := h.service.UpdateCategory(userID, "appearance", settings); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httputil.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -218,18 +227,18 @@ func (h *Handler) UpdateAppearance(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) UpdateVR(w http.ResponseWriter, r *http.Request) {
 	userID := getUserID(r)
 	if userID == "" {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httputil.RespondError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
 	var settings VRSettings
 	if err := json.NewDecoder(r.Body).Decode(&settings); err != nil {
-		http.Error(w, "invalid request body", http.StatusBadRequest)
+		httputil.RespondError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
 	if err := h.service.UpdateCategory(userID, "vr", settings); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httputil.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -240,18 +249,18 @@ func (h *Handler) UpdateVR(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) UpdateHaptic(w http.ResponseWriter, r *http.Request) {
 	userID := getUserID(r)
 	if userID == "" {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httputil.RespondError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
 	var settings HapticSettings
 	if err := json.NewDecoder(r.Body).Decode(&settings); err != nil {
-		http.Error(w, "invalid request body", http.StatusBadRequest)
+		httputil.RespondError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
 	if err := h.service.UpdateCategory(userID, "haptic", settings); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httputil.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -262,18 +271,18 @@ func (h *Handler) UpdateHaptic(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) UpdateMatching(w http.ResponseWriter, r *http.Request) {
 	userID := getUserID(r)
 	if userID == "" {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httputil.RespondError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
 	var settings MatchingPreferences
 	if err := json.NewDecoder(r.Body).Decode(&settings); err != nil {
-		http.Error(w, "invalid request body", http.StatusBadRequest)
+		httputil.RespondError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
 	if err := h.service.UpdateCategory(userID, "matching", settings); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httputil.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -284,18 +293,18 @@ func (h *Handler) UpdateMatching(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) UpdateSafety(w http.ResponseWriter, r *http.Request) {
 	userID := getUserID(r)
 	if userID == "" {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httputil.RespondError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
 	var settings SafetySettings
 	if err := json.NewDecoder(r.Body).Decode(&settings); err != nil {
-		http.Error(w, "invalid request body", http.StatusBadRequest)
+		httputil.RespondError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
 	if err := h.service.UpdateCategory(userID, "safety", settings); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httputil.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 

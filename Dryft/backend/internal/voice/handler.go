@@ -3,13 +3,14 @@ package voice
 import (
 	"context"
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 
+	"github.com/dryft-app/backend/internal/httputil"
 	"github.com/dryft-app/backend/internal/realtime"
 )
 
@@ -27,8 +28,16 @@ type Broadcaster interface {
 
 // Handler handles voice chat HTTP and WebSocket requests
 type Handler struct {
-	service     *Service
+	service     voiceHandlerService
 	broadcaster Broadcaster
+}
+
+type voiceHandlerService interface {
+	JoinSession(ctx context.Context, sessionID, userID uuid.UUID, displayName string) error
+	LeaveSession(ctx context.Context, sessionID, userID uuid.UUID) error
+	GetParticipants(ctx context.Context, sessionID uuid.UUID) ([]Participant, error)
+	SetSpeakingState(ctx context.Context, sessionID, userID uuid.UUID, speaking bool) error
+	SetMutedState(ctx context.Context, sessionID, userID uuid.UUID, muted bool) error
 }
 
 // NewHandler creates a new voice handler
@@ -77,14 +86,14 @@ func (h *Handler) ServeVoiceWS(w http.ResponseWriter, r *http.Request) {
 	sessionIDStr := chi.URLParam(r, "sessionId")
 	sessionID, err := uuid.Parse(sessionIDStr)
 	if err != nil {
-		http.Error(w, "Invalid session ID", http.StatusBadRequest)
+		httputil.RespondError(w, http.StatusBadRequest, "Invalid session ID")
 		return
 	}
 
 	// Get user from context (set by auth middleware)
 	userID := getUserIDFromContext(r)
 	if userID == uuid.Nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		httputil.RespondError(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
 
@@ -96,7 +105,7 @@ func (h *Handler) ServeVoiceWS(w http.ResponseWriter, r *http.Request) {
 	// Upgrade to WebSocket
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("[Voice] WebSocket upgrade error: %v", err)
+		slog.Warn("voice websocket upgrade failed", "error", err)
 		return
 	}
 	defer conn.Close()
@@ -104,7 +113,7 @@ func (h *Handler) ServeVoiceWS(w http.ResponseWriter, r *http.Request) {
 	// Join the voice session
 	err = h.service.JoinSession(r.Context(), sessionID, userID, displayName)
 	if err != nil {
-		log.Printf("[Voice] Join session error: %v", err)
+		slog.Warn("voice join session failed", "session_id", sessionID, "user_id", userID, "error", err)
 		conn.WriteJSON(VoiceMessage{
 			Type: "voice_error",
 			Payload: mustMarshal(map[string]string{
@@ -114,7 +123,7 @@ func (h *Handler) ServeVoiceWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("[Voice] User %s joined session %s", userID, sessionID)
+	slog.Info("voice participant joined", "session_id", sessionID, "user_id", userID)
 
 	// Send join confirmation
 	participants, _ := h.service.GetParticipants(r.Context(), sessionID)
@@ -144,7 +153,7 @@ func (h *Handler) ServeVoiceWS(w http.ResponseWriter, r *http.Request) {
 			SessionID: sessionID,
 			UserID:    userID,
 		})
-		log.Printf("[Voice] User %s left session %s", userID, sessionID)
+		slog.Info("voice participant left", "session_id", sessionID, "user_id", userID)
 	}()
 
 	for {
@@ -152,7 +161,7 @@ func (h *Handler) ServeVoiceWS(w http.ResponseWriter, r *http.Request) {
 		err := conn.ReadJSON(&msg)
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("[Voice] WebSocket error: %v", err)
+				slog.Warn("voice websocket read failed", "session_id", sessionID, "user_id", userID, "error", err)
 			}
 			break
 		}
@@ -257,16 +266,12 @@ func getUserIDFromContext(r *http.Request) uuid.UUID {
 }
 
 func writeJSON(w http.ResponseWriter, status int, data interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(data)
+	httputil.RespondJSON(w, status, data)
 }
 
 func writeError(w http.ResponseWriter, status int, code, message string) {
-	writeJSON(w, status, map[string]interface{}{
-		"error":   code,
-		"message": message,
-	})
+	_ = code
+	httputil.RespondError(w, status, message)
 }
 
 func mustMarshal(v interface{}) json.RawMessage {

@@ -1,19 +1,38 @@
 package safety
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
 	"time"
 
+	"github.com/dryft-app/backend/internal/httputil"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 )
 
 // Handler handles HTTP requests for safety features
 type Handler struct {
-	service *Service
+	service safetyHandlerService
+}
+
+type safetyHandlerService interface {
+	BlockUser(ctx context.Context, userID, blockedUserID uuid.UUID, reason string) error
+	UnblockUser(ctx context.Context, userID, blockedUserID uuid.UUID) error
+	GetBlockedUsers(ctx context.Context, userID uuid.UUID) ([]BlockedUser, error)
+	IsBlocked(ctx context.Context, userID, potentiallyBlockedID uuid.UUID) (bool, error)
+	SubmitReport(ctx context.Context, report *Report) error
+	GetUserReports(ctx context.Context, userID uuid.UUID) ([]Report, error)
+	RecordPanicEvent(ctx context.Context, event *PanicEvent) error
+	GetActiveWarnings(ctx context.Context, userID uuid.UUID) ([]Warning, error)
+	GetPendingReports(ctx context.Context, limit, offset int) ([]Report, int64, error)
+	GetReportsAgainstUser(ctx context.Context, userID uuid.UUID) ([]Report, error)
+	UpdateReportStatus(ctx context.Context, reportID uuid.UUID, reviewerID uuid.UUID, status, resolution string) error
+	IssueWarning(ctx context.Context, warning *Warning) error
+	GetUserWarnings(ctx context.Context, userID uuid.UUID) ([]Warning, error)
+	GetPanicEvents(ctx context.Context, userID uuid.UUID) ([]PanicEvent, error)
 }
 
 // NewHandler creates a new safety handler
@@ -441,14 +460,10 @@ func getUserIDFromContext(r *http.Request) uuid.UUID {
 }
 
 func writeJSON(w http.ResponseWriter, status int, data interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(data)
+	httputil.RespondJSON(w, status, data)
 }
 
 func writeError(w http.ResponseWriter, status int, code, message string) {
-	writeJSON(w, status, map[string]interface{}{
-		"error":   code,
-		"message": message,
-	})
+	_ = code
+	httputil.RespondError(w, status, message)
 }

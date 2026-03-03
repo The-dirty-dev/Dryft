@@ -94,9 +94,13 @@ func (h *Handler) GetDiscoverProfiles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pg := httputil.ParsePagination(r, 10, 50)
-
-	profiles, err := h.service.GetDiscoverProfiles(r.Context(), userID, pg.Limit)
+	pg := httputil.ParseLimitOffset(r, 10, 50)
+	limit := pg.Limit
+	if r.URL.Query().Get("page") != "" || r.URL.Query().Get("per_page") != "" {
+		_, perPage := httputil.ParsePagination(r)
+		limit = perPage
+	}
+	profiles, err := h.service.GetDiscoverProfiles(r.Context(), userID, limit)
 	if err != nil {
 		httputil.WriteError(w, http.StatusInternalServerError, "failed to get profiles")
 		return
@@ -115,9 +119,15 @@ func (h *Handler) GetMatches(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pg := httputil.ParsePagination(r, 20, 100)
+	pg := httputil.ParseLimitOffset(r, 20, 100)
+	limit, offset := pg.Limit, pg.Offset
+	if r.URL.Query().Get("page") != "" || r.URL.Query().Get("per_page") != "" {
+		page, perPage := httputil.ParsePagination(r)
+		limit = perPage
+		offset = (page - 1) * perPage
+	}
 
-	matches, err := h.service.GetMatches(r.Context(), userID, pg.Limit, pg.Offset)
+	matches, err := h.service.GetMatches(r.Context(), userID, limit, offset)
 	if err != nil {
 		httputil.WriteError(w, http.StatusInternalServerError, "failed to get matches")
 		return

@@ -17,12 +17,12 @@ import (
 )
 
 var (
-	ErrDeviceNotFound       = errors.New("device not found")
-	ErrPermissionDenied     = errors.New("permission denied")
-	ErrNotMatched           = errors.New("users are not matched")
-	ErrPermissionNotFound   = errors.New("permission not found")
-	ErrInvalidIntensity     = errors.New("intensity must be between 0 and 1")
-	ErrDeviceLimitExceeded  = errors.New("device limit exceeded")
+	ErrDeviceNotFound      = errors.New("device not found")
+	ErrPermissionDenied    = errors.New("permission denied")
+	ErrNotMatched          = errors.New("users are not matched")
+	ErrPermissionNotFound  = errors.New("permission not found")
+	ErrInvalidIntensity    = errors.New("intensity must be between 0 and 1")
+	ErrDeviceLimitExceeded = errors.New("device limit exceeded")
 )
 
 const maxDevicesPerUser = 10
@@ -543,6 +543,19 @@ func (s *Service) GetPublicPatterns(ctx context.Context, limit, offset int) ([]m
 	}
 
 	return patterns, nil
+}
+
+// GetMatchOtherUser returns the other participant ID for a given match.
+func (s *Service) GetMatchOtherUser(ctx context.Context, userID, matchID uuid.UUID) (uuid.UUID, error) {
+	var otherUserID uuid.UUID
+	err := s.db.Pool.QueryRow(ctx, `
+		SELECT CASE WHEN user_a = $1 THEN user_b ELSE user_a END
+		FROM matches WHERE id = $2 AND (user_a = $1 OR user_b = $1)
+	`, userID, matchID).Scan(&otherUserID)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	return otherUserID, nil
 }
 
 // ============================================================================

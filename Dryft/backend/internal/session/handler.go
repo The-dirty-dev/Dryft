@@ -1,6 +1,7 @@
 package session
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -15,7 +16,20 @@ import (
 
 // Handler handles HTTP requests for companion sessions
 type Handler struct {
-	service *Service
+	service sessionHandlerService
+}
+
+type sessionHandlerService interface {
+	CreateSession(ctx context.Context, hostID uuid.UUID, req models.CreateSessionRequest) (*models.CreateSessionResponse, error)
+	GetUserActiveSession(ctx context.Context, userID uuid.UUID) (*models.CompanionSession, error)
+	GetSessionInfo(ctx context.Context, sessionID, userID uuid.UUID) (*models.SessionInfo, error)
+	JoinSession(ctx context.Context, userID uuid.UUID, req models.JoinSessionRequest) (*models.SessionInfo, error)
+	EndSession(ctx context.Context, sessionID, userID uuid.UUID) error
+	LeaveSession(ctx context.Context, sessionID, userID uuid.UUID) error
+	SetHapticPermission(ctx context.Context, sessionID, ownerID uuid.UUID, req models.SetHapticPermissionRequest) error
+	SendSessionChat(ctx context.Context, sessionID, senderID uuid.UUID, content string) error
+	CheckHapticPermission(ctx context.Context, sessionID, controllerID, targetID uuid.UUID) (bool, float64, error)
+	broadcastSessionHaptic(sessionID, fromUserID, toUserID uuid.UUID, commandType string, intensity float64, durationMs int, patternName string)
 }
 
 // NewHandler creates a new session handler
@@ -344,4 +358,3 @@ func getUserIDFromContext(r *http.Request) (uuid.UUID, bool) {
 	id, ok := r.Context().Value(userIDContextKey).(uuid.UUID)
 	return id, ok
 }
-

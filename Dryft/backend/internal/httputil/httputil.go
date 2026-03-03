@@ -6,8 +6,10 @@ package httputil
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -20,6 +22,12 @@ func WriteJSON(w http.ResponseWriter, status int, data any) {
 	json.NewEncoder(w).Encode(data) //nolint:errcheck
 }
 
+// RespondJSON is the preferred response helper for handlers.
+// It aliases WriteJSON to preserve backward compatibility.
+func RespondJSON(w http.ResponseWriter, status int, data any) {
+	WriteJSON(w, status, data)
+}
+
 // ErrorResponse represents a structured API error with code for client-side i18n.
 type ErrorResponse struct {
 	Error   string `json:"error"`             // Human-readable message (English)
@@ -30,6 +38,12 @@ type ErrorResponse struct {
 // WriteError writes a JSON error response: {"error":"message"}.
 func WriteError(w http.ResponseWriter, status int, message string) {
 	WriteJSON(w, status, ErrorResponse{Error: message})
+}
+
+// RespondError is the preferred error helper for handlers.
+// It guarantees {"error":"message"} response shape.
+func RespondError(w http.ResponseWriter, status int, message string) {
+	WriteError(w, status, message)
 }
 
 // WriteErrorWithCode writes a JSON error response with an error code for i18n:
@@ -90,14 +104,16 @@ func DecodeJSON(r *http.Request, dst any) string {
 
 // Pagination holds validated limit and offset values.
 type Pagination struct {
-	Limit  int
-	Offset int
+	Limit   int
+	Offset  int
+	Page    int
+	PerPage int
 }
 
-// ParsePagination extracts limit and offset from query params with the given
+// ParseLimitOffset extracts limit and offset from query params with the given
 // default limit and maximum limit. Invalid or out-of-range values fall back to
 // defaults silently.
-func ParsePagination(r *http.Request, defaultLimit, maxLimit int) Pagination {
+func ParseLimitOffset(r *http.Request, defaultLimit, maxLimit int) Pagination {
 	p := Pagination{Limit: defaultLimit}
 
 	if s := r.URL.Query().Get("limit"); s != "" {
@@ -115,7 +131,38 @@ func ParsePagination(r *http.Request, defaultLimit, maxLimit int) Pagination {
 		}
 	}
 
+	// Derive page/per_page view from limit/offset for downstream callers.
+	perPage := p.Limit
+	if perPage <= 0 {
+		perPage = defaultLimit
+	}
+	p.PerPage = perPage
+	p.Page = (p.Offset / perPage) + 1
+
 	return p
+}
+
+// ParsePagination extracts page/per_page style pagination parameters with
+// defaults (1, 20) and max per_page of 100.
+func ParsePagination(r *http.Request) (page, perPage int) {
+	page = 1
+	perPage = 20
+
+	if raw := r.URL.Query().Get("page"); raw != "" {
+		if v, err := strconv.Atoi(raw); err == nil && v > 0 {
+			page = v
+		}
+	}
+	if raw := r.URL.Query().Get("per_page"); raw != "" {
+		if v, err := strconv.Atoi(raw); err == nil && v > 0 {
+			perPage = v
+		}
+	}
+	if perPage > 100 {
+		perPage = 100
+	}
+
+	return page, perPage
 }
 
 // URLParamUUID parses a chi URL parameter as a UUID. On failure it writes a 400
@@ -127,6 +174,37 @@ func URLParamUUID(w http.ResponseWriter, r *http.Request, name string) (uuid.UUI
 		return uuid.Nil, false
 	}
 	return id, true
+}
+
+// ParseUUIDParam extracts and validates a UUID path parameter from chi.
+func ParseUUIDParam(r *http.Request, key string) (uuid.UUID, error) {
+	id, err := uuid.Parse(chi.URLParam(r, key))
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("invalid %s: %w", key, err)
+	}
+	return id, nil
+}
+
+// ParseDateRange extracts RFC3339 from/to query params.
+func ParseDateRange(r *http.Request) (from, to time.Time, err error) {
+	fromRaw := r.URL.Query().Get("from")
+	toRaw := r.URL.Query().Get("to")
+	if fromRaw == "" || toRaw == "" {
+		return time.Time{}, time.Time{}, fmt.Errorf("from and to are required")
+	}
+
+	from, err = time.Parse(time.RFC3339, fromRaw)
+	if err != nil {
+		return time.Time{}, time.Time{}, fmt.Errorf("invalid from: %w", err)
+	}
+	to, err = time.Parse(time.RFC3339, toRaw)
+	if err != nil {
+		return time.Time{}, time.Time{}, fmt.Errorf("invalid to: %w", err)
+	}
+	if to.Before(from) {
+		return time.Time{}, time.Time{}, fmt.Errorf("to must be after from")
+	}
+	return from, to, nil
 }
 
 // QueryUUID parses an optional query parameter as a UUID. If the parameter is

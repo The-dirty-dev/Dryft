@@ -1,14 +1,30 @@
 package subscription
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+
+	"github.com/dryft-app/backend/internal/httputil"
 )
 
 type Handler struct {
-	service *Service
+	service subscriptionHandlerService
+}
+
+type subscriptionHandlerService interface {
+	GetSubscription(ctx context.Context, userID string) (*Subscription, error)
+	GetUserCredits(ctx context.Context, userID string) (*UserCredits, error)
+	GetEntitlements(ctx context.Context, userID string) (Entitlements, error)
+	GetUserTier(ctx context.Context, userID string) (Tier, error)
+	VerifyAndCreateSubscription(ctx context.Context, userID, productID, receipt string, platform Platform) (*Subscription, error)
+	CancelSubscription(ctx context.Context, userID string) error
+	UseBoost(ctx context.Context, userID string) (int, error)
+	UseSuperLike(ctx context.Context, userID string) (int, error)
+	UseLike(ctx context.Context, userID string) (int, error)
+	HasEntitlement(ctx context.Context, userID string, entitlement string) (bool, error)
 }
 
 func NewHandler(service *Service) *Handler {
@@ -56,7 +72,7 @@ func (h *Handler) GetStatus(w http.ResponseWriter, r *http.Request) {
 
 	sub, err := h.service.GetSubscription(r.Context(), userID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httputil.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -98,8 +114,7 @@ func (h *Handler) GetStatus(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	httputil.RespondJSON(w, http.StatusOK, response)
 }
 
 func (h *Handler) GetEntitlements(w http.ResponseWriter, r *http.Request) {
@@ -107,12 +122,11 @@ func (h *Handler) GetEntitlements(w http.ResponseWriter, r *http.Request) {
 
 	entitlements, err := h.service.GetEntitlements(r.Context(), userID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httputil.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(entitlements)
+	httputil.RespondJSON(w, http.StatusOK, entitlements)
 }
 
 type VerifyRequest struct {
@@ -126,13 +140,13 @@ func (h *Handler) VerifyPurchase(w http.ResponseWriter, r *http.Request) {
 
 	var req VerifyRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
+		httputil.RespondError(w, http.StatusBadRequest, "Invalid request")
 		return
 	}
 
 	platform := Platform(req.Platform)
 	if platform != PlatformIOS && platform != PlatformAndroid {
-		http.Error(w, "Invalid platform", http.StatusBadRequest)
+		httputil.RespondError(w, http.StatusBadRequest, "Invalid platform")
 		return
 	}
 
@@ -142,17 +156,11 @@ func (h *Handler) VerifyPurchase(w http.ResponseWriter, r *http.Request) {
 		if err == ErrInvalidReceipt {
 			status = http.StatusBadRequest
 		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(status)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": false,
-			"error":   err.Error(),
-		})
+		httputil.RespondError(w, status, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	httputil.RespondJSON(w, http.StatusOK, map[string]interface{}{
 		"success":      true,
 		"tier":         sub.Tier,
 		"expires_at":   sub.ExpiresAt.Format("2006-01-02T15:04:05Z"),
@@ -173,7 +181,7 @@ func (h *Handler) RestorePurchases(w http.ResponseWriter, r *http.Request) {
 
 	var req RestoreRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
+		httputil.RespondError(w, http.StatusBadRequest, "Invalid request")
 		return
 	}
 
@@ -193,20 +201,18 @@ func (h *Handler) RestorePurchases(w http.ResponseWriter, r *http.Request) {
 		response["expires_at"] = lastSub.ExpiresAt.Format("2006-01-02T15:04:05Z")
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	httputil.RespondJSON(w, http.StatusOK, response)
 }
 
 func (h *Handler) CancelSubscription(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value("user_id").(string)
 
 	if err := h.service.CancelSubscription(r.Context(), userID); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httputil.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]bool{"success": true})
+	httputil.RespondJSON(w, http.StatusOK, map[string]bool{"success": true})
 }
 
 func (h *Handler) UseBoost(w http.ResponseWriter, r *http.Request) {
@@ -218,17 +224,11 @@ func (h *Handler) UseBoost(w http.ResponseWriter, r *http.Request) {
 		if err == ErrInsufficientCredits {
 			status = http.StatusPaymentRequired
 		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(status)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": false,
-			"error":   err.Error(),
-		})
+		httputil.RespondError(w, status, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	httputil.RespondJSON(w, http.StatusOK, map[string]interface{}{
 		"success":          true,
 		"boosts_remaining": remaining,
 	})
@@ -243,18 +243,12 @@ func (h *Handler) UseSuperLike(w http.ResponseWriter, r *http.Request) {
 		if err == ErrInsufficientCredits {
 			status = http.StatusPaymentRequired
 		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(status)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": false,
-			"error":   err.Error(),
-		})
+		httputil.RespondError(w, status, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success":              true,
+	httputil.RespondJSON(w, http.StatusOK, map[string]interface{}{
+		"success":               true,
 		"super_likes_remaining": remaining,
 	})
 }
@@ -268,17 +262,11 @@ func (h *Handler) UseLike(w http.ResponseWriter, r *http.Request) {
 		if err == ErrInsufficientCredits {
 			status = http.StatusPaymentRequired
 		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(status)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": false,
-			"error":   err.Error(),
-		})
+		httputil.RespondError(w, status, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	httputil.RespondJSON(w, http.StatusOK, map[string]interface{}{
 		"success":         true,
 		"likes_remaining": remaining,
 	})
@@ -290,12 +278,11 @@ func (h *Handler) HasEntitlement(w http.ResponseWriter, r *http.Request) {
 
 	has, err := h.service.HasEntitlement(r.Context(), userID, entitlement)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httputil.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	httputil.RespondJSON(w, http.StatusOK, map[string]interface{}{
 		"entitlement": entitlement,
 		"has_access":  has,
 	})

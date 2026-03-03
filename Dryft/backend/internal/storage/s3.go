@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -21,10 +22,26 @@ import (
 
 // S3Client handles S3 operations
 type S3Client struct {
-	client     *s3.Client
-	presigner  *s3.PresignClient
-	bucket     string
-	urlExpiry  time.Duration
+	client    S3API
+	presigner S3Presigner
+	bucket    string
+	urlExpiry time.Duration
+}
+
+// S3API provides the subset of AWS S3 client operations used by this package.
+type S3API interface {
+	PutObject(ctx context.Context, params *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error)
+	GetObject(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error)
+	HeadObject(ctx context.Context, params *s3.HeadObjectInput, optFns ...func(*s3.Options)) (*s3.HeadObjectOutput, error)
+	DeleteObject(ctx context.Context, params *s3.DeleteObjectInput, optFns ...func(*s3.Options)) (*s3.DeleteObjectOutput, error)
+	DeleteObjects(ctx context.Context, params *s3.DeleteObjectsInput, optFns ...func(*s3.Options)) (*s3.DeleteObjectsOutput, error)
+	CopyObject(ctx context.Context, params *s3.CopyObjectInput, optFns ...func(*s3.Options)) (*s3.CopyObjectOutput, error)
+}
+
+// S3Presigner provides the subset of presign operations used by this package.
+type S3Presigner interface {
+	PresignGetObject(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.PresignOptions)) (*v4.PresignedHTTPRequest, error)
+	PresignPutObject(ctx context.Context, params *s3.PutObjectInput, optFns ...func(*s3.PresignOptions)) (*v4.PresignedHTTPRequest, error)
 }
 
 // NewS3Client creates a new S3 client
@@ -59,6 +76,17 @@ func NewS3Client(cfg *appconfig.Config) (*S3Client, error) {
 		bucket:    cfg.S3Bucket,
 		urlExpiry: 24 * time.Hour, // URLs valid for 24 hours
 	}, nil
+}
+
+// NewS3ClientWithDeps creates a client with injected dependencies.
+// Primarily used by unit tests.
+func NewS3ClientWithDeps(client S3API, presigner S3Presigner, bucket string, urlExpiry time.Duration) *S3Client {
+	return &S3Client{
+		client:    client,
+		presigner: presigner,
+		bucket:    bucket,
+		urlExpiry: urlExpiry,
+	}
 }
 
 // UploadPhoto uploads a photo to S3 and returns the key
@@ -326,4 +354,3 @@ func getExtensionFromContentType(contentType string) string {
 		return ""
 	}
 }
-

@@ -40,7 +40,8 @@
       },
       "env": {
         "EXPO_PUBLIC_ENVIRONMENT": "production",
-        "EXPO_PUBLIC_DEBUG": "false"
+        "EXPO_PUBLIC_DEBUG": "false",
+        "EXPO_PUBLIC_API_URL": "https://api.dryft.site"
       }
     }
   },

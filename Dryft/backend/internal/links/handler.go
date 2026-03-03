@@ -1,15 +1,33 @@
 package links
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
+
+	"github.com/dryft-app/backend/internal/httputil"
 )
 
 type Handler struct {
-	service *Service
+	service linksHandlerService
+}
+
+type linksHandlerService interface {
+	CreateLink(ctx context.Context, linkType LinkType, userID, targetID string, metadata map[string]string, expiresIn time.Duration, maxUses int) (*Link, error)
+	GetLink(ctx context.Context, code string) (*Link, error)
+	ValidateLink(ctx context.Context, code string) (*Link, error)
+	UseLink(ctx context.Context, code string) (*Link, error)
+	CreateVRInvite(ctx context.Context, hostID string, guestID string, roomType string, expiresIn time.Duration) (*VRInvite, error)
+	GetVRInvite(ctx context.Context, code string) (*VRInvite, error)
+	ValidateVRInvite(ctx context.Context, code string) (*VRInvite, error)
+	AcceptVRInvite(ctx context.Context, code string, guestID string) (*VRInvite, error)
+	DeclineVRInvite(ctx context.Context, code string) error
+	CancelVRInvite(ctx context.Context, code string, hostID string) error
+	GetUserVRInvites(ctx context.Context, userID string, status string) ([]VRInvite, error)
+	BuildLinkURL(linkType LinkType, code string) string
 }
 
 func NewHandler(service *Service) *Handler {
@@ -93,7 +111,7 @@ func (h *Handler) CreateLink(w http.ResponseWriter, r *http.Request) {
 
 	var req CreateLinkRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		respondWithError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
 
@@ -117,7 +135,7 @@ func (h *Handler) CreateLink(w http.ResponseWriter, r *http.Request) {
 		maxUses,
 	)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -126,8 +144,7 @@ func (h *Handler) CreateLink(w http.ResponseWriter, r *http.Request) {
 		URL:  h.service.BuildLinkURL(link.Type, link.Code),
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	respondWithJSON(w, http.StatusOK, resp)
 }
 
 func (h *Handler) GetLink(w http.ResponseWriter, r *http.Request) {
@@ -138,6 +155,8 @@ func (h *Handler) GetLink(w http.ResponseWriter, r *http.Request) {
 		status := http.StatusInternalServerError
 		if err == ErrLinkNotFound {
 			status = http.StatusNotFound
+		} else if err == ErrLinkExpired {
+			status = http.StatusGone
 		}
 		respondWithError(w, status, err.Error())
 		return
@@ -153,8 +172,7 @@ func (h *Handler) GetLink(w http.ResponseWriter, r *http.Request) {
 		resp.ExpiresAt = link.ExpiresAt.Format(time.RFC3339)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	respondWithJSON(w, http.StatusOK, resp)
 }
 
 func (h *Handler) ValidateLink(w http.ResponseWriter, r *http.Request) {
@@ -166,8 +184,7 @@ func (h *Handler) ValidateLink(w http.ResponseWriter, r *http.Request) {
 			Valid: false,
 			Error: err.Error(),
 		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		respondWithJSON(w, http.StatusOK, resp)
 		return
 	}
 
@@ -177,8 +194,7 @@ func (h *Handler) ValidateLink(w http.ResponseWriter, r *http.Request) {
 		URL:   h.service.BuildLinkURL(link.Type, link.Code),
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	respondWithJSON(w, http.StatusOK, resp)
 }
 
 func (h *Handler) UseLink(w http.ResponseWriter, r *http.Request) {
@@ -189,6 +205,8 @@ func (h *Handler) UseLink(w http.ResponseWriter, r *http.Request) {
 		status := http.StatusBadRequest
 		if err == ErrLinkNotFound {
 			status = http.StatusNotFound
+		} else if err == ErrLinkExpired {
+			status = http.StatusGone
 		}
 		respondWithError(w, status, err.Error())
 		return
@@ -199,8 +217,7 @@ func (h *Handler) UseLink(w http.ResponseWriter, r *http.Request) {
 		Link:  link,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	respondWithJSON(w, http.StatusOK, resp)
 }
 
 func (h *Handler) CreateProfileLink(w http.ResponseWriter, r *http.Request) {
@@ -217,7 +234,7 @@ func (h *Handler) CreateProfileLink(w http.ResponseWriter, r *http.Request) {
 		0, // Unlimited uses
 	)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -226,8 +243,7 @@ func (h *Handler) CreateProfileLink(w http.ResponseWriter, r *http.Request) {
 		URL:  h.service.BuildLinkURL(link.Type, link.Code),
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	respondWithJSON(w, http.StatusOK, resp)
 }
 
 // VR Invite handlers
@@ -237,7 +253,7 @@ func (h *Handler) CreateVRInvite(w http.ResponseWriter, r *http.Request) {
 
 	var req CreateVRInviteRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		respondWithError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
 
@@ -253,7 +269,7 @@ func (h *Handler) CreateVRInvite(w http.ResponseWriter, r *http.Request) {
 
 	invite, err := h.service.CreateVRInvite(r.Context(), userID, req.GuestID, roomType, expiresIn)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -268,8 +284,7 @@ func (h *Handler) CreateVRInvite(w http.ResponseWriter, r *http.Request) {
 		URL:        h.service.BuildLinkURL(LinkTypeVRInvite, invite.Code),
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	respondWithJSON(w, http.StatusOK, resp)
 }
 
 func (h *Handler) GetVRInvite(w http.ResponseWriter, r *http.Request) {
@@ -280,6 +295,8 @@ func (h *Handler) GetVRInvite(w http.ResponseWriter, r *http.Request) {
 		status := http.StatusInternalServerError
 		if err == ErrLinkNotFound {
 			status = http.StatusNotFound
+		} else if err == ErrLinkExpired {
+			status = http.StatusGone
 		}
 		respondWithError(w, status, err.Error())
 		return
@@ -296,8 +313,7 @@ func (h *Handler) GetVRInvite(w http.ResponseWriter, r *http.Request) {
 		ExpiresAt:  invite.ExpiresAt.Unix(),
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	respondWithJSON(w, http.StatusOK, resp)
 }
 
 func (h *Handler) ValidateVRInvite(w http.ResponseWriter, r *http.Request) {
@@ -309,8 +325,7 @@ func (h *Handler) ValidateVRInvite(w http.ResponseWriter, r *http.Request) {
 			Valid: false,
 			Error: err.Error(),
 		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		respondWithJSON(w, http.StatusOK, resp)
 		return
 	}
 
@@ -326,8 +341,7 @@ func (h *Handler) ValidateVRInvite(w http.ResponseWriter, r *http.Request) {
 		ExpiresAt:  invite.ExpiresAt.Unix(),
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	respondWithJSON(w, http.StatusOK, resp)
 }
 
 func (h *Handler) AcceptVRInvite(w http.ResponseWriter, r *http.Request) {
@@ -339,6 +353,8 @@ func (h *Handler) AcceptVRInvite(w http.ResponseWriter, r *http.Request) {
 		status := http.StatusBadRequest
 		if err == ErrLinkNotFound {
 			status = http.StatusNotFound
+		} else if err == ErrLinkExpired {
+			status = http.StatusGone
 		}
 		respondWithError(w, status, err.Error())
 		return
@@ -354,8 +370,7 @@ func (h *Handler) AcceptVRInvite(w http.ResponseWriter, r *http.Request) {
 		Status:     invite.Status,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	respondWithJSON(w, http.StatusOK, resp)
 }
 
 func (h *Handler) DeclineVRInvite(w http.ResponseWriter, r *http.Request) {
@@ -365,13 +380,14 @@ func (h *Handler) DeclineVRInvite(w http.ResponseWriter, r *http.Request) {
 		status := http.StatusBadRequest
 		if err == ErrLinkNotFound {
 			status = http.StatusNotFound
+		} else if err == ErrLinkExpired {
+			status = http.StatusGone
 		}
 		respondWithError(w, status, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]bool{"success": true})
+	respondWithJSON(w, http.StatusOK, map[string]bool{"success": true})
 }
 
 func (h *Handler) CancelVRInvite(w http.ResponseWriter, r *http.Request) {
@@ -382,13 +398,14 @@ func (h *Handler) CancelVRInvite(w http.ResponseWriter, r *http.Request) {
 		status := http.StatusBadRequest
 		if err == ErrLinkNotFound {
 			status = http.StatusNotFound
+		} else if err == ErrLinkExpired {
+			status = http.StatusGone
 		}
 		respondWithError(w, status, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]bool{"success": true})
+	respondWithJSON(w, http.StatusOK, map[string]bool{"success": true})
 }
 
 func (h *Handler) GetUserVRInvites(w http.ResponseWriter, r *http.Request) {
@@ -397,19 +414,20 @@ func (h *Handler) GetUserVRInvites(w http.ResponseWriter, r *http.Request) {
 
 	invites, err := h.service.GetUserVRInvites(r.Context(), userID, status)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	respondWithJSON(w, http.StatusOK, map[string]interface{}{
 		"invites": invites,
 		"count":   len(invites),
 	})
 }
 
 func respondWithError(w http.ResponseWriter, status int, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(map[string]string{"error": message})
+	httputil.RespondError(w, status, message)
+}
+
+func respondWithJSON(w http.ResponseWriter, status int, data interface{}) {
+	httputil.RespondJSON(w, status, data)
 }

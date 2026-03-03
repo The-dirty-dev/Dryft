@@ -2,11 +2,14 @@ package httputil
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 )
 
@@ -74,7 +77,7 @@ func TestDecodeJSON_Invalid(t *testing.T) {
 
 func TestParsePagination_Defaults(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
-	p := ParsePagination(r, 20, 100)
+	p := ParseLimitOffset(r, 20, 100)
 
 	if p.Limit != 20 {
 		t.Errorf("expected limit 20, got %d", p.Limit)
@@ -86,7 +89,7 @@ func TestParsePagination_Defaults(t *testing.T) {
 
 func TestParsePagination_Custom(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/?limit=50&offset=10", nil)
-	p := ParsePagination(r, 20, 100)
+	p := ParseLimitOffset(r, 20, 100)
 
 	if p.Limit != 50 {
 		t.Errorf("expected limit 50, got %d", p.Limit)
@@ -98,7 +101,7 @@ func TestParsePagination_Custom(t *testing.T) {
 
 func TestParsePagination_CapsAtMax(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/?limit=500", nil)
-	p := ParsePagination(r, 20, 100)
+	p := ParseLimitOffset(r, 20, 100)
 
 	if p.Limit != 100 {
 		t.Errorf("expected limit capped at 100, got %d", p.Limit)
@@ -107,7 +110,7 @@ func TestParsePagination_CapsAtMax(t *testing.T) {
 
 func TestParsePagination_InvalidFallsBack(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/?limit=abc&offset=-5", nil)
-	p := ParsePagination(r, 20, 100)
+	p := ParseLimitOffset(r, 20, 100)
 
 	if p.Limit != 20 {
 		t.Errorf("expected default limit 20, got %d", p.Limit)
@@ -119,7 +122,7 @@ func TestParsePagination_InvalidFallsBack(t *testing.T) {
 
 func TestParsePagination_ZeroLimit(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/?limit=0", nil)
-	p := ParsePagination(r, 20, 100)
+	p := ParseLimitOffset(r, 20, 100)
 
 	if p.Limit != 20 {
 		t.Errorf("expected default limit 20 for zero value, got %d", p.Limit)
@@ -238,5 +241,75 @@ func TestQueryBool_Absent(t *testing.T) {
 
 	if result != nil {
 		t.Error("expected nil for absent parameter")
+	}
+}
+
+func TestParsePagination_PagePerPage(t *testing.T) {
+	r := httptest.NewRequest(http.MethodGet, "/?page=3&per_page=15", nil)
+	page, perPage := ParsePagination(r)
+	if page != 3 {
+		t.Fatalf("expected page=3, got %d", page)
+	}
+	if perPage != 15 {
+		t.Fatalf("expected per_page=15, got %d", perPage)
+	}
+}
+
+func TestParsePagination_PagePerPageBounds(t *testing.T) {
+	r := httptest.NewRequest(http.MethodGet, "/?page=-1&per_page=1000", nil)
+	page, perPage := ParsePagination(r)
+	if page != 1 {
+		t.Fatalf("expected bounded page=1, got %d", page)
+	}
+	if perPage != 100 {
+		t.Fatalf("expected bounded per_page=100, got %d", perPage)
+	}
+}
+
+func TestParseUUIDParam(t *testing.T) {
+	id := uuid.New()
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("itemID", id.String())
+	req := httptest.NewRequest(http.MethodGet, "/items/"+id.String(), nil)
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	got, err := ParseUUIDParam(req, "itemID")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != id {
+		t.Fatalf("expected %s, got %s", id, got)
+	}
+}
+
+func TestParseUUIDParamInvalid(t *testing.T) {
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("itemID", "bad")
+	req := httptest.NewRequest(http.MethodGet, "/items/bad", nil)
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	if _, err := ParseUUIDParam(req, "itemID"); err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestParseDateRange(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/?from=2026-03-01T00:00:00Z&to=2026-03-02T00:00:00Z", nil)
+	from, to, err := ParseDateRange(req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !from.Equal(time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)) {
+		t.Fatalf("unexpected from: %s", from)
+	}
+	if !to.Equal(time.Date(2026, 3, 2, 0, 0, 0, 0, time.UTC)) {
+		t.Fatalf("unexpected to: %s", to)
+	}
+}
+
+func TestParseDateRangeInvalidOrder(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/?from=2026-03-03T00:00:00Z&to=2026-03-02T00:00:00Z", nil)
+	if _, _, err := ParseDateRange(req); err == nil {
+		t.Fatal("expected error")
 	}
 }

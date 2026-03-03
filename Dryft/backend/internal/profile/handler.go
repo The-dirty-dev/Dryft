@@ -1,6 +1,7 @@
 package profile
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -11,12 +12,25 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/dryft-app/backend/internal/httputil"
+	"github.com/dryft-app/backend/internal/models"
 )
 
 // Handler handles HTTP requests for profile management
 type Handler struct {
-	service  *Service
+	service  profileHandlerService
 	uploader Uploader
+}
+
+type profileHandlerService interface {
+	GetProfile(ctx context.Context, userID uuid.UUID) (*ProfileResponse, error)
+	UpdateProfile(ctx context.Context, userID uuid.UUID, req *UpdateProfileRequest) (*ProfileResponse, error)
+	UpdateLocation(ctx context.Context, userID uuid.UUID, req *UpdateLocationRequest) error
+	GetPreferences(ctx context.Context, userID uuid.UUID) (*models.UserPreferences, error)
+	UpdatePreferences(ctx context.Context, userID uuid.UUID, req *UpdatePreferencesRequest) (*models.UserPreferences, error)
+	SetProfilePhoto(ctx context.Context, userID uuid.UUID, photoKey string) error
+	AddPhoto(ctx context.Context, userID uuid.UUID, photoKey string) ([]string, error)
+	RemovePhoto(ctx context.Context, userID uuid.UUID, photoIndex int) ([]string, error)
+	ReorderPhotos(ctx context.Context, userID uuid.UUID, newOrder []int) ([]string, error)
 }
 
 // Uploader interface for S3 uploads
@@ -419,4 +433,3 @@ func getUserIDFromContext(r *http.Request) (uuid.UUID, error) {
 	}
 	return uuid.Nil, http.ErrNoCookie
 }
-

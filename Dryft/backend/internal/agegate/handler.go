@@ -1,10 +1,13 @@
 package agegate
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
 
+	"github.com/dryft-app/backend/internal/httputil"
+	"github.com/dryft-app/backend/internal/models"
 	"github.com/google/uuid"
 )
 
@@ -12,7 +15,16 @@ import (
 // LEGAL NOTE: All endpoints require authentication except webhooks.
 // Rate limiting should be applied to prevent abuse.
 type Handler struct {
-	service *Service
+	service agegateHandlerService
+}
+
+type agegateHandlerService interface {
+	InitiateCardVerification(ctx context.Context, userID uuid.UUID, email string) (*models.CardVerificationInitResponse, error)
+	ConfirmCardVerification(ctx context.Context, userID uuid.UUID, setupIntentID string) error
+	InitiateIDVerification(ctx context.Context, userID uuid.UUID, callbackURL string) (*models.IDVerificationInitResponse, error)
+	HandleJumioWebhook(ctx context.Context, payload []byte, signature string) error
+	GetVerificationStatus(ctx context.Context, userID uuid.UUID) (*models.VerificationStatusResponse, error)
+	RetryVerification(ctx context.Context, userID uuid.UUID) error
 }
 
 func NewHandler(service *Service) *Handler {
@@ -195,11 +207,9 @@ func getCallbackURL(r *http.Request) string {
 }
 
 func writeJSON(w http.ResponseWriter, status int, data interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(data)
+	httputil.RespondJSON(w, status, data)
 }
 
 func writeError(w http.ResponseWriter, status int, message string) {
-	writeJSON(w, status, map[string]string{"error": message})
+	httputil.RespondError(w, status, message)
 }

@@ -1,6 +1,6 @@
 // API Configuration
 export const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL || (__DEV__ ? 'http://localhost:8080' : 'https://api.dryft.site');
+  process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8080';
 
 // WebSocket Configuration
 const DEFAULT_WS_URL = __DEV__

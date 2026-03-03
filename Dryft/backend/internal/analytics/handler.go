@@ -7,11 +7,25 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+
+	"github.com/dryft-app/backend/internal/httputil"
 )
 
 // Handler handles HTTP requests for analytics
 type Handler struct {
-	service *Service
+	service analyticsHandlerService
+}
+
+type analyticsHandlerService interface {
+	IngestBatch(batch EventBatch) error
+	GetUserAnalytics(userID string) (*UserAnalytics, error)
+	GetDailyMetrics(startDate, endDate time.Time) ([]DailyMetrics, error)
+	GetEventCounts(startDate, endDate time.Time, eventName string) ([]EventMetrics, error)
+	GetTopEvents(days int, limit int) ([]struct {
+		Name  string
+		Count int
+	}, error)
+	GetRecentEvents(userID string, limit int) ([]Event, error)
 }
 
 // NewHandler creates a new analytics handler
@@ -41,17 +55,16 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 func (h *Handler) IngestEvents(w http.ResponseWriter, r *http.Request) {
 	var batch EventBatch
 	if err := json.NewDecoder(r.Body).Decode(&batch); err != nil {
-		http.Error(w, "invalid request body", http.StatusBadRequest)
+		httputil.RespondError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
 	if err := h.service.IngestBatch(batch); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httputil.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.WriteHeader(http.StatusAccepted)
-	json.NewEncoder(w).Encode(map[string]any{
+	httputil.RespondJSON(w, http.StatusAccepted, map[string]any{
 		"status": "accepted",
 		"count":  len(batch.Events),
 	})
@@ -61,18 +74,17 @@ func (h *Handler) IngestEvents(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetUserAnalytics(w http.ResponseWriter, r *http.Request) {
 	userID := chi.URLParam(r, "userId")
 	if userID == "" {
-		http.Error(w, "user ID required", http.StatusBadRequest)
+		httputil.RespondError(w, http.StatusBadRequest, "user ID required")
 		return
 	}
 
 	analytics, err := h.service.GetUserAnalytics(userID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		httputil.RespondError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(analytics)
+	httputil.RespondJSON(w, http.StatusOK, analytics)
 }
 
 // GetDailyMetrics returns daily metrics for a date range
@@ -92,12 +104,11 @@ func (h *Handler) GetDailyMetrics(w http.ResponseWriter, r *http.Request) {
 
 	metrics, err := h.service.GetDailyMetrics(start, end)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httputil.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{
+	httputil.RespondJSON(w, http.StatusOK, map[string]any{
 		"metrics": metrics,
 		"start":   start.Format("2006-01-02"),
 		"end":     end.Format("2006-01-02"),
@@ -122,12 +133,11 @@ func (h *Handler) GetEventCounts(w http.ResponseWriter, r *http.Request) {
 
 	metrics, err := h.service.GetEventCounts(start, end, eventName)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httputil.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(metrics)
+	httputil.RespondJSON(w, http.StatusOK, metrics)
 }
 
 // GetTopEvents returns most common events
@@ -147,12 +157,11 @@ func (h *Handler) GetTopEvents(w http.ResponseWriter, r *http.Request) {
 
 	events, err := h.service.GetTopEvents(days, limit)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httputil.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{
+	httputil.RespondJSON(w, http.StatusOK, map[string]any{
 		"events": events,
 		"days":   days,
 	})
@@ -170,21 +179,20 @@ func (h *Handler) GetRecentEvents(w http.ResponseWriter, r *http.Request) {
 
 	events, err := h.service.GetRecentEvents(userID, limit)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httputil.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(events)
+	httputil.RespondJSON(w, http.StatusOK, events)
 }
 
 // DashboardSummary represents the admin dashboard summary
 type DashboardSummary struct {
-	Today      DayStats        `json:"today"`
-	Yesterday  DayStats        `json:"yesterday"`
-	Week       WeekStats       `json:"week"`
-	TopEvents  []EventCount    `json:"topEvents"`
-	RecentDays []DailyMetrics  `json:"recentDays"`
+	Today      DayStats       `json:"today"`
+	Yesterday  DayStats       `json:"yesterday"`
+	Week       WeekStats      `json:"week"`
+	TopEvents  []EventCount   `json:"topEvents"`
+	RecentDays []DailyMetrics `json:"recentDays"`
 }
 
 type DayStats struct {
@@ -277,6 +285,5 @@ func (h *Handler) GetDashboardSummary(w http.ResponseWriter, r *http.Request) {
 	// Recent days
 	summary.RecentDays = weekMetrics
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(summary)
+	httputil.RespondJSON(w, http.StatusOK, summary)
 }

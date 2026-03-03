@@ -1,6 +1,7 @@
 package notifications
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
@@ -13,12 +14,27 @@ import (
 
 // Handler handles HTTP requests for notifications
 type Handler struct {
-	service *Service
+	service notificationsHandlerService
+}
+
+type notificationsHandlerService interface {
+	RegisterDevice(ctx context.Context, userID uuid.UUID, token string, platform DevicePlatform, deviceID, appVersion string) (*Device, error)
+	UnregisterDevice(ctx context.Context, userID uuid.UUID, deviceID string) error
+	GetNotificationHistory(ctx context.Context, userID uuid.UUID, limit, offset int) ([]map[string]interface{}, error)
+	GetUnreadCount(ctx context.Context, userID uuid.UUID) (int, error)
+	MarkNotificationRead(ctx context.Context, userID, notificationID uuid.UUID) error
+	MarkAllNotificationsRead(ctx context.Context, userID uuid.UUID) error
+	RegisterVoIPDevice(ctx context.Context, userID uuid.UUID, token, bundleID string) (*VoIPDevice, error)
+	UnregisterVoIPDevice(ctx context.Context, userID uuid.UUID, token string) error
 }
 
 // NewHandler creates a new notification handler
 func NewHandler(service *Service) *Handler {
-	return &Handler{service: service}
+	var svc notificationsHandlerService
+	if service != nil {
+		svc = service
+	}
+	return &Handler{service: svc}
 }
 
 // RegisterDeviceRequest represents a device registration request
@@ -119,7 +135,7 @@ func (h *Handler) GetNotifications(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pg := httputil.ParsePagination(r, 20, 100)
+	pg := httputil.ParseLimitOffset(r, 20, 100)
 
 	notifications, err := h.service.GetNotificationHistory(r.Context(), userID, pg.Limit, pg.Offset)
 	if err != nil {
@@ -294,4 +310,3 @@ func getUserIDFromContext(r *http.Request) (uuid.UUID, error) {
 	}
 	return uuid.Nil, http.ErrNoCookie
 }
-

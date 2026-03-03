@@ -46,9 +46,15 @@ func (h *Handler) GetConversations(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pg := httputil.ParsePagination(r, 20, 100)
+	pg := httputil.ParseLimitOffset(r, 20, 100)
+	limit, offset := pg.Limit, pg.Offset
+	if r.URL.Query().Get("page") != "" || r.URL.Query().Get("per_page") != "" {
+		page, perPage := httputil.ParsePagination(r)
+		limit = perPage
+		offset = (page - 1) * perPage
+	}
 
-	conversations, err := h.service.GetConversations(r.Context(), userID, pg.Limit, pg.Offset)
+	conversations, err := h.service.GetConversations(r.Context(), userID, limit, offset)
 	if err != nil {
 		httputil.WriteError(w, http.StatusInternalServerError, "failed to get conversations")
 		return
@@ -102,9 +108,15 @@ func (h *Handler) GetMessages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pg := httputil.ParsePagination(r, 50, 100)
+	pg := httputil.ParseLimitOffset(r, 50, 100)
+	limit, offset := pg.Limit, pg.Offset
+	if r.URL.Query().Get("page") != "" || r.URL.Query().Get("per_page") != "" {
+		page, perPage := httputil.ParsePagination(r)
+		limit = perPage
+		offset = (page - 1) * perPage
+	}
 
-	messages, err := h.service.GetMessages(r.Context(), userID, conversationID, pg.Limit, pg.Offset)
+	messages, err := h.service.GetMessages(r.Context(), userID, conversationID, limit, offset)
 	if err != nil {
 		if errors.Is(err, ErrNotInConversation) {
 			httputil.WriteError(w, http.StatusForbidden, "you are not part of this conversation")
