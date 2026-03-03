@@ -11,6 +11,7 @@ func clearConfigEnvVars(t *testing.T) {
 	t.Helper()
 	vars := []string{
 		"PORT", "ENVIRONMENT", "ALLOWED_ORIGINS", "DATABASE_URL",
+		"REDIS_URL",
 		"ENCRYPTION_KEY", "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET",
 		"STRIPE_CONNECT_WEBHOOK_SECRET", "STRIPE_PUBLISHABLE_KEY",
 		"JUMIO_API_TOKEN", "JUMIO_API_SECRET", "JUMIO_WEBHOOK_SECRET",
@@ -173,7 +174,7 @@ func TestLoad_ValidationFailsInProduction(t *testing.T) {
 				"STRIPE_SECRET_KEY": "sk_live_xyz",
 				"JWT_SECRET_KEY":    "short",
 			},
-			wantErr: "JWT_SECRET_KEY must be at least 32 characters in production",
+			wantErr: "JWT_SECRET_KEY must be at least 32 characters",
 		},
 	}
 
@@ -248,5 +249,68 @@ func TestLoad_DevelopmentSkipsValidation(t *testing.T) {
 	}
 	if cfg.Environment != "development" {
 		t.Errorf("expected environment %q, got %q", "development", cfg.Environment)
+	}
+}
+
+func TestLoad_EnvironmentValidation(t *testing.T) {
+	clearConfigEnvVars(t)
+	t.Setenv("ENVIRONMENT", "qa")
+
+	_, err := Load()
+	if err == nil || err.Error() != "ENVIRONMENT must be one of development/staging/production" {
+		t.Fatalf("expected environment validation error, got %v", err)
+	}
+}
+
+func TestLoad_DatabaseURLValidation(t *testing.T) {
+	clearConfigEnvVars(t)
+	t.Setenv("DATABASE_URL", "mysql://localhost/db")
+
+	_, err := Load()
+	if err == nil || err.Error() != "DATABASE_URL must use postgres:// scheme" {
+		t.Fatalf("expected postgres scheme error, got %v", err)
+	}
+}
+
+func TestLoad_S3EndpointRequiresBucket(t *testing.T) {
+	cfg := &Config{
+		Environment: "development",
+		DatabaseURL: "postgres://user:pass@localhost:5432/dryft",
+		S3Endpoint:  "https://r2.example.com",
+		S3Bucket:    "",
+	}
+
+	err := cfg.validate()
+	if err == nil || err.Error() != "S3_BUCKET is required when S3_ENDPOINT is set" {
+		t.Fatalf("expected s3 bucket validation error, got %v", err)
+	}
+}
+
+func TestLoad_TrimsEnvValues(t *testing.T) {
+	clearConfigEnvVars(t)
+	t.Setenv("PORT", " 9091 ")
+	t.Setenv("DATABASE_URL", " postgres://user:pass@localhost:5432/dryft ")
+	t.Setenv("JWT_SECRET_KEY", " 01234567890123456789012345678901 ")
+	t.Setenv("REDIS_URL", "  ")
+	t.Setenv("ALLOWED_ORIGINS", " https://a.example.com , https://b.example.com ")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if cfg.Port != "9091" {
+		t.Fatalf("expected trimmed port, got %q", cfg.Port)
+	}
+	if cfg.DatabaseURL != "postgres://user:pass@localhost:5432/dryft" {
+		t.Fatalf("expected trimmed db url, got %q", cfg.DatabaseURL)
+	}
+	if cfg.JWTSecretKey != "01234567890123456789012345678901" {
+		t.Fatalf("expected trimmed jwt key, got %q", cfg.JWTSecretKey)
+	}
+	if cfg.RedisURL != "" {
+		t.Fatalf("expected empty redis url after trimming, got %q", cfg.RedisURL)
+	}
+	if len(cfg.AllowedOrigins) != 2 || cfg.AllowedOrigins[0] != "https://a.example.com" || cfg.AllowedOrigins[1] != "https://b.example.com" {
+		t.Fatalf("unexpected allowed origins: %+v", cfg.AllowedOrigins)
 	}
 }

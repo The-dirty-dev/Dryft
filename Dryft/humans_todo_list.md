@@ -142,8 +142,7 @@ Status: **IN PROGRESS** (Mar 3). DreamHost VPS cannot support WebSocket proxying
 - [x] **Mobile** (`mobile/src/config.ts`, `mobile/src/api/client.ts`): centralize `API_BASE_URL` in `config.ts` and read from `EXPO_PUBLIC_API_URL`, then set `EXPO_PUBLIC_API_URL=https://api.dryft.site` for production builds.
 - [ ] Rebuild and deploy web + mobile clients, then verify real user flows (login, feed, chat) hit DreamCompute (check `journalctl -u dryft-api.service`).
 
-Status update (Mar 3, 2026): wiring changes completed by Codex. Web now resolves API host from `NEXT_PUBLIC_API_BASE_URL` in production (`web/.env.production`), and mobile production EAS profile now exports `EXPO_PUBLIC_API_URL=https://api.dryft.site`; remaining work is rebuild/deploy + runtime flow verification.
-
+Status update (Mar 3, 2026): wiring changes completed by Codex. Web now resolves API host from `NEXT_PUBLIC_API_BASE_URL` in production (`web/.env.production`). On the local dev machine, `.env.local` was still set to `http://localhost:8080`, causing the web app to POST `http://localhost:8080/v1/auth/login` and show "Unable to connect" despite the DreamCompute API being healthy. The next action is to update `.env.local` (or equivalent dev env) to `NEXT_PUBLIC_API_BASE_URL=https://api.dryft.site`, restart `npm run dev`, and confirm login calls go to `https://api.dryft.site/v1/auth/login`.
 #### Phase 6: WebSocket verification and cleanup
 - [ ] Test `wss://api.dryft.site/v1/ws` through DreamCompute Nginx using `wscat`.
 - [ ] Once confirmed, update clients from any `ws://api.dryft.site:8080` URLs to `wss://api.dryft.site/v1/ws`.

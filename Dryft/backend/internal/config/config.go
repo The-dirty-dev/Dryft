@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -95,41 +96,45 @@ func Load() (*Config, error) {
 		Environment:                 getEnv("ENVIRONMENT", "development"),
 		AllowedOrigins:              strings.Split(getEnv("ALLOWED_ORIGINS", "http://localhost:3000"), ","),
 		DatabaseURL:                 getEnv("DATABASE_URL", "postgres://dryft:dryft@localhost:5432/dryft?sslmode=disable"),
-		RedisURL:                    os.Getenv("REDIS_URL"),
-		EncryptionKey:               os.Getenv("ENCRYPTION_KEY"),
-		StripeSecretKey:             os.Getenv("STRIPE_SECRET_KEY"),
-		StripeWebhookSecret:         os.Getenv("STRIPE_WEBHOOK_SECRET"),
-		StripeConnectWebhookSecret:  os.Getenv("STRIPE_CONNECT_WEBHOOK_SECRET"),
-		StripePublishableKey:        os.Getenv("STRIPE_PUBLISHABLE_KEY"),
-		JumioAPIToken:               os.Getenv("JUMIO_API_TOKEN"),
-		JumioAPISecret:              os.Getenv("JUMIO_API_SECRET"),
-		JumioWebhookSecret:          os.Getenv("JUMIO_WEBHOOK_SECRET"),
+		RedisURL:                    getOptionalEnv("REDIS_URL"),
+		EncryptionKey:               getOptionalEnv("ENCRYPTION_KEY"),
+		StripeSecretKey:             getOptionalEnv("STRIPE_SECRET_KEY"),
+		StripeWebhookSecret:         getOptionalEnv("STRIPE_WEBHOOK_SECRET"),
+		StripeConnectWebhookSecret:  getOptionalEnv("STRIPE_CONNECT_WEBHOOK_SECRET"),
+		StripePublishableKey:        getOptionalEnv("STRIPE_PUBLISHABLE_KEY"),
+		JumioAPIToken:               getOptionalEnv("JUMIO_API_TOKEN"),
+		JumioAPISecret:              getOptionalEnv("JUMIO_API_SECRET"),
+		JumioWebhookSecret:          getOptionalEnv("JUMIO_WEBHOOK_SECRET"),
 		JumioBaseURL:                getEnv("JUMIO_BASE_URL", "https://netverify.com/api/v4"),
 		AWSRegion:                   getEnv("AWS_REGION", "us-east-1"),
-		AWSAccessKeyID:              os.Getenv("AWS_ACCESS_KEY_ID"),
-		AWSSecretAccessKey:          os.Getenv("AWS_SECRET_ACCESS_KEY"),
+		AWSAccessKeyID:              getOptionalEnv("AWS_ACCESS_KEY_ID"),
+		AWSSecretAccessKey:          getOptionalEnv("AWS_SECRET_ACCESS_KEY"),
 		FaceMatchThreshold:          0.90,
 		FaceMatchManualReviewMin:    0.80,
 		JWTSecretKey:                getEnv("JWT_SECRET_KEY", ""),
-		FirebaseCredentialsJSON:     os.Getenv("FIREBASE_CREDENTIALS_JSON"),
-		APNsKeyID:                   os.Getenv("APNS_KEY_ID"),
-		APNsTeamID:                  os.Getenv("APNS_TEAM_ID"),
-		APNsAuthKey:                 os.Getenv("APNS_AUTH_KEY"),
+		FirebaseCredentialsJSON:     getOptionalEnv("FIREBASE_CREDENTIALS_JSON"),
+		APNsKeyID:                   getOptionalEnv("APNS_KEY_ID"),
+		APNsTeamID:                  getOptionalEnv("APNS_TEAM_ID"),
+		APNsAuthKey:                 getOptionalEnv("APNS_AUTH_KEY"),
 		APNsBundleID:                getEnv("APNS_BUNDLE_ID", "com.dryft.app"),
-		APNsProduction:              os.Getenv("APNS_PRODUCTION") == "true",
-		GoogleClientID:              os.Getenv("GOOGLE_CLIENT_ID"),
-		TwilioAccountSID:            os.Getenv("TWILIO_ACCOUNT_SID"),
-		TwilioAuthToken:             os.Getenv("TWILIO_AUTH_TOKEN"),
-		TwilioFromNumber:            os.Getenv("TWILIO_FROM_NUMBER"),
+		APNsProduction:              strings.EqualFold(getOptionalEnv("APNS_PRODUCTION"), "true"),
+		GoogleClientID:              getOptionalEnv("GOOGLE_CLIENT_ID"),
+		TwilioAccountSID:            getOptionalEnv("TWILIO_ACCOUNT_SID"),
+		TwilioAuthToken:             getOptionalEnv("TWILIO_AUTH_TOKEN"),
+		TwilioFromNumber:            getOptionalEnv("TWILIO_FROM_NUMBER"),
 		SESFromEmail:                getEnv("SES_FROM_EMAIL", "noreply@dryft.site"),
-		AppStoreSharedSecret:        os.Getenv("APPSTORE_SHARED_SECRET"),
+		AppStoreSharedSecret:        getOptionalEnv("APPSTORE_SHARED_SECRET"),
 		PlayStorePackageName:        getEnv("PLAYSTORE_PACKAGE_NAME", "com.dryft.app"),
-		PlayStoreServiceAccountJSON: os.Getenv("PLAYSTORE_SERVICE_ACCOUNT_JSON"),
+		PlayStoreServiceAccountJSON: getOptionalEnv("PLAYSTORE_SERVICE_ACCOUNT_JSON"),
 		S3Bucket:                    getEnv("S3_BUCKET", "dryft-uploads"),
 		S3Region:                    getEnv("S3_REGION", "us-east-1"),
-		S3Endpoint:                  os.Getenv("S3_ENDPOINT"),
+		S3Endpoint:                  getOptionalEnv("S3_ENDPOINT"),
 		RateLimitRequests:           getEnvInt("RATE_LIMIT_REQUESTS", 100),
 		RateLimitWindow:             getEnvDuration("RATE_LIMIT_WINDOW", 15*time.Minute),
+	}
+
+	for i := range cfg.AllowedOrigins {
+		cfg.AllowedOrigins[i] = strings.TrimSpace(cfg.AllowedOrigins[i])
 	}
 
 	if err := cfg.validate(); err != nil {
@@ -140,6 +145,27 @@ func Load() (*Config, error) {
 }
 
 func (c *Config) validate() error {
+	switch c.Environment {
+	case "development", "staging", "production":
+	default:
+		return fmt.Errorf("ENVIRONMENT must be one of development/staging/production")
+	}
+
+	if c.DatabaseURL == "" {
+		return fmt.Errorf("DATABASE_URL is required")
+	}
+	if err := validatePostgresURL(c.DatabaseURL); err != nil {
+		return err
+	}
+
+	if c.JWTSecretKey != "" && len(c.JWTSecretKey) < 32 {
+		return fmt.Errorf("JWT_SECRET_KEY must be at least 32 characters")
+	}
+
+	if c.S3Endpoint != "" && c.S3Bucket == "" {
+		return fmt.Errorf("S3_BUCKET is required when S3_ENDPOINT is set")
+	}
+
 	if c.Environment == "production" {
 		if c.EncryptionKey == "" {
 			return fmt.Errorf("ENCRYPTION_KEY is required in production")
@@ -153,9 +179,6 @@ func (c *Config) validate() error {
 		if c.JWTSecretKey == "" {
 			return fmt.Errorf("JWT_SECRET_KEY is required in production")
 		}
-		if len(c.JWTSecretKey) < 32 {
-			return fmt.Errorf("JWT_SECRET_KEY must be at least 32 characters in production")
-		}
 		// Note: Jumio is optional - app can use Stripe card verification only for age gating.
 		// Add Jumio credentials for full ID verification support.
 	}
@@ -167,10 +190,14 @@ func (c *Config) IsDevelopment() bool {
 }
 
 func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
+	if value := strings.TrimSpace(os.Getenv(key)); value != "" {
 		return value
 	}
-	return defaultValue
+	return strings.TrimSpace(defaultValue)
+}
+
+func getOptionalEnv(key string) string {
+	return strings.TrimSpace(os.Getenv(key))
 }
 
 func getEnvInt(key string, defaultValue int) int {
@@ -189,4 +216,15 @@ func getEnvDuration(key string, defaultValue time.Duration) time.Duration {
 		}
 	}
 	return defaultValue
+}
+
+func validatePostgresURL(raw string) error {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return fmt.Errorf("DATABASE_URL must be a valid postgres URL")
+	}
+	if u.Scheme != "postgres" && u.Scheme != "postgresql" {
+		return fmt.Errorf("DATABASE_URL must use postgres:// scheme")
+	}
+	return nil
 }
