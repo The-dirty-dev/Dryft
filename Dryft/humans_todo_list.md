@@ -85,3 +85,58 @@ Subtasks (remaining for HUMAN-Grant):
 - [x] **DreamHost support ticket filed (Mar 2 2026)** requesting Nginx WebSocket headers: `proxy_http_version 1.1;`, `proxy_set_header Upgrade $http_upgrade;`, `proxy_set_header Connection "upgrade";`. 24hr turnaround expected.
 - [ ] **After DreamHost Nginx fix**: Re-test `wss://api.dryft.site/v1/ws` — expect 101 Switching Protocols. Once confirmed, update all clients to use `wss://` instead of `ws://:8080`.
 - [x] Document the final proxy settings (empty path, port 8080) in DREAMHOST_DEPLOYMENT.md. *(Updated Mar 2 — includes dual-path architecture diagram, WebSocket verification commands, and pending Nginx fix note.)*
+- [x] **DreamHost confirmed (Mar 3 2026)**: Managed VPS Nginx proxy does NOT support custom directives (Upgrade, Connection headers). Will never support WebSocket proxying. **Decision: migrate to DreamCompute.**
+
+---
+
+### 6. DreamCompute Migration
+
+Status: **PLANNING** (Mar 3). DreamHost VPS cannot support WebSocket proxying. DreamCompute provides root-access Ubuntu VMs where we control Nginx directly. This migration replaces the managed VPS with a self-managed DreamCompute instance.
+
+**Context for Perplexity**: DreamHost DreamCompute is OpenStack-based cloud VMs. We need to move from a managed VPS (no root Nginx access) to a DreamCompute instance (full root, systemd, own Nginx). The infra files are already written — this is about provisioning the VM and cutting over.
+
+#### What's already done (by Codex)
+- `infra/nginx/api.dryft.site.conf` — production Nginx config with WebSocket upgrade, TLS, security headers
+- `infra/dryft-api.service` — systemd unit for `/opt/dryft/dryft-api`
+- `infra/scripts/setup-dreamcompute.sh` — idempotent provisioning script (apt, certbot, ufw, systemd)
+- `infra/ecosystem.config.js` — pm2 config (fallback/alternative to systemd)
+
+#### Phase 1: Provision DreamCompute VM
+- [ ] Log into DreamHost panel → DreamCompute → launch Ubuntu 22.04 instance
+- [ ] Pick instance size (start small: $4.50/mo 512MB or $6/mo 1GB — discuss with Perplexity based on Go memory footprint)
+- [ ] Assign a public floating IP
+- [ ] Set up SSH key access (add your existing pubkey)
+- [ ] Update DNS: point `api.dryft.site` A record to the new floating IP
+- [ ] Note the old VPS IP so you can revert DNS if needed
+
+#### Phase 2: Run setup script
+- [ ] SSH into the new instance as `ubuntu` (or whatever default user DreamCompute provides)
+- [ ] Clone the repo (or scp the infra/ directory)
+- [ ] Dry-run first: `sudo bash infra/scripts/setup-dreamcompute.sh --dry-run`
+- [ ] Review output, then run for real: `sudo bash infra/scripts/setup-dreamcompute.sh`
+- [ ] Verify: Nginx running, certbot cert obtained, UFW rules active, `dryft` user created
+
+#### Phase 3: Deploy the binary + env
+- [ ] Copy `.env.prod` to `/opt/dryft/.env.prod` on the new instance (update paths if needed)
+- [ ] Cross-compile and upload binary: `GOOS=linux GOARCH=amd64 go build -o dryft-api ./cmd/dryft-api` then scp to `/opt/dryft/dryft-api`
+- [ ] `sudo systemctl start dryft-api && sudo systemctl status dryft-api`
+- [ ] Check `journalctl -u dryft-api -f` for clean startup + Neon DB connection
+- [ ] Test: `curl -i https://api.dryft.site/health` (should return 200 through your own Nginx + LE cert)
+
+#### Phase 4: Verify WebSocket through Nginx (the whole point)
+- [ ] Test: `wscat -c wss://api.dryft.site/v1/ws` — expect 101 Switching Protocols
+- [ ] If 101 works: update all client defaults from `ws://api.dryft.site:8080` to `wss://api.dryft.site/v1/ws`
+- [ ] Remove port 8080 from UFW (no longer needed — all traffic through Nginx)
+- [ ] Celebrate: single-port TLS architecture achieved
+
+#### Phase 5: Decommission old VPS
+- [ ] Confirm everything works on DreamCompute for 24-48hrs
+- [ ] Cancel / downgrade the DreamHost managed VPS
+- [ ] Update `infra/DREAMHOST_DEPLOYMENT.md` and `RUNBOOK.md` with new SSH details and deploy paths
+
+#### Questions for Perplexity
+- DreamCompute instance sizing: 512MB vs 1GB for a Go binary + Nginx + certbot? (Go binary uses ~30-50MB at idle)
+- DreamCompute networking: is floating IP included or extra cost? Any bandwidth limits?
+- DreamCompute storage: boot volume size options? Need enough for binary + logs + certs
+- DNS TTL: what should we set before the cutover to minimize downtime?
+- Backup strategy: DreamCompute snapshots vs external backups?
