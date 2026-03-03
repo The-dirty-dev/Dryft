@@ -41,5 +41,8 @@ Dryft/backend/bin/
 *.log
 npm-debug.log*
 
+# === AWS credentials ===
+dryft-s3-uploader_accessKeys.csv
+
 # === Misc ===
 .claude/

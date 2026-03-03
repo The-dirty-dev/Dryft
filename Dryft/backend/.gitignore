@@ -29,3 +29,6 @@ coverage/
 
 # Prisma
 prisma/migrations/**/migration_lock.toml
+
+# AWS credentials
+dryft-s3-uploader_accessKeys.csv

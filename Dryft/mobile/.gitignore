@@ -74,3 +74,6 @@ temp/
 
 # Debug
 *.trace
+
+# AWS credentials
+dryft-s3-uploader_accessKeys.csv

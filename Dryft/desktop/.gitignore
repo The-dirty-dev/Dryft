@@ -1,3 +1,6 @@
 out/
 dist/
 release/
+
+# AWS credentials
+dryft-s3-uploader_accessKeys.csv

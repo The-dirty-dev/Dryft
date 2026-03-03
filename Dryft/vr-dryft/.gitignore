@@ -84,3 +84,6 @@ NormcoreAppSettings.asset
 
 # Recorder
 /Recordings/
+
+# AWS credentials
+dryft-s3-uploader_accessKeys.csv

@@ -11,3 +11,6 @@ node_modules/
 
 # Local secrets file outside repo root
 ../Secrets.rtf
+
+# AWS credentials
+dryft-s3-uploader_accessKeys.csv
