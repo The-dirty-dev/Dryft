@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"strings"
 
@@ -44,12 +45,14 @@ func (m *AuthMiddleware) RequireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token := extractBearerToken(r)
 		if token == "" {
+			log.Printf("[AUTH:RequireAuth] path=%s REJECT: no bearer token", r.URL.Path)
 			writeUnauthorized(w, "missing authorization token")
 			return
 		}
 
 		claims, err := m.validator.ValidateToken(token)
 		if err != nil {
+			log.Printf("[AUTH:RequireAuth] path=%s REJECT: token validation failed: %v", r.URL.Path, err)
 			writeUnauthorized(w, "invalid or expired token")
 			return
 		}
@@ -57,9 +60,12 @@ func (m *AuthMiddleware) RequireAuth(next http.Handler) http.Handler {
 		// Parse user ID
 		userID, err := uuid.Parse(claims.UserID)
 		if err != nil {
+			log.Printf("[AUTH:RequireAuth] path=%s REJECT: invalid user_id=%q: %v", r.URL.Path, claims.UserID, err)
 			writeUnauthorized(w, "invalid user ID in token")
 			return
 		}
+
+		log.Printf("[AUTH:RequireAuth] path=%s OK user=%s verified=%v", r.URL.Path, userID, claims.Verified)
 
 		// Set user context
 		ctx := context.WithValue(r.Context(), UserIDKey, userID)
@@ -88,12 +94,16 @@ func (m *AuthMiddleware) OptionalAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token := extractBearerToken(r)
 		if token == "" {
+			log.Printf("[AUTH:OptionalAuth] path=%s no bearer token, passing through unauthenticated", r.URL.Path)
 			next.ServeHTTP(w, r)
 			return
 		}
 
+		log.Printf("[AUTH:OptionalAuth] path=%s found bearer token (len=%d)", r.URL.Path, len(token))
+
 		claims, err := m.validator.ValidateToken(token)
 		if err != nil {
+			log.Printf("[AUTH:OptionalAuth] path=%s token validation FAILED: %v", r.URL.Path, err)
 			// Invalid token - continue without auth
 			next.ServeHTTP(w, r)
 			return
@@ -101,9 +111,12 @@ func (m *AuthMiddleware) OptionalAuth(next http.Handler) http.Handler {
 
 		userID, err := uuid.Parse(claims.UserID)
 		if err != nil {
+			log.Printf("[AUTH:OptionalAuth] path=%s invalid user_id in claims: %v", r.URL.Path, err)
 			next.ServeHTTP(w, r)
 			return
 		}
+
+		log.Printf("[AUTH:OptionalAuth] path=%s OK user=%s email=%s verified=%v", r.URL.Path, userID, claims.Email, claims.Verified)
 
 		ctx := context.WithValue(r.Context(), UserIDKey, userID)
 		ctx = context.WithValue(ctx, UserEmailKey, claims.Email)

@@ -5,7 +5,13 @@ This runbook covers common production issues and how to respond.
 Primary production endpoints:
 - Web app: `https://dryft.site`
 - API: `https://api.dryft.site`
-- WebSocket: `wss://api.dryft.site/v1/ws`
+- WebSocket: `ws://api.dryft.site:8080/v1/ws` (direct to Go, bypasses Nginx — see note below)
+- WebSocket (future): `wss://api.dryft.site/v1/ws` (pending DreamHost Nginx fix)
+
+> **WebSocket proxy status (Mar 2026):** DreamHost's Nginx strips `Upgrade`/`Connection`
+> headers, breaking `wss://` through the proxy. Support ticket submitted. Until resolved,
+> WebSocket clients must connect directly to port 8080 (no TLS). Native VR/mobile clients
+> can use `ws://` without issue. Web browsers in secure contexts may require `wss://`.
 
 ## 1. High Error Rate (>1%)
 
@@ -41,10 +47,20 @@ Primary production endpoints:
 
 ## 5. WebSocket Disconnects
 
-1. Confirm `wss://api.dryft.site/v1/ws` is reachable and TLS is terminating correctly.
-2. Verify the user is verified (WebSocket requires verification).
-3. Check `ALLOWED_ORIGINS` for web clients.
-4. Ensure load balancer supports WebSocket upgrades and idle timeouts.
+1. Test directly against the Go binary first (bypasses proxy issues):
+   ```bash
+   # From the VPS:
+   curl -v -H 'Upgrade: websocket' -H 'Connection: Upgrade' \
+     -H 'Sec-WebSocket-Version: 13' -H 'Sec-WebSocket-Key: test==' \
+     http://localhost:8080/v1/ws
+   # Expect: 401 (no token) or 101 (with valid token) — both confirm Go is healthy
+   ```
+2. If localhost works but external fails with 400: Nginx is stripping WebSocket headers.
+   Check DreamHost support ticket status. Workaround: connect to `ws://api.dryft.site:8080/v1/ws`.
+3. Verify the user is verified (`verified = true` required for WebSocket).
+4. Check `ALLOWED_ORIGINS` for web clients.
+5. Check server logs for `[WS] Upgrade FAILED` — indicates header stripping by proxy.
+6. Check for `http.Hijacker` errors — indicates middleware wrapping the response writer.
 
 ## 6. Push Notification Failures
 

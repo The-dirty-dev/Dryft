@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -43,6 +44,23 @@ import (
 	"github.com/dryft-app/backend/internal/storage"
 	"github.com/dryft-app/backend/internal/verification"
 )
+
+// skipForWebSocket wraps a middleware so it is bypassed for WebSocket upgrade
+// requests. This is needed because middleware like chi's Timeout wraps the
+// http.ResponseWriter with a type that does not implement http.Hijacker,
+// which gorilla/websocket requires to take over the TCP connection.
+func skipForWebSocket(mw func(http.Handler) http.Handler) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		wrapped := mw(next) // pre-build the wrapped handler
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if strings.EqualFold(r.Header.Get("Upgrade"), "websocket") {
+				next.ServeHTTP(w, r)
+				return
+			}
+			wrapped.ServeHTTP(w, r)
+		})
+	}
+}
 
 // tokenValidatorAdapter wraps auth.Service to implement middleware.TokenValidator
 type tokenValidatorAdapter struct {
@@ -497,7 +515,7 @@ func main() {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-	r.Use(middleware.Timeout(60 * time.Second))
+	r.Use(skipForWebSocket(middleware.Timeout(60 * time.Second)))
 	r.Use(metrics.Middleware)
 
 	// Request body size limit: 10 MB
@@ -721,9 +739,10 @@ func main() {
 			r.Post("/read-all", notifHandler.MarkAllRead)
 		})
 
-		// WebSocket endpoint (requires auth + verification)
+		// WebSocket endpoint (OptionalAuth so ?token= query param fallback works;
+		// ServeWS does its own auth check and rejects unauthenticated requests)
 		r.Route("/ws", func(r chi.Router) {
-			r.Use(authMiddleware.RequireAuth)
+			r.Use(authMiddleware.OptionalAuth)
 			r.Get("/", wsHandler.ServeWS)
 		})
 

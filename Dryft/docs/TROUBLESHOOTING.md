@@ -41,6 +41,39 @@ Common issues and fixes across the Dryft stack.
 - In production, ensure `ALLOWED_ORIGINS` includes the web domain.
 - Check network proxies allow WebSocket upgrades.
 
+## WebSocket 400 "Bad Request" in Production
+
+**Symptom:** `wss://api.dryft.site/v1/ws` returns 400, but `ws://api.dryft.site:8080/v1/ws` works.
+
+This is caused by DreamHost's Nginx proxy stripping `Upgrade` and `Connection` headers before forwarding to the Go backend. The Go app receives `Upgrade=""` and `Connection="close"` instead of the WebSocket upgrade headers.
+
+**Diagnosis:** Check the Go logs for:
+```
+[WS] upgrade headers: Upgrade="" Connection="close"
+[WS] Upgrade FAILED: websocket: the client is not using the websocket protocol
+```
+
+**Workaround:** Connect WebSocket clients directly to port 8080 (bypasses Nginx):
+- Native clients (VR/mobile): `ws://api.dryft.site:8080/v1/ws`
+- REST API still uses: `https://api.dryft.site` (through Nginx with TLS)
+
+**Permanent fix:** DreamHost must add to their Nginx proxy config:
+```nginx
+proxy_http_version 1.1;
+proxy_set_header Upgrade $http_upgrade;
+proxy_set_header Connection "upgrade";
+```
+
+## WebSocket 500 "Internal Server Error"
+
+**Symptom:** WebSocket returns 500 and logs show `response does not implement http.Hijacker`.
+
+This happens when middleware wraps the `http.ResponseWriter` with a type that doesn't implement `http.Hijacker`, which gorilla/websocket needs to take over the TCP connection.
+
+**Known culprits:**
+- Chi's `middleware.Timeout` — wraps with `timeoutWriter` (no Hijacker). Fixed by `skipForWebSocket()` wrapper in `main.go`.
+- Custom `metrics.Middleware` — wraps with `responseWriter`. Fixed by adding `Hijack()` method in `metrics.go`.
+
 ## Web Build Failures
 
 **Symptom:** Next.js build fails or missing env vars.

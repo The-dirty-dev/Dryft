@@ -9,6 +9,7 @@ import (
 	"github.com/gorilla/websocket"
 
 	"github.com/dryft-app/backend/internal/chat"
+	authmw "github.com/dryft-app/backend/internal/middleware"
 )
 
 // allowedOrigins is set at handler creation from config.
@@ -106,31 +107,47 @@ func CheckOrigin(r *http.Request) bool {
 // ServeWS handles WebSocket upgrade requests
 // GET /v1/ws
 func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
+	log.Printf("[WS] ServeWS called: method=%s path=%s hasAuthHeader=%v hasTokenParam=%v upgradeHeader=%q",
+		r.Method, r.URL.Path,
+		r.Header.Get("Authorization") != "",
+		r.URL.Query().Get("token") != "",
+		r.Header.Get("Upgrade"))
+
 	var userID uuid.UUID
 	var email string
 	var verified bool
+	var authMethod string
 
-	// Try to get user info from context (set by auth middleware)
-	if id, ok := getUserIDFromContext(r); ok {
+	// Try to get user info from context (set by OptionalAuth middleware)
+	if id, ok := authmw.GetUserID(r); ok {
+		authMethod = "middleware-context"
 		userID = id
-		email, _ = getUserEmailFromContext(r)
-		verified = isVerifiedFromContext(r)
+		email, _ = authmw.GetUserEmail(r)
+		verified = authmw.IsVerified(r)
+		log.Printf("[WS] auth via %s: user=%s email=%s verified=%v", authMethod, userID, email, verified)
 	} else if h.tokenValidator != nil {
 		// Fallback: check for token in query param (for browser WebSocket)
+		authMethod = "query-param"
 		token := r.URL.Query().Get("token")
 		if token == "" {
+			log.Printf("[WS] REJECT 401: no user in context AND no ?token= query param (Authorization header present: %v)",
+				r.Header.Get("Authorization") != "")
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
+		log.Printf("[WS] trying %s auth: token_len=%d", authMethod, len(token))
+
 		claims, err := h.tokenValidator.ValidateToken(token)
 		if err != nil {
+			log.Printf("[WS] REJECT 401: %s token validation failed: %v", authMethod, err)
 			http.Error(w, "Invalid token", http.StatusUnauthorized)
 			return
 		}
 
 		parsedID, err := uuid.Parse(claims.UserID)
 		if err != nil {
+			log.Printf("[WS] REJECT 401: invalid user_id in token claims: %q err=%v", claims.UserID, err)
 			http.Error(w, "Invalid user ID", http.StatusUnauthorized)
 			return
 		}
@@ -138,27 +155,40 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 		userID = parsedID
 		email = claims.Email
 		verified = claims.Verified
+		log.Printf("[WS] auth via %s: user=%s email=%s verified=%v", authMethod, userID, email, verified)
 
-		// Set context for downstream use
-		ctx := context.WithValue(r.Context(), userIDContextKey, userID)
-		ctx = context.WithValue(ctx, userEmailContextKey, email)
-		ctx = context.WithValue(ctx, verifiedContextKey, verified)
+		// Set context for downstream use (use middleware keys so all readers agree)
+		ctx := context.WithValue(r.Context(), authmw.UserIDKey, userID)
+		ctx = context.WithValue(ctx, authmw.UserEmailKey, email)
+		ctx = context.WithValue(ctx, authmw.VerifiedKey, verified)
 		r = r.WithContext(ctx)
 	} else {
+		log.Printf("[WS] REJECT 401: no user in context AND tokenValidator is nil")
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	// Require verification for WebSocket access
 	if !verified {
+		log.Printf("[WS] REJECT 403: user=%s is not verified (authMethod=%s)", userID, authMethod)
 		http.Error(w, "Age verification required", http.StatusForbidden)
 		return
 	}
 
+	log.Printf("[WS] auth OK (method=%s), upgrading connection: user=%s", authMethod, userID)
+
+	// Log all WebSocket-relevant headers so we can diagnose proxy issues
+	log.Printf("[WS] upgrade headers: Upgrade=%q Connection=%q Sec-WebSocket-Version=%q Sec-WebSocket-Key=%q",
+		r.Header.Get("Upgrade"),
+		r.Header.Get("Connection"),
+		r.Header.Get("Sec-WebSocket-Version"),
+		r.Header.Get("Sec-WebSocket-Key"))
+
 	// Upgrade to WebSocket
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("[WS] Upgrade error: %v", err)
+		log.Printf("[WS] Upgrade FAILED for user=%s: %v (headers: Upgrade=%q Connection=%q)",
+			userID, err, r.Header.Get("Upgrade"), r.Header.Get("Connection"))
 		return
 	}
 
@@ -168,7 +198,7 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 	// Register with hub
 	h.hub.register <- client
 
-	log.Printf("[WS] New connection: user=%s", userID)
+	log.Printf("[WS] New connection established: user=%s email=%s", userID, email)
 
 	// Start read/write pumps
 	go client.WritePump()
@@ -180,32 +210,5 @@ func (h *Handler) GetHub() *Hub {
 	return h.hub
 }
 
-// Helper functions to extract from context
-type contextKey string
-
-const (
-	userIDContextKey   contextKey = "user_id"
-	userEmailContextKey contextKey = "user_email"
-	verifiedContextKey  contextKey = "user_verified"
-)
-
-func getUserIDFromContext(r *http.Request) (uuid.UUID, bool) {
-	if id, ok := r.Context().Value(userIDContextKey).(uuid.UUID); ok {
-		return id, true
-	}
-	return uuid.Nil, false
-}
-
-func getUserEmailFromContext(r *http.Request) (string, bool) {
-	if email, ok := r.Context().Value(userEmailContextKey).(string); ok {
-		return email, true
-	}
-	return "", false
-}
-
-func isVerifiedFromContext(r *http.Request) bool {
-	if verified, ok := r.Context().Value(verifiedContextKey).(bool); ok {
-		return verified
-	}
-	return false
-}
+// Context helpers now use authmw.GetUserID, authmw.GetUserEmail, authmw.IsVerified
+// (middleware package owns the context key type, avoiding type-mismatch bugs)

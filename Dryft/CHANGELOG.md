@@ -4,7 +4,10 @@ All notable changes to Drift will be documented in this file.
 
 ## [Unreleased]
 
-- Track changes after the v1.0 launch.
+### Fixed — 2026-03-02
+
+- **WebSocket production deployment**: Fixed three cascading bugs preventing WebSocket connections (auth context key mismatch, missing `http.Hijacker` on metrics response writer, Timeout middleware wrapping). WebSocket now works end-to-end.
+- **Known limitation**: DreamHost's Nginx proxy strips WebSocket `Upgrade`/`Connection` headers. Support ticket submitted. Workaround: WebSocket clients connect directly to port 8080 (`ws://api.dryft.site:8080/v1/ws`) while REST API uses the TLS proxy (`https://api.dryft.site`).
 
 ## [1.0.0] - 2026-02-11 (planned)
 

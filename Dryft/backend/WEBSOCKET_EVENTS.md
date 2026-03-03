@@ -15,7 +15,9 @@ the exact event names and payload shapes described here.
 
 | Property | Value |
 |---|---|
-| Endpoint | `wss://<host>/v1/ws` |
+| Endpoint (production) | `ws://api.dryft.site:8080/v1/ws` (direct — see note) |
+| Endpoint (after Nginx fix) | `wss://api.dryft.site/v1/ws` |
+| Endpoint (local dev) | `ws://localhost:8080/v1/ws` |
 | Auth | `Authorization: Bearer <JWT>` header (mobile/VR) or `?token=<JWT>` query param (browser) |
 | Prerequisite | User must be age-verified (`verified = true`) |
 | Max message size | 4096 bytes |

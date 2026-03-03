@@ -11,20 +11,31 @@
 ## Architecture
 
 ```
-Browser / Mobile
+Browser / Mobile / VR
       │
-      │ HTTPS  (TLS managed by DreamHost Panel + Let's Encrypt)
-      ▼
-DreamHost Panel Proxy  (api.dryft.site → http://127.0.0.1:8080)
+      ├── HTTPS :443  (REST API — TLS managed by DreamHost/Let's Encrypt)
+      │        ▼
+      │   Nginx (DreamHost-managed, /etc/nginx-httpd-vps40055/)
+      │        │  ⚠ Strips Upgrade/Connection headers (no WebSocket support)
+      │        │  HTTP/1.0 on loopback
+      │        ▼
+      │   dryft-api binary (:8080)
       │
-      │ HTTP on loopback
-      ▼
-dryft-api binary  (runs as thedirtyadmin, managed by pm2 or nohup)
-      │
-      ├── PostgreSQL → Neon (serverless, managed, free tier)
-      ├── Redis     → not used (in-memory fallback built into backend)
-      └── Storage   → Cloudflare R2 (S3-compatible, free 10 GB)
+      └── ws:// :8080  (WebSocket — direct to Go, bypasses Nginx)
+                 ▼
+            dryft-api binary (:8080)
+                 │
+                 ├── PostgreSQL → Neon (serverless, managed, free tier)
+                 ├── Redis     → not used (in-memory fallback built into backend)
+                 └── Storage   → Cloudflare R2 (S3-compatible, free 10 GB)
 ```
+
+> **WebSocket note (Mar 2026):** DreamHost's Nginx proxy does not forward `Upgrade`
+> and `Connection` headers, so `wss://api.dryft.site/v1/ws` returns 400. Port 8080 is
+> directly accessible from the internet, so WebSocket clients connect there instead.
+> A support ticket has been filed to add `proxy_set_header Upgrade $http_upgrade;`
+> and `proxy_set_header Connection "upgrade";` to the Nginx config. Once resolved,
+> all traffic can go through the Nginx TLS proxy on :443.
 
 ---
 
@@ -281,22 +292,48 @@ pm2 logs dryft-api --lines 50
 tail -f ~/api.dryft.site/opt/dryft/dryft.log
 ```
 
-### WebSocket verification (Nginx-specific)
+### WebSocket verification
 
-DreamHost's Nginx proxy must forward WebSocket upgrade headers. Test with:
+WebSocket currently bypasses Nginx and connects directly to Go on port 8080:
 
 ```bash
-# Install wscat if needed: npm install -g wscat
-wscat -c wss://api.dryft.site/v1/ws
+# 1. Get a token
+TOKEN=$(curl -s -X POST http://localhost:8080/v1/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"test@example.com","password":"..."}' \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['tokens']['access_token'])")
+
+# 2. Test WebSocket on localhost (from VPS)
+curl -v -H "Authorization: Bearer $TOKEN" \
+  -H 'Upgrade: websocket' -H 'Connection: Upgrade' \
+  -H 'Sec-WebSocket-Version: 13' -H 'Sec-WebSocket-Key: test==' \
+  http://localhost:8080/v1/ws
+# Expect: HTTP/1.1 101 Switching Protocols
+
+# 3. Test WebSocket from external (direct port 8080)
+# From any machine:
+curl -v -H "Authorization: Bearer $TOKEN" \
+  -H 'Upgrade: websocket' -H 'Connection: Upgrade' \
+  -H 'Sec-WebSocket-Version: 13' -H 'Sec-WebSocket-Key: test==' \
+  http://api.dryft.site:8080/v1/ws
+# Expect: HTTP/1.1 101 Switching Protocols
+
+# 4. Test through Nginx proxy (currently BROKEN — pending support ticket)
+curl -v --http1.1 -H "Authorization: Bearer $TOKEN" \
+  -H 'Upgrade: websocket' -H 'Connection: Upgrade' \
+  -H 'Sec-WebSocket-Version: 13' -H 'Sec-WebSocket-Key: test==' \
+  https://api.dryft.site/v1/ws
+# Current: HTTP/1.1 400 Bad Request (Nginx strips Upgrade header)
+# After fix: HTTP/1.1 101 Switching Protocols
 ```
 
-If the connection is immediately rejected (not a 401/403 auth error, but a protocol error),
-DreamHost's Nginx config is missing the WebSocket proxy headers. File a support ticket asking
-them to add to the proxy config for `api.dryft.site`:
-```
+**Nginx WebSocket fix (pending):** DreamHost support ticket filed Mar 2 2026. Requesting:
+```nginx
+proxy_http_version 1.1;
 proxy_set_header Upgrade $http_upgrade;
 proxy_set_header Connection "upgrade";
 ```
+Once applied, clients can use `wss://api.dryft.site/v1/ws` through the TLS proxy.
 
 ---
 
