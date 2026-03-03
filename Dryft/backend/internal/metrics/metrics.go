@@ -2,6 +2,9 @@
 package metrics
 
 import (
+	"bufio"
+	"fmt"
+	"net"
 	"net/http"
 	"strconv"
 	"time"
@@ -141,6 +144,15 @@ type responseWriter struct {
 func (rw *responseWriter) WriteHeader(code int) {
 	rw.statusCode = code
 	rw.ResponseWriter.WriteHeader(code)
+}
+
+// Hijack delegates hijacking to the underlying writer when supported.
+func (rw *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	hijacker, ok := rw.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, fmt.Errorf("response writer does not support hijacking")
+	}
+	return hijacker.Hijack()
 }
 
 // RecordWebSocketConnect increments the active WebSocket connection count

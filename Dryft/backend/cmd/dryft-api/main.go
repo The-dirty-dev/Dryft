@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -32,15 +33,15 @@ import (
 	"github.com/dryft-app/backend/internal/marketplace"
 	"github.com/dryft-app/backend/internal/matching"
 	"github.com/dryft-app/backend/internal/metrics"
-	"github.com/dryft-app/backend/internal/safety"
-	"github.com/dryft-app/backend/internal/session"
-	"github.com/dryft-app/backend/internal/settings"
-	"github.com/dryft-app/backend/internal/subscription"
 	authmw "github.com/dryft-app/backend/internal/middleware"
 	"github.com/dryft-app/backend/internal/notifications"
 	"github.com/dryft-app/backend/internal/profile"
 	"github.com/dryft-app/backend/internal/realtime"
+	"github.com/dryft-app/backend/internal/safety"
+	"github.com/dryft-app/backend/internal/session"
+	"github.com/dryft-app/backend/internal/settings"
 	"github.com/dryft-app/backend/internal/storage"
+	"github.com/dryft-app/backend/internal/subscription"
 	"github.com/dryft-app/backend/internal/verification"
 )
 
@@ -497,7 +498,7 @@ func main() {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-	r.Use(middleware.Timeout(60 * time.Second))
+	r.Use(skipForWebSocket(middleware.Timeout(60 * time.Second)))
 	r.Use(metrics.Middleware)
 
 	// Request body size limit: 10 MB
@@ -723,7 +724,7 @@ func main() {
 
 		// WebSocket endpoint (requires auth + verification)
 		r.Route("/ws", func(r chi.Router) {
-			r.Use(authMiddleware.RequireAuth)
+			r.Use(authMiddleware.OptionalAuth)
 			r.Get("/", wsHandler.ServeWS)
 		})
 
@@ -918,4 +919,22 @@ func main() {
 	}
 
 	slog.Info("server stopped")
+}
+
+// skipForWebSocket bypasses a middleware for websocket upgrade requests.
+func skipForWebSocket(mw func(http.Handler) http.Handler) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		wrapped := mw(next)
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if isWebSocketUpgrade(r) {
+				next.ServeHTTP(w, r)
+				return
+			}
+			wrapped.ServeHTTP(w, r)
+		})
+	}
+}
+
+func isWebSocketUpgrade(r *http.Request) bool {
+	return strings.EqualFold(r.Header.Get("Upgrade"), "websocket")
 }

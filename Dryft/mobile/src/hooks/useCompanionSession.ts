@@ -2,8 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import * as sessionApi from '../api/session';
 import { useHaptic } from './useHaptic';
 import apiClient from '../api/client';
-
-const WS_URL = process.env.EXPO_PUBLIC_WS_URL || 'ws://localhost:8080/v1/ws';
+import { WS_BASE_URL } from '../config';
 
 export interface ChatMessage {
   id: string;
@@ -59,7 +58,7 @@ export function useCompanionSession() {
   const connectWebSocket = useCallback((token: string) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
-    const ws = new WebSocket(`${WS_URL}?token=${token}`);
+    const ws = new WebSocket(`${WS_BASE_URL}?token=${token}`);
 
     ws.onopen = () => {
       console.log('[CompanionSession] WebSocket connected');

@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '@/config';
+import { WS_BASE_URL } from '@/config';
 import { getToken } from '@/store/authStore';
 
 /**
@@ -136,11 +136,8 @@ class ChatSocketService {
         return;
       }
 
-      // Convert http(s) to ws(s)
-      const wsUrl = API_BASE_URL.replace(/^http/, 'ws') + '/v1/ws';
-
       try {
-        this.socket = new WebSocket(wsUrl, [], {
+        this.socket = new WebSocket(WS_BASE_URL, [], {
           headers: {
             Authorization: `Bearer ${token}`,
           },

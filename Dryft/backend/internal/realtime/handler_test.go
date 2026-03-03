@@ -19,7 +19,8 @@ import (
 
 // mockTokenValidator validates tokens for testing
 type mockTokenValidator struct {
-	tokens map[string]*TokenClaims
+	tokens             map[string]*TokenClaims
+	lastValidatedToken string
 }
 
 func newMockTokenValidator() *mockTokenValidator {
@@ -33,6 +34,7 @@ func (v *mockTokenValidator) AddToken(token string, claims *TokenClaims) {
 }
 
 func (v *mockTokenValidator) ValidateToken(token string) (*TokenClaims, error) {
+	v.lastValidatedToken = token
 	if claims, ok := v.tokens[token]; ok {
 		return claims, nil
 	}
@@ -158,6 +160,39 @@ func TestHandler_Unauthorized_NoToken(t *testing.T) {
 	}
 	if resp != nil && resp.StatusCode != http.StatusUnauthorized {
 		t.Errorf("expected 401, got %d", resp.StatusCode)
+	}
+}
+
+func TestExtractTokenFromQuery(t *testing.T) {
+	req := httptest.NewRequest("GET", "/ws?token=%20abc.def.ghi%20", nil)
+	got := extractTokenFromQuery(req)
+	if got != "abc.def.ghi" {
+		t.Fatalf("expected trimmed token, got %q", got)
+	}
+}
+
+func TestHandler_UsesTokenFromQueryParam(t *testing.T) {
+	hub := NewHub()
+	validator := newMockTokenValidator()
+	handler := NewHandlerWithAuth(hub, nil, validator, nil)
+
+	validator.AddToken("query-token", &TokenClaims{
+		UserID:   "not-a-uuid",
+		Email:    "query@example.com",
+		Verified: true,
+	})
+
+	req := httptest.NewRequest("GET", "/ws?token=query-token", nil)
+	rr := httptest.NewRecorder()
+
+	handler.ServeWS(rr, req)
+
+	if validator.lastValidatedToken != "query-token" {
+		t.Fatalf("expected validator to receive query token, got %q", validator.lastValidatedToken)
+	}
+
+	if rr.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status %d, got %d", http.StatusUnauthorized, rr.Code)
 	}
 }
 

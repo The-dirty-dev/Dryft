@@ -5,8 +5,9 @@ import {
   MediaStream,
   RTCPeerConnection,
 } from 'react-native-webrtc';
+import { WS_ORIGIN_URL } from '../config';
 
-const WS_URL = process.env.EXPO_PUBLIC_WS_URL || 'ws://localhost:8080';
+const WS_URL = WS_ORIGIN_URL || (__DEV__ ? 'ws://localhost:8080' : 'ws://api.dryft.site:8080');
 
 export interface VoiceParticipant {
   id: string;

@@ -34,10 +34,10 @@ type Config struct {
 	StripePublishableKey       string
 
 	// Jumio
-	JumioAPIToken    string
-	JumioAPISecret   string
+	JumioAPIToken      string
+	JumioAPISecret     string
 	JumioWebhookSecret string
-	JumioBaseURL     string
+	JumioBaseURL       string
 
 	// AWS (for Rekognition fallback)
 	AWSRegion          string
@@ -76,7 +76,7 @@ type Config struct {
 	AppStoreSharedSecret string
 
 	// Play Store (Android receipt validation)
-	PlayStorePackageName      string
+	PlayStorePackageName        string
 	PlayStoreServiceAccountJSON string // JSON contents of Google service account key
 
 	// S3 (Photo Storage)
@@ -91,45 +91,45 @@ type Config struct {
 
 func Load() (*Config, error) {
 	cfg := &Config{
-		Port:                     getEnv("PORT", "8080"),
-		Environment:              getEnv("ENVIRONMENT", "development"),
-		AllowedOrigins:           strings.Split(getEnv("ALLOWED_ORIGINS", "http://localhost:3000"), ","),
-		DatabaseURL:              getEnv("DATABASE_URL", "postgres://dryft:dryft@localhost:5432/dryft?sslmode=disable"),
-		RedisURL:                 os.Getenv("REDIS_URL"),
-		EncryptionKey:            os.Getenv("ENCRYPTION_KEY"),
-		StripeSecretKey:            os.Getenv("STRIPE_SECRET_KEY"),
-		StripeWebhookSecret:        os.Getenv("STRIPE_WEBHOOK_SECRET"),
-		StripeConnectWebhookSecret: os.Getenv("STRIPE_CONNECT_WEBHOOK_SECRET"),
-		StripePublishableKey:       os.Getenv("STRIPE_PUBLISHABLE_KEY"),
-		JumioAPIToken:            os.Getenv("JUMIO_API_TOKEN"),
-		JumioAPISecret:           os.Getenv("JUMIO_API_SECRET"),
-		JumioWebhookSecret:       os.Getenv("JUMIO_WEBHOOK_SECRET"),
-		JumioBaseURL:             getEnv("JUMIO_BASE_URL", "https://netverify.com/api/v4"),
-		AWSRegion:                getEnv("AWS_REGION", "us-east-1"),
-		AWSAccessKeyID:           os.Getenv("AWS_ACCESS_KEY_ID"),
-		AWSSecretAccessKey:       os.Getenv("AWS_SECRET_ACCESS_KEY"),
-		FaceMatchThreshold:       0.90,
-		FaceMatchManualReviewMin: 0.80,
-		JWTSecretKey:             getEnv("JWT_SECRET_KEY", ""),
-		FirebaseCredentialsJSON:  os.Getenv("FIREBASE_CREDENTIALS_JSON"),
-		APNsKeyID:                os.Getenv("APNS_KEY_ID"),
-		APNsTeamID:               os.Getenv("APNS_TEAM_ID"),
-		APNsAuthKey:              os.Getenv("APNS_AUTH_KEY"),
-		APNsBundleID:             getEnv("APNS_BUNDLE_ID", "com.dryft.app"),
-		APNsProduction:           os.Getenv("APNS_PRODUCTION") == "true",
-		GoogleClientID:           os.Getenv("GOOGLE_CLIENT_ID"),
-		TwilioAccountSID:           os.Getenv("TWILIO_ACCOUNT_SID"),
-		TwilioAuthToken:            os.Getenv("TWILIO_AUTH_TOKEN"),
-		TwilioFromNumber:           os.Getenv("TWILIO_FROM_NUMBER"),
-		SESFromEmail:               getEnv("SES_FROM_EMAIL", "noreply@dryft.site"),
-		AppStoreSharedSecret:       os.Getenv("APPSTORE_SHARED_SECRET"),
-		PlayStorePackageName:       getEnv("PLAYSTORE_PACKAGE_NAME", "com.dryft.app"),
+		Port:                        getEnv("PORT", "8080"),
+		Environment:                 getEnv("ENVIRONMENT", "development"),
+		AllowedOrigins:              strings.Split(getEnv("ALLOWED_ORIGINS", "http://localhost:3000"), ","),
+		DatabaseURL:                 getEnv("DATABASE_URL", "postgres://dryft:dryft@localhost:5432/dryft?sslmode=disable"),
+		RedisURL:                    os.Getenv("REDIS_URL"),
+		EncryptionKey:               os.Getenv("ENCRYPTION_KEY"),
+		StripeSecretKey:             os.Getenv("STRIPE_SECRET_KEY"),
+		StripeWebhookSecret:         os.Getenv("STRIPE_WEBHOOK_SECRET"),
+		StripeConnectWebhookSecret:  os.Getenv("STRIPE_CONNECT_WEBHOOK_SECRET"),
+		StripePublishableKey:        os.Getenv("STRIPE_PUBLISHABLE_KEY"),
+		JumioAPIToken:               os.Getenv("JUMIO_API_TOKEN"),
+		JumioAPISecret:              os.Getenv("JUMIO_API_SECRET"),
+		JumioWebhookSecret:          os.Getenv("JUMIO_WEBHOOK_SECRET"),
+		JumioBaseURL:                getEnv("JUMIO_BASE_URL", "https://netverify.com/api/v4"),
+		AWSRegion:                   getEnv("AWS_REGION", "us-east-1"),
+		AWSAccessKeyID:              os.Getenv("AWS_ACCESS_KEY_ID"),
+		AWSSecretAccessKey:          os.Getenv("AWS_SECRET_ACCESS_KEY"),
+		FaceMatchThreshold:          0.90,
+		FaceMatchManualReviewMin:    0.80,
+		JWTSecretKey:                getEnv("JWT_SECRET_KEY", ""),
+		FirebaseCredentialsJSON:     os.Getenv("FIREBASE_CREDENTIALS_JSON"),
+		APNsKeyID:                   os.Getenv("APNS_KEY_ID"),
+		APNsTeamID:                  os.Getenv("APNS_TEAM_ID"),
+		APNsAuthKey:                 os.Getenv("APNS_AUTH_KEY"),
+		APNsBundleID:                getEnv("APNS_BUNDLE_ID", "com.dryft.app"),
+		APNsProduction:              os.Getenv("APNS_PRODUCTION") == "true",
+		GoogleClientID:              os.Getenv("GOOGLE_CLIENT_ID"),
+		TwilioAccountSID:            os.Getenv("TWILIO_ACCOUNT_SID"),
+		TwilioAuthToken:             os.Getenv("TWILIO_AUTH_TOKEN"),
+		TwilioFromNumber:            os.Getenv("TWILIO_FROM_NUMBER"),
+		SESFromEmail:                getEnv("SES_FROM_EMAIL", "noreply@dryft.site"),
+		AppStoreSharedSecret:        os.Getenv("APPSTORE_SHARED_SECRET"),
+		PlayStorePackageName:        getEnv("PLAYSTORE_PACKAGE_NAME", "com.dryft.app"),
 		PlayStoreServiceAccountJSON: os.Getenv("PLAYSTORE_SERVICE_ACCOUNT_JSON"),
-		S3Bucket:                 getEnv("S3_BUCKET", "dryft-uploads"),
-		S3Region:                 getEnv("S3_REGION", "us-east-1"),
-		S3Endpoint:               os.Getenv("S3_ENDPOINT"),
-		RateLimitRequests:        getEnvInt("RATE_LIMIT_REQUESTS", 100),
-		RateLimitWindow:          getEnvDuration("RATE_LIMIT_WINDOW", 15*time.Minute),
+		S3Bucket:                    getEnv("S3_BUCKET", "dryft-uploads"),
+		S3Region:                    getEnv("S3_REGION", "us-east-1"),
+		S3Endpoint:                  os.Getenv("S3_ENDPOINT"),
+		RateLimitRequests:           getEnvInt("RATE_LIMIT_REQUESTS", 100),
+		RateLimitWindow:             getEnvDuration("RATE_LIMIT_WINDOW", 15*time.Minute),
 	}
 
 	if err := cfg.validate(); err != nil {

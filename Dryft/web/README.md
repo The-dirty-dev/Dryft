@@ -30,7 +30,7 @@ The app runs on `http://localhost:3000` by default.
 The web app reads these `NEXT_PUBLIC_*` variables at build/runtime. Defaults are used when unset, so local development works without a `.env` file.
 
 - `NEXT_PUBLIC_API_URL` (default: `http://localhost:8080`)
-- `NEXT_PUBLIC_WS_URL` (default: `ws://localhost:8080/v1/ws`)
+- `NEXT_PUBLIC_WS_URL` (default: `ws://api.dryft.site:8080/v1/ws` in production, `ws://localhost:8080/v1/ws` in development; switch to `wss://api.dryft.site/v1/ws` when DreamHost proxy websocket headers are fixed)
 - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
 - `NEXT_PUBLIC_FIREBASE_API_KEY`
 - `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
@@ -56,7 +56,7 @@ npm run test:coverage # Coverage
 
 - **App Router pages** live in `web/src/app`, organized by feature route (e.g., `discover`, `messages`, `settings`).
 - **API access** is centralized in `web/src/lib/api.ts` and related helpers.
-- **WebSocket chat** logic lives in `web/src/lib/chatSocket.ts` with `NEXT_PUBLIC_WS_URL` as the default endpoint.
+- **WebSocket chat** logic lives in `web/src/lib/chatSocket.ts`, using `NEXT_PUBLIC_WS_URL` when provided and a production fallback of `ws://api.dryft.site:8080/v1/ws`.
 - **State** is managed with Zustand stores under `web/src/store`.
 - **Shared UI** components live in `web/src/components` and feature-specific components under subfolders (e.g., `calls`).
 

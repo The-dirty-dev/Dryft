@@ -2,8 +2,9 @@ package realtime
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -117,7 +118,7 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 		verified = isVerifiedFromContext(r)
 	} else if h.tokenValidator != nil {
 		// Fallback: check for token in query param (for browser WebSocket)
-		token := r.URL.Query().Get("token")
+		token := extractTokenFromQuery(r)
 		if token == "" {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
@@ -158,7 +159,7 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 	// Upgrade to WebSocket
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("[WS] Upgrade error: %v", err)
+		slog.Warn("websocket upgrade failed", "error", err)
 		return
 	}
 
@@ -168,7 +169,7 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 	// Register with hub
 	h.hub.register <- client
 
-	log.Printf("[WS] New connection: user=%s", userID)
+	slog.Debug("websocket connected", "user_id", userID.String())
 
 	// Start read/write pumps
 	go client.WritePump()
@@ -184,7 +185,7 @@ func (h *Handler) GetHub() *Hub {
 type contextKey string
 
 const (
-	userIDContextKey   contextKey = "user_id"
+	userIDContextKey    contextKey = "user_id"
 	userEmailContextKey contextKey = "user_email"
 	verifiedContextKey  contextKey = "user_verified"
 )
@@ -208,4 +209,8 @@ func isVerifiedFromContext(r *http.Request) bool {
 		return verified
 	}
 	return false
+}
+
+func extractTokenFromQuery(r *http.Request) string {
+	return strings.TrimSpace(r.URL.Query().Get("token"))
 }

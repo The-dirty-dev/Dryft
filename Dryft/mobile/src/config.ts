@@ -1,8 +1,16 @@
 // API Configuration
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8080';
+export const API_BASE_URL =
+  process.env.EXPO_PUBLIC_API_URL || (__DEV__ ? 'http://localhost:8080' : 'https://api.dryft.site');
 
 // WebSocket Configuration
-export const WS_BASE_URL = API_BASE_URL.replace(/^http/, 'ws');
+const DEFAULT_WS_URL = __DEV__
+  ? 'ws://localhost:8080/v1/ws'
+  : 'ws://api.dryft.site:8080/v1/ws';
+
+// Temporary production default while DreamHost websocket proxy headers are pending.
+// Override with EXPO_PUBLIC_WS_URL=wss://api.dryft.site/v1/ws once proxy support is fixed.
+export const WS_BASE_URL = process.env.EXPO_PUBLIC_WS_URL || DEFAULT_WS_URL;
+export const WS_ORIGIN_URL = WS_BASE_URL.replace(/\/v1\/ws\/?$/, '');
 
 // Timeouts
 export const REQUEST_TIMEOUT = 30000; // 30 seconds

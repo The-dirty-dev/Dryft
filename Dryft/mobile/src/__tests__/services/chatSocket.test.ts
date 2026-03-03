@@ -2,6 +2,8 @@ import chatSocketService from '../../services/chatSocket';
 
 jest.mock('@/config', () => ({
   API_BASE_URL: 'http://localhost:8080',
+  WS_BASE_URL: 'ws://localhost:8080/v1/ws',
+  WS_ORIGIN_URL: 'ws://localhost:8080',
 }), { virtual: true });
 
 jest.mock('@/store/authStore', () => ({

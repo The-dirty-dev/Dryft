@@ -41,7 +41,7 @@ These are `NEXT_PUBLIC_*` variables consumed by Next.js at build/runtime.
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `NEXT_PUBLIC_API_URL` | No | `http://localhost:8080` | Backend API base URL. |
-| `NEXT_PUBLIC_WS_URL` | No | `ws://localhost:8080/v1/ws` | WebSocket URL. |
+| `NEXT_PUBLIC_WS_URL` | No | `ws://api.dryft.site:8080/v1/ws` (prod), `ws://localhost:8080/v1/ws` (dev) | WebSocket URL. Set to `wss://api.dryft.site/v1/ws` after DreamHost proxy websocket headers are fixed. |
 | `NEXT_PUBLIC_SENTRY_DSN` | No | - | Sentry DSN for web client error reporting. |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | No | - | Stripe publishable key. |
 | `NEXT_PUBLIC_FIREBASE_API_KEY` | No | - | Firebase API key. |
@@ -57,7 +57,7 @@ These are `NEXT_PUBLIC_*` variables consumed by Next.js at build/runtime.
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `EXPO_PUBLIC_API_URL` | Yes | `https://api.dryft.site` | Backend API URL. |
-| `EXPO_PUBLIC_WS_URL` | No | `wss://api.dryft.site/v1/ws` | WebSocket URL. |
+| `EXPO_PUBLIC_WS_URL` | No | `ws://api.dryft.site:8080/v1/ws` (prod), `ws://localhost:8080/v1/ws` (dev) | WebSocket URL. Set to `wss://api.dryft.site/v1/ws` after DreamHost proxy websocket headers are fixed. |
 | `EXPO_PUBLIC_GOOGLE_CLIENT_ID` | No | - | Google OAuth client ID. |
 | `EXPO_PUBLIC_APPLE_CLIENT_ID` | No | - | Apple OAuth client ID. |
 | `EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Yes (payments) | - | Stripe publishable key. |

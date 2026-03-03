@@ -41,13 +41,13 @@ type VerificationAttempt struct {
 	StripeCardBrand  *string    `json:"stripe_card_brand,omitempty"`
 
 	// Jumio ID verification
-	JumioScanRef        *string     `json:"-"` // Internal reference
-	JumioStatus         JumioStatus `json:"jumio_status"`
-	JumioVerifiedAt     *time.Time  `json:"jumio_verified_at,omitempty"`
-	JumioDOB            *time.Time  `json:"-"` // PII - never expose
-	JumioDocumentType   *string     `json:"jumio_document_type,omitempty"`
-	JumioDocumentCountry *string    `json:"jumio_document_country,omitempty"`
-	JumioRejectionReason *string    `json:"jumio_rejection_reason,omitempty"`
+	JumioScanRef         *string     `json:"-"` // Internal reference
+	JumioStatus          JumioStatus `json:"jumio_status"`
+	JumioVerifiedAt      *time.Time  `json:"jumio_verified_at,omitempty"`
+	JumioDOB             *time.Time  `json:"-"` // PII - never expose
+	JumioDocumentType    *string     `json:"jumio_document_type,omitempty"`
+	JumioDocumentCountry *string     `json:"jumio_document_country,omitempty"`
+	JumioRejectionReason *string     `json:"jumio_rejection_reason,omitempty"`
 
 	// Face match
 	FaceMatchScore  *float64 `json:"-"` // Internal score
@@ -55,14 +55,14 @@ type VerificationAttempt struct {
 	FaceMatchMethod *string  `json:"-"` // Internal
 
 	// Overall status
-	OverallStatus    VerificationStatus `json:"overall_status"`
-	RejectionReason  *string            `json:"rejection_reason,omitempty"`
-	ReviewedBy       *uuid.UUID         `json:"-"`
-	ReviewedAt       *time.Time         `json:"reviewed_at,omitempty"`
+	OverallStatus   VerificationStatus `json:"overall_status"`
+	RejectionReason *string            `json:"rejection_reason,omitempty"`
+	ReviewedBy      *uuid.UUID         `json:"-"`
+	ReviewedAt      *time.Time         `json:"reviewed_at,omitempty"`
 
 	// Retry tracking
-	RetryCount        int        `json:"retry_count"`
-	LastRetryAt       *time.Time `json:"last_retry_at,omitempty"`
+	RetryCount         int        `json:"retry_count"`
+	LastRetryAt        *time.Time `json:"last_retry_at,omitempty"`
 	RetryCooldownUntil *time.Time `json:"retry_cooldown_until,omitempty"`
 
 	CreatedAt time.Time `json:"created_at"`
@@ -133,11 +133,11 @@ type IDVerificationInitResponse struct {
 // JumioWebhookPayload represents the webhook from Jumio
 // LEGAL NOTE: Contains verification results. Log and audit appropriately.
 type JumioWebhookPayload struct {
-	ScanReference   string `json:"scanReference"`
-	TransactionDate string `json:"transactionDate"`
+	ScanReference      string `json:"scanReference"`
+	TransactionDate    string `json:"transactionDate"`
 	VerificationStatus string `json:"verificationStatus"` // APPROVED_VERIFIED, DENIED_*
-	Document        struct {
-		Type      string `json:"type"`      // PASSPORT, DRIVERS_LICENSE, ID_CARD
+	Document           struct {
+		Type      string `json:"type"` // PASSPORT, DRIVERS_LICENSE, ID_CARD
 		Country   string `json:"issuingCountry"`
 		FirstName string `json:"firstName"`
 		LastName  string `json:"lastName"`
@@ -154,7 +154,8 @@ func (v *VerificationAttempt) CalculateAge() int {
 	}
 	now := time.Now()
 	age := now.Year() - v.JumioDOB.Year()
-	if now.YearDay() < v.JumioDOB.YearDay() {
+	if now.Month() < v.JumioDOB.Month() ||
+		(now.Month() == v.JumioDOB.Month() && now.Day() < v.JumioDOB.Day()) {
 		age--
 	}
 	return age

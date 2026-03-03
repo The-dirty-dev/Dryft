@@ -1,5 +1,7 @@
 'use client';
 
+import { getWebSocketURL } from './ws';
+
 // Event Types
 export type EventType =
   // Client -> Server
@@ -139,9 +141,7 @@ class ChatSocketService {
         return;
       }
 
-      // Determine WebSocket URL
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-      const wsUrl = apiUrl.replace(/^http/, 'ws') + '/v1/ws';
+      const wsUrl = getWebSocketURL();
 
       try {
         // WebSocket with auth token in URL (since headers not supported in browser WebSocket)

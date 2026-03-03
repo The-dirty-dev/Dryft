@@ -42,8 +42,8 @@ func TestLoad_Defaults(t *testing.T) {
 	if cfg.DatabaseURL != "postgres://dryft:dryft@localhost:5432/dryft?sslmode=disable" {
 		t.Errorf("expected default DatabaseURL, got %q", cfg.DatabaseURL)
 	}
-	if cfg.JWTSecretKey != "dev-secret-key-change-in-production-32b" {
-		t.Errorf("expected default JWTSecretKey, got %q", cfg.JWTSecretKey)
+	if cfg.JWTSecretKey != "" {
+		t.Errorf("expected empty default JWTSecretKey, got %q", cfg.JWTSecretKey)
 	}
 	if cfg.AWSRegion != "us-east-1" {
 		t.Errorf("expected default AWSRegion %q, got %q", "us-east-1", cfg.AWSRegion)

@@ -228,6 +228,11 @@ If pm2 is not yet managing `dryft-api`, start it for the first time:
 ssh thedirtyadmin@YOUR_VPS_IP
 cd ~/api.dryft.site/opt/dryft
 
+# Option A: ecosystem file (recommended)
+# Copy infra/ecosystem.config.js from the repo to this directory, then:
+pm2 start ecosystem.config.js
+
+# Option B: inline command
 pm2 start dryft-api \
   --name dryft-api \
   --interpreter none \

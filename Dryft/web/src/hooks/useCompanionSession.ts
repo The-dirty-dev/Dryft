@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import * as sessionApi from '@/lib/sessionApi';
 import { useHaptic } from './useHaptic';
+import { getWebSocketURL } from '@/lib/ws';
 
 export interface ChatMessage {
   id: string;
@@ -54,7 +55,7 @@ export function useCompanionSession() {
   const connectWebSocket = useCallback((token: string) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080/v1/ws';
+    const wsUrl = getWebSocketURL();
     const ws = new WebSocket(`${wsUrl}?token=${token}`);
 
     ws.onopen = () => {
