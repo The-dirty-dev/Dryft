@@ -143,8 +143,10 @@ Status: **IN PROGRESS** (Mar 3). DreamHost VPS cannot support WebSocket proxying
 - [ ] Rebuild and deploy web + mobile clients, then verify real user flows (login, feed, chat) hit DreamCompute (check `journalctl -u dryft-api.service`).
 
 Status update (Mar 3, 2026): wiring changes completed by Codex. Web now resolves API host from `NEXT_PUBLIC_API_BASE_URL` in production (`web/.env.production`). On the local dev machine, `.env.local` was still set to `http://localhost:8080`, causing the web app to POST `http://localhost:8080/v1/auth/login` and show "Unable to connect" despite the DreamCompute API being healthy. The next action is to update `.env.local` (or equivalent dev env) to `NEXT_PUBLIC_API_BASE_URL=https://api.dryft.site`, restart `npm run dev`, and confirm login calls go to `https://api.dryft.site/v1/auth/login`.
+
+**Note (Mar 3, 2026)**: CLAUDE-Architect found both `dryft-api.service` and `nginx.service` were dead on DreamCompute (stopped cleanly at 20:40:54 UTC, likely VM restart or resource reclaim). Restarted both with `sudo systemctl start nginx && sudo systemctl start dryft-api`. **TODO for HUMAN-Grant**: investigate whether DreamCompute VMs auto-stop after idle period or if this was a one-time event. Consider adding `Restart=on-failure` and `RestartSec=5` to the systemd unit if not already present, and monitor uptime over the next few days.
 #### Phase 6: WebSocket verification and cleanup
-- [ ] Test `wss://api.dryft.site/v1/ws` through DreamCompute Nginx using `wscat`.
+- [x] Test `wss://api.dryft.site/v1/ws` through DreamCompute Nginx using `wscat`. *(Verified Mar 3 2026 by CLAUDE-Architect: `curl` with WebSocket upgrade headers returns 401 Unauthorized — Nginx correctly forwards Upgrade/Connection headers. 401 = Go binary received the upgrade request but rejected due to missing auth token. This is correct behavior, confirming WebSocket proxying works. Old DreamHost VPS returned 400 because headers were stripped.)*
 - [ ] Once confirmed, update clients from any `ws://api.dryft.site:8080` URLs to `wss://api.dryft.site/v1/ws`.
 - [ ] Lock down firewall (UFW) to expose only 80/443; remove external access to port 8080.
 - [ ] After a stable period, decommission the old DreamHost VPS and update runbooks (`DREAMHOST_DEPLOYMENT.md`, `RUNBOOK.md`) to describe DreamCompute as the primary API host.
