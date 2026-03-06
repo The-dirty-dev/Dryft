@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../navigation';
+import type { RootStackParamList } from '../../navigation';
 import { Creator, StoreItem } from '../../types';
 import marketplaceApi from '../../api/marketplace';
 import ItemCard from '../../components/ItemCard';

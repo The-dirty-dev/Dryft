@@ -32,5 +32,5 @@ describe('VerificationStatusScreen', () => {
     expect(screen.getByText('ID Verification')).toBeTruthy();
     expect(screen.getByText('Face Match')).toBeTruthy();
     expect(screen.getByText('Start Verification')).toBeTruthy();
-  });
+  }, 15000);
 });

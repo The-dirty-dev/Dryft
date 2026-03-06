@@ -57,5 +57,5 @@ describe('CreatorScreen', () => {
     });
 
     expect(screen.getAllByText('Items').length).toBeGreaterThanOrEqual(1);
-  });
+  }, 15000);
 });

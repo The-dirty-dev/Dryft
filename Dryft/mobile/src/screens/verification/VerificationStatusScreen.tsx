@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { VerificationStackParamList } from '../../navigation';
+import type { VerificationStackParamList } from '../../navigation';
 import apiClient from '../../api/client';
 import { ThemeColors, useColors } from '../../theme/ThemeProvider';
 

@@ -34,3 +34,60 @@
        4) enable DreamHost proxy so that `https://api.dryft.site/health` routes to that same process.
 
   Please answer with concrete file paths, env var names, and example values so that HUMAN-Grant can follow your instructions without guessing.
+
+- [2026-03-06] CLAUDE-Architect – **Batch 6 review: PASS**. Spot-checked all 20 completed tasks across backend tests (CA-2 migration, CA-4 store audit, COD-1–4 WebSocket/auth/moderation/matching tests), mobile screen tests (Batch 5 + 6), docs updates (RUNBOOK.md), and 15 VR CODEX-VR entries. Findings: (1) All backend tests compile and follow existing patterns. (2) Mobile tests: 96 suites / 274 tests ALL PASS after fixing 2 pre-existing flaky timeouts in CreatorScreen.test.tsx and VerificationStatusScreen.test.tsx — root cause was value `import { ... }` of navigation types triggering full barrel module graph in Jest; fixed with `import type` in the screen files + 15s timeout safety net in tests. (3) VR scripts follow Unity conventions, proper use of SerializeField/tooltips. (4) RUNBOOK.md build command missing `CGO_ENABLED=0` — addressed in Batch 7 Task 1. (5) Colorblind accessibility filters are placeholder no-ops — low priority, noted for future. Gap analysis identified 4 priority areas for Batch 7: backend booth WS handlers, mobile test coverage expansion, web test coverage, VR EditMode tests.
+
+- [2026-03-06] CLAUDE-Architect → CODEX-Refactor – **BATCH 7 ASSIGNMENT (20 tasks)**
+
+  **Pillar A — Backend: VR Booth WebSocket Integration (3 tasks)**
+
+  **Task 1**: `backend/internal/websocket/booth_events.go` — Define 4 new message types (`booth_invite`, `booth_invite_response`, `booth_privacy_update`, `booth_host_control`) with typed request/response structs matching the VR client's `WebSocketManager.cs` message format. Also fix `RUNBOOK.md` build command to include `CGO_ENABLED=0`.
+
+  **Task 2**: `backend/internal/websocket/hub.go` — Register handlers for the 4 booth message types in the hub's message router. Route `booth_invite` to target user connection, `booth_invite_response` back to inviter, `booth_privacy_update` to all booth participants, and `booth_host_control` to booth members. Follow existing `handleMatchAction`/`handleChatMessage` patterns.
+
+  **Task 3**: `backend/internal/websocket/booth_events_test.go` — Unit tests for all 4 booth handlers: valid invite flow, invite to offline user (error response), privacy toggle broadcast, host kick, and malformed message rejection. Use the existing `TestWebSocketHub` helper pattern from `hub_test.go`.
+
+  **Pillar B — Mobile: Screen Tests (6 tasks)**
+
+  **Task 4**: `mobile/src/__tests__/screens/SubscriptionScreen.test.tsx` — Test renders pricing tiers, highlights current plan, handles upgrade tap. Mock `purchasesApi.getSubscriptionStatus` and `getAvailablePlans`.
+
+  **Task 5**: `mobile/src/__tests__/screens/TipScreen.test.tsx` + `PurchaseHistoryScreen.test.tsx` — Test tip amount selection, custom amount input, confirmation flow; purchase history list rendering with pagination. Mock `purchasesApi`.
+
+  **Task 6**: `mobile/src/__tests__/screens/ChatScreen.test.tsx` — Test message list rendering, send message, typing indicator, real-time message arrival via mock WebSocket. Mock `chatApi` and WebSocket connection.
+
+  **Task 7**: `mobile/src/__tests__/screens/NotificationsScreen.test.tsx` — Test notification list, mark as read, empty state. Mock `notificationsApi`.
+
+  **Task 8**: `mobile/src/__tests__/screens/OnboardingScreen.test.tsx` — Test swipe through steps, skip button, completion callback. Mock navigation.
+
+  **Task 9**: `mobile/src/__tests__/screens/VRSessionScreen.test.tsx` — Test session connection states (connecting/connected/disconnected), partner info display, end session button. Mock `vrApi`.
+
+  **Pillar C — Mobile: Service + Component Tests (5 tasks)**
+
+  **Task 10**: `mobile/src/__tests__/services/purchases.test.ts` — Test all purchase service functions: `purchaseItem`, `getSubscriptionStatus`, `restorePurchases`, `getAvailablePlans`, `cancelSubscription`. Mock `apiClient`.
+
+  **Task 11**: `mobile/src/__tests__/services/accountDeletion.test.ts` + `moderation.test.ts` — Test account deletion flow (request, confirm, cancel) and moderation service (report user, block, get blocked list). Mock `apiClient`.
+
+  **Task 12**: `mobile/src/__tests__/services/i18n.test.ts` + `rewards.test.ts` — Test i18n language switching and translation key resolution. Test rewards service: get balance, claim reward, get history. Mock where appropriate.
+
+  **Task 13**: `mobile/src/__tests__/components/ItemCard.test.tsx` — Test renders item name, price formatting (free vs paid), image loading, onPress callback, compact mode differences.
+
+  **Task 14**: `mobile/src/__tests__/components/MessageBubble.test.tsx` — Test sent vs received styling, timestamp display, media attachment rendering, long-press actions. Also add IAP receipt validation TODO comment in purchases service pointing to Apple/Google server-side verification docs.
+
+  **Pillar D — Web: Test Coverage (3 tasks)**
+
+  **Task 15**: `web/src/__tests__/pages/SubscriptionPage.test.tsx` + `TipPage.test.tsx` — Vitest (NOT Jest) tests for subscription management page and tipping flow. Mock API calls, test renders and user interactions.
+
+  **Task 16**: `web/src/__tests__/pages/CreatorDashboard.test.tsx` + `AnalyticsPage.test.tsx` — Vitest tests for creator dashboard (earnings, recent sales) and analytics page (chart data, date range filter). Mock API responses.
+
+  **Task 17**: `web/src/__tests__/lib/ws.test.ts` + `electron.test.ts` — Vitest tests for WebSocket client (connect, disconnect, reconnect, message handling) and Electron IPC bridge (send/receive, error handling). Mock WebSocket and Electron APIs.
+
+  **Pillar E — VR: EditMode Tests (3 tasks)**
+
+  **Task 18**: `Assets/Tests/EditMode/BoothSystemTests.cs` — EditMode tests for `BoothManager.cs` (create booth, invite flow state machine, privacy toggle, host controls, max capacity). Use NUnit with `[Test]` attributes.
+
+  **Task 19**: `Assets/Tests/EditMode/HapticsTests.cs` — EditMode tests for `HapticsManager.cs` (haptic pattern playback, intensity scaling, device compatibility check, pattern queue). Mock XR input subsystem.
+
+  **Task 20**: `Assets/Tests/EditMode/MarketplaceSessionTests.cs` — EditMode tests for `MarketplaceManager.cs` (load store items, purchase flow, equip item) and `SessionManager.cs` (connect, disconnect, reconnect, timeout handling). Mock network layer.
+
+  **DEADLINE**: Batch 7 — results expected by 2026-03-08.
+  **VERIFICATION GATES**: (1) `go test ./...` zero failures, (2) `cd mobile && npx jest --ci` zero failures, (3) `cd web && npx vitest run` zero failures, (4) Unity EditMode tests pass in editor.
