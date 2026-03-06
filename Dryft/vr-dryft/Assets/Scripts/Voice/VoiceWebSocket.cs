@@ -1,7 +1,6 @@
 using UnityEngine;
 using System;
 using System.Threading.Tasks;
-using System.Collections.Generic;
 using Drift.Core;
 using Drift.API;
 
@@ -33,22 +32,36 @@ namespace Drift.Voice
 
             try
             {
-                // Use the existing companion WebSocket or create a dedicated voice connection
-                string voiceUrl = GetVoiceServerUrl(sessionId);
+                _socket = CompanionWebSocket.Instance;
+                if (_socket == null)
+                {
+                    var wsObject = new GameObject("CompanionWebSocket");
+                    _socket = wsObject.AddComponent<CompanionWebSocket>();
+                }
 
-                _socket = new CompanionWebSocket();
                 _socket.OnMessageReceived += HandleMessage;
-                _socket.OnConnectionLost += HandleDisconnect;
+                _socket.OnDisconnected += HandleDisconnect;
                 _socket.OnError += HandleSocketError;
 
-                bool connected = await _socket.Connect(voiceUrl, GameManager.Instance?.GetAccessToken());
+                bool connected = _socket.IsConnected;
+                if (!connected)
+                {
+                    var token = GameManager.Instance?.GetAccessToken();
+                    if (string.IsNullOrEmpty(token))
+                    {
+                        OnError?.Invoke("Missing auth token");
+                        return false;
+                    }
+
+                    connected = await _socket.Connect(token);
+                }
 
                 if (connected)
                 {
                     _isConnected = true;
 
                     // Send join message
-                    await _socket.Send(new VoiceJoinMessage
+                    await _socket.Send("voice_join", new VoiceJoinMessage
                     {
                         type = "voice_join",
                         session_id = sessionId,
@@ -81,9 +94,8 @@ namespace Drift.Voice
             if (_socket != null)
             {
                 _socket.OnMessageReceived -= HandleMessage;
-                _socket.OnConnectionLost -= HandleDisconnect;
+                _socket.OnDisconnected -= HandleDisconnect;
                 _socket.OnError -= HandleSocketError;
-                _socket.Disconnect();
                 _socket = null;
             }
 
@@ -97,8 +109,16 @@ namespace Drift.Voice
         {
             if (!_isConnected || _socket == null) return;
 
-            // Send as binary message
-            _ = _socket.SendBinary(CreateAudioPacket(audioData));
+            var payload = new VoiceAudioMessage
+            {
+                type = "voice_audio",
+                session_id = _sessionId,
+                user_id = GameManager.Instance?.UserId,
+                audio_base64 = Convert.ToBase64String(audioData),
+                timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+            };
+
+            _ = _socket.Send("voice_audio", payload);
         }
 
         /// <summary>
@@ -108,7 +128,7 @@ namespace Drift.Voice
         {
             if (!_isConnected || _socket == null) return;
 
-            await _socket.Send(new VoiceSpeakingMessage
+            await _socket.Send("voice_speaking", new VoiceSpeakingMessage
             {
                 type = "voice_speaking",
                 session_id = _sessionId,
@@ -117,31 +137,21 @@ namespace Drift.Voice
             });
         }
 
-        private byte[] CreateAudioPacket(byte[] audioData)
-        {
-            // Packet format: [type(1)] [user_id_length(1)] [user_id] [audio_data]
-            string userId = GameManager.Instance?.UserId ?? "";
-            byte[] userIdBytes = System.Text.Encoding.UTF8.GetBytes(userId);
-
-            byte[] packet = new byte[2 + userIdBytes.Length + audioData.Length];
-            packet[0] = 0x01; // Audio packet type
-            packet[1] = (byte)userIdBytes.Length;
-            Buffer.BlockCopy(userIdBytes, 0, packet, 2, userIdBytes.Length);
-            Buffer.BlockCopy(audioData, 0, packet, 2 + userIdBytes.Length, audioData.Length);
-
-            return packet;
-        }
-
-        private void HandleMessage(string message)
+        private void HandleMessage(WebSocketMessage message)
         {
             try
             {
-                var envelope = JsonUtility.FromJson<MessageEnvelope>(message);
+                var type = message?.type;
+                var payload = message?.payload;
+                if (string.IsNullOrEmpty(type))
+                {
+                    return;
+                }
 
-                switch (envelope.type)
+                switch (type)
                 {
                     case "voice_audio":
-                        var audioMsg = JsonUtility.FromJson<VoiceAudioMessage>(message);
+                        var audioMsg = JsonUtility.FromJson<VoiceAudioMessage>(payload);
                         if (!string.IsNullOrEmpty(audioMsg.audio_base64))
                         {
                             byte[] audioData = Convert.FromBase64String(audioMsg.audio_base64);
@@ -150,12 +160,12 @@ namespace Drift.Voice
                         break;
 
                     case "voice_speaking":
-                        var speakingMsg = JsonUtility.FromJson<VoiceSpeakingMessage>(message);
+                        var speakingMsg = JsonUtility.FromJson<VoiceSpeakingMessage>(payload);
                         OnParticipantSpeaking?.Invoke(speakingMsg.user_id, speakingMsg.speaking);
                         break;
 
                     case "voice_error":
-                        var errorMsg = JsonUtility.FromJson<VoiceErrorMessage>(message);
+                        var errorMsg = JsonUtility.FromJson<VoiceErrorMessage>(payload);
                         OnError?.Invoke(errorMsg.error);
                         break;
                 }
@@ -177,15 +187,6 @@ namespace Drift.Voice
             OnError?.Invoke(error);
         }
 
-        private string GetVoiceServerUrl(string sessionId)
-        {
-            // Use environment-specific URL
-            string baseUrl = Application.isEditor
-                ? "ws://localhost:8080"
-                : "wss://api.dryft.site";
-
-            return $"{baseUrl}/v1/voice/session/{sessionId}";
-        }
     }
 
     // Message types

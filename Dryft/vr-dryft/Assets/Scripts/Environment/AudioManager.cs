@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Drift.Environment
 {
@@ -72,6 +73,7 @@ namespace Drift.Environment
 
         private void Start()
         {
+            AutoLoadTracksIfMissing();
             StartAmbience();
             PlayNextTrack();
         }
@@ -115,6 +117,24 @@ namespace Drift.Environment
             _ambientSource.volume = _ambientVolume;
             _ambientSource.loop = true;
             _ambientSource.Play();
+        }
+
+        private void AutoLoadTracksIfMissing()
+        {
+            if (_lofiTracks != null && _lofiTracks.Length > 0)
+            {
+                return;
+            }
+
+            var loaded = Resources.LoadAll<AudioClip>("Audio/Tracks");
+            if (loaded == null || loaded.Length == 0)
+            {
+                Debug.LogWarning("[AudioManager] No tracks assigned and none found in Resources/Audio/Tracks.");
+                return;
+            }
+
+            _lofiTracks = loaded.OrderBy(c => c.name).ToArray();
+            Debug.Log($"[AudioManager] Auto-loaded {_lofiTracks.Length} tracks from Resources/Audio/Tracks.");
         }
 
         /// <summary>
@@ -161,6 +181,28 @@ namespace Drift.Environment
             _musicSource.Play();
 
             OnTrackChanged?.Invoke(_lofiTracks[_currentTrackIndex]);
+        }
+
+        /// <summary>
+        /// Plays a specific track by index.
+        /// </summary>
+        public void PlayTrackAt(int index)
+        {
+            if (_musicSource == null || _lofiTracks == null || _lofiTracks.Length == 0)
+            {
+                return;
+            }
+
+            int safeIndex = Mathf.Clamp(index, 0, _lofiTracks.Length - 1);
+            _currentTrackIndex = safeIndex;
+
+            var track = _lofiTracks[_currentTrackIndex];
+            _musicSource.clip = track;
+            _musicSource.volume = _musicVolume;
+            _musicSource.Play();
+
+            OnTrackChanged?.Invoke(track);
+            Debug.Log($"[AudioManager] Selected track: {track.name}");
         }
 
         /// <summary>
@@ -371,6 +413,44 @@ namespace Drift.Environment
                 return "No track playing";
 
             return _musicSource.clip.name;
+        }
+
+        /// <summary>
+        /// Returns true when the music source is actively playing.
+        /// </summary>
+        public bool IsMusicPlaying()
+        {
+            return _musicSource != null && _musicSource.isPlaying;
+        }
+
+        /// <summary>
+        /// Gets the currently selected track index.
+        /// </summary>
+        public int GetCurrentTrackIndex()
+        {
+            return _currentTrackIndex;
+        }
+
+        /// <summary>
+        /// Gets the total track count.
+        /// </summary>
+        public int GetTrackCount()
+        {
+            return _lofiTracks != null ? _lofiTracks.Length : 0;
+        }
+
+        /// <summary>
+        /// Gets a track name by index.
+        /// </summary>
+        public string GetTrackNameAt(int index)
+        {
+            if (_lofiTracks == null || _lofiTracks.Length == 0)
+            {
+                return "No tracks";
+            }
+
+            int safeIndex = Mathf.Clamp(index, 0, _lofiTracks.Length - 1);
+            return _lofiTracks[safeIndex] != null ? _lofiTracks[safeIndex].name : $"Track {safeIndex + 1}";
         }
 
         /// <summary>

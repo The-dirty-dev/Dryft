@@ -1,7 +1,18 @@
 import { AccessibilityInfo, Platform, PixelRatio, Dimensions } from 'react-native';
 import { useEffect, useState, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { DARK_THEME_COLORS } from '../../theme/ThemeProvider';
+
+// Keep local defaults here to avoid a ThemeProvider <-> accessibility import cycle.
+const DEFAULT_DARK_THEME_COLORS = {
+  background: '#0f0f23',
+  backgroundSecondary: '#16213e',
+  surface: '#1a1a2e',
+  primary: '#e94560',
+  text: '#ffffff',
+  textSecondary: '#8892b0',
+  success: '#2ecc71',
+  safetyWarning: '#ff6b6b',
+};
 
 // Accessibility settings storage key
 const A11Y_SETTINGS_KEY = 'dryft_accessibility_settings';
@@ -226,16 +237,16 @@ export const highContrastColors = {
 
 // Standard color palette
 export const standardColors = {
-  background: DARK_THEME_COLORS.background,
-  surface: DARK_THEME_COLORS.surface,
-  primary: DARK_THEME_COLORS.primary,
-  secondary: DARK_THEME_COLORS.textSecondary,
-  error: DARK_THEME_COLORS.safetyWarning,
-  success: DARK_THEME_COLORS.success,
-  text: DARK_THEME_COLORS.text,
-  textSecondary: DARK_THEME_COLORS.textSecondary,
-  border: DARK_THEME_COLORS.backgroundSecondary,
-  accent: DARK_THEME_COLORS.primary,
+  background: DEFAULT_DARK_THEME_COLORS.background,
+  surface: DEFAULT_DARK_THEME_COLORS.surface,
+  primary: DEFAULT_DARK_THEME_COLORS.primary,
+  secondary: DEFAULT_DARK_THEME_COLORS.textSecondary,
+  error: DEFAULT_DARK_THEME_COLORS.safetyWarning,
+  success: DEFAULT_DARK_THEME_COLORS.success,
+  text: DEFAULT_DARK_THEME_COLORS.text,
+  textSecondary: DEFAULT_DARK_THEME_COLORS.textSecondary,
+  border: DEFAULT_DARK_THEME_COLORS.backgroundSecondary,
+  accent: DEFAULT_DARK_THEME_COLORS.primary,
 };
 
 // Get colors based on accessibility settings

@@ -2,6 +2,7 @@ using UnityEngine;
 using System;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using Drift.API;
 
 namespace Drift.Core
 {
@@ -274,8 +275,8 @@ namespace Drift.Core
                 }
 
                 // Try to reach our API
-                var healthCheck = await ApiClient.Instance?.HealthCheckAsync();
-                SetOnlineState(healthCheck ?? false);
+                bool healthCheck = await ApiClient.Instance.HealthCheckAsync();
+                SetOnlineState(healthCheck);
 
                 // If we just came back online, trigger queue processing
                 if (!wasOnline && IsOnline)

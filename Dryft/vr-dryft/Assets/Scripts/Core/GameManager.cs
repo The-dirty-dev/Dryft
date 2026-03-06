@@ -433,6 +433,9 @@ namespace Drift.Core
         {
             return AuthManager.Instance?.GetAccessToken();
         }
+
+        // Legacy compatibility accessor used by older systems.
+        public string AuthToken => GetAccessToken();
     }
 
     /// <summary>

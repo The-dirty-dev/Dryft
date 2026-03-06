@@ -57,12 +57,14 @@ namespace Drift.Player
         public event Action<OVRInput.Controller> OnTriggerPressed;
         public event Action<OVRInput.Controller> OnTriggerReleased;
         public event Action OnMenuPressed;
+        public event Action OnStandUp;
 
         private bool _leftGripHeld;
         private bool _rightGripHeld;
         private bool _leftTriggerHeld;
         private bool _rightTriggerHeld;
         private float _snapTurnCooldown;
+        private bool _isSitting;
 
         private void Awake()
         {
@@ -104,7 +106,7 @@ namespace Drift.Player
 
         private void HandleMovement()
         {
-            if (!IsMovementEnabled || _characterController == null) return;
+            if (_isSitting || !IsMovementEnabled || _characterController == null) return;
 
             // Get left thumbstick input for movement
             Vector2 input = OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick);
@@ -250,6 +252,33 @@ namespace Drift.Player
         {
             TeleportTo(position);
             transform.rotation = rotation;
+        }
+
+        /// <summary>
+        /// Moves the player into a seated position and disables locomotion.
+        /// </summary>
+        public void SitAt(Vector3 position, Quaternion rotation, float transitionTime = 0f)
+        {
+            _isSitting = true;
+            IsMovementEnabled = false;
+
+            // Keep this immediate for now; the seat handles timing/UX around the transition.
+            TeleportTo(position, rotation);
+        }
+
+        /// <summary>
+        /// Exits seated mode and restores locomotion.
+        /// </summary>
+        public void StandUp()
+        {
+            if (!_isSitting)
+            {
+                return;
+            }
+
+            _isSitting = false;
+            IsMovementEnabled = true;
+            OnStandUp?.Invoke();
         }
 
         /// <summary>

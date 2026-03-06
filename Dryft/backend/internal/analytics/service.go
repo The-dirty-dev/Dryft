@@ -2,6 +2,9 @@ package analytics
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -21,11 +24,11 @@ type Event struct {
 
 // EventBatch represents a batch of events from a client
 type EventBatch struct {
-	Events         []EventInput        `json:"events"`
-	UserID         *string             `json:"userId"`
-	UserProperties map[string]any      `json:"userProperties"`
-	SessionID      string              `json:"sessionId"`
-	Timestamp      int64               `json:"timestamp"`
+	Events         []EventInput   `json:"events"`
+	UserID         *string        `json:"userId"`
+	UserProperties map[string]any `json:"userProperties"`
+	SessionID      string         `json:"sessionId"`
+	Timestamp      int64          `json:"timestamp"`
 }
 
 // EventInput represents an event from the client
@@ -55,22 +58,22 @@ type UserAnalytics struct {
 
 // DailyMetrics represents daily aggregated metrics
 type DailyMetrics struct {
-	ID              uint      `gorm:"primaryKey"`
-	Date            time.Time `gorm:"uniqueIndex;not null"`
-	ActiveUsers     int
-	NewUsers        int
-	Sessions        int
-	TotalEvents     int
-	Matches         int
-	Messages        int
-	VRSessions      int
-	TotalVRMinutes  int64
-	Purchases       int
-	Revenue         float64
-	PanicButtons    int
-	Reports         int
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
+	ID             uint      `gorm:"primaryKey"`
+	Date           time.Time `gorm:"uniqueIndex;not null"`
+	ActiveUsers    int
+	NewUsers       int
+	Sessions       int
+	TotalEvents    int
+	Matches        int
+	Messages       int
+	VRSessions     int
+	TotalVRMinutes int64
+	Purchases      int
+	Revenue        float64
+	PanicButtons   int
+	Reports        int
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 }
 
 // EventMetrics represents counts per event type
@@ -84,13 +87,23 @@ type EventMetrics struct {
 
 // Service handles analytics operations
 type Service struct {
-	db           *gorm.DB
-	eventBuffer  []Event
-	bufferMutex  sync.Mutex
-	bufferSize   int
-	flushTicker  *time.Ticker
-	stopChan     chan struct{}
+	db          *gorm.DB
+	eventBuffer []Event
+	bufferMutex sync.Mutex
+	bufferSize  int
+	flushTicker *time.Ticker
+	stopChan    chan struct{}
 }
+
+var (
+	ErrEventNameRequired = errors.New("event name is required")
+	ErrEventTimeInvalid  = errors.New("event timestamp must be greater than zero")
+	ErrSessionIDRequired = errors.New("event session_id is required")
+	ErrBatchTooLarge     = errors.New("analytics event batch exceeds maximum size")
+	ErrInvalidDateRange  = errors.New("start date must be before or equal to end date")
+)
+
+const maxBatchSize = 1000
 
 // NewService creates a new analytics service
 func NewService(db *gorm.DB) *Service {
@@ -114,15 +127,35 @@ func (s *Service) AutoMigrate() error {
 
 // IngestBatch processes a batch of events
 func (s *Service) IngestBatch(batch EventBatch) error {
+	if len(batch.Events) > maxBatchSize {
+		return ErrBatchTooLarge
+	}
+
 	events := make([]Event, 0, len(batch.Events))
 
 	for _, e := range batch.Events {
+		name := strings.TrimSpace(e.Name)
+		if name == "" {
+			return ErrEventNameRequired
+		}
+		if e.Timestamp <= 0 {
+			return ErrEventTimeInvalid
+		}
+
+		sessionID := strings.TrimSpace(e.SessionID)
+		if sessionID == "" {
+			sessionID = strings.TrimSpace(batch.SessionID)
+		}
+		if sessionID == "" {
+			return ErrSessionIDRequired
+		}
+
 		props, _ := json.Marshal(e.Properties)
 
 		event := Event{
 			UserID:     batch.UserID,
-			SessionID:  e.SessionID,
-			Name:       e.Name,
+			SessionID:  sessionID,
+			Name:       name,
 			Properties: props,
 			Timestamp:  time.UnixMilli(e.Timestamp),
 		}
@@ -259,6 +292,10 @@ func (s *Service) updateEventMetrics(events []Event) {
 
 // GetUserAnalytics retrieves analytics for a user
 func (s *Service) GetUserAnalytics(userID string) (*UserAnalytics, error) {
+	if s.db == nil {
+		return nil, fmt.Errorf("analytics database is not configured")
+	}
+
 	var analytics UserAnalytics
 	err := s.db.Where("user_id = ?", userID).First(&analytics).Error
 	if err != nil {
@@ -269,6 +306,13 @@ func (s *Service) GetUserAnalytics(userID string) (*UserAnalytics, error) {
 
 // GetDailyMetrics retrieves metrics for a date range
 func (s *Service) GetDailyMetrics(startDate, endDate time.Time) ([]DailyMetrics, error) {
+	if startDate.After(endDate) {
+		return nil, ErrInvalidDateRange
+	}
+	if s.db == nil {
+		return nil, fmt.Errorf("analytics database is not configured")
+	}
+
 	var metrics []DailyMetrics
 	err := s.db.Where("date >= ? AND date <= ?", startDate, endDate).
 		Order("date ASC").
@@ -278,6 +322,13 @@ func (s *Service) GetDailyMetrics(startDate, endDate time.Time) ([]DailyMetrics,
 
 // GetEventCounts retrieves event counts for a date range
 func (s *Service) GetEventCounts(startDate, endDate time.Time, eventName string) ([]EventMetrics, error) {
+	if startDate.After(endDate) {
+		return nil, ErrInvalidDateRange
+	}
+	if s.db == nil {
+		return nil, fmt.Errorf("analytics database is not configured")
+	}
+
 	query := s.db.Where("date >= ? AND date <= ?", startDate, endDate)
 	if eventName != "" {
 		query = query.Where("event_name = ?", eventName)
@@ -290,6 +341,16 @@ func (s *Service) GetEventCounts(startDate, endDate time.Time, eventName string)
 
 // GetRecentEvents retrieves recent events for a user
 func (s *Service) GetRecentEvents(userID string, limit int) ([]Event, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	if limit > 500 {
+		limit = 500
+	}
+	if s.db == nil {
+		return nil, fmt.Errorf("analytics database is not configured")
+	}
+
 	var events []Event
 	err := s.db.Where("user_id = ?", userID).
 		Order("timestamp DESC").
@@ -303,6 +364,19 @@ func (s *Service) GetTopEvents(days int, limit int) ([]struct {
 	Name  string
 	Count int
 }, error) {
+	if days <= 0 {
+		days = 1
+	}
+	if limit <= 0 {
+		limit = 10
+	}
+	if limit > 100 {
+		limit = 100
+	}
+	if s.db == nil {
+		return nil, fmt.Errorf("analytics database is not configured")
+	}
+
 	startDate := time.Now().AddDate(0, 0, -days)
 
 	var results []struct {

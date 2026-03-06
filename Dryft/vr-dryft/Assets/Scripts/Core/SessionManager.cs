@@ -478,6 +478,7 @@ namespace Drift.Core
     public enum SessionState
     {
         None,
+        Ready,
         Connecting,
         InPublicLounge,
         Matchmaking,

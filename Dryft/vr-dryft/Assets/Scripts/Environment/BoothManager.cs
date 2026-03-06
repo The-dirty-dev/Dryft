@@ -1,6 +1,7 @@
 using UnityEngine;
 using System;
 using System.Collections;
+using System.Threading.Tasks;
 using Drift.Core;
 using Drift.Player;
 using Normal.Realtime;
@@ -28,6 +29,10 @@ namespace Drift.Environment
         [SerializeField] private Transform _userASpawnPoint;
         [SerializeField] private Transform _userBSpawnPoint;
         [SerializeField] private float _boothRadius = 3f;
+        [SerializeField] private bool _inviteOnly = true;
+        [SerializeField] private bool _roomLocked = false;
+        [SerializeField] private bool _companionVoiceAllowed = true;
+        [SerializeField] private int _maxGuestCount = 2;
 
         [Header("Partner Detection")]
         [SerializeField] private float _partnerSearchInterval = 1f;
@@ -55,6 +60,11 @@ namespace Drift.Environment
         public bool ConsentGranted { get; private set; }
         public Transform PartnerAvatar { get; private set; }
         public int PartnerClientId { get; private set; } = -1;
+        public bool IsHost => _isHost;
+        public bool IsInviteOnly => _inviteOnly;
+        public bool IsRoomLocked => _roomLocked;
+        public bool IsCompanionVoiceAllowed => _companionVoiceAllowed;
+        public int MaxGuestCount => _maxGuestCount;
 
         // Events
         public event Action OnPartnerJoined;
@@ -62,6 +72,7 @@ namespace Drift.Environment
         public event Action OnConsentChanged;
         public event Action OnExitRequested;
         public event Action<Transform> OnPartnerAvatarFound;
+        public event Action OnPrivacyStateChanged;
 
         private float _targetLightIntensity = 1f;
         private bool _isHost;
@@ -93,6 +104,7 @@ namespace Drift.Environment
             }
 
             InitializeAmbiance();
+            SubscribeInviteService();
         }
 
         private void Update()
@@ -108,6 +120,8 @@ namespace Drift.Environment
             {
                 StopCoroutine(_partnerSearchCoroutine);
             }
+
+            UnsubscribeInviteService();
         }
 
         private void LateUpdate()
@@ -166,6 +180,11 @@ namespace Drift.Environment
             _partnerSearchCoroutine = StartCoroutine(SearchForPartnerAvatar());
 
             Debug.Log($"[BoothManager] Initialized booth: {boothId} (isHost: {isHost})");
+
+            if (_isHost)
+            {
+                BroadcastPrivacyState();
+            }
         }
 
         /// <summary>
@@ -343,6 +362,65 @@ namespace Drift.Environment
             _ = GameManager.Instance?.LeaveVRSpace();
         }
 
+        public void EndPartySession()
+        {
+            if (!_isHost)
+            {
+                return;
+            }
+
+            _ = BroadcastHostControl("end_party", null, "Host ended the party");
+            RequestExit();
+        }
+
+        public void SetInviteOnly(bool value)
+        {
+            if (!_isHost)
+            {
+                return;
+            }
+
+            _inviteOnly = value;
+            OnPrivacyStateChanged?.Invoke();
+            BroadcastPrivacyState();
+        }
+
+        public void SetRoomLocked(bool value)
+        {
+            if (!_isHost)
+            {
+                return;
+            }
+
+            _roomLocked = value;
+            OnPrivacyStateChanged?.Invoke();
+            BroadcastPrivacyState();
+        }
+
+        public void SetCompanionVoiceAllowed(bool value)
+        {
+            if (!_isHost)
+            {
+                return;
+            }
+
+            _companionVoiceAllowed = value;
+            OnPrivacyStateChanged?.Invoke();
+            BroadcastPrivacyState();
+        }
+
+        public void SetMaxGuestCount(int value)
+        {
+            if (!_isHost)
+            {
+                return;
+            }
+
+            _maxGuestCount = Mathf.Clamp(value, 2, 12);
+            OnPrivacyStateChanged?.Invoke();
+            BroadcastPrivacyState();
+        }
+
         /// <summary>
         /// Emergency exit - instant, no animation.
         /// LEGAL NOTE: This must always be accessible and functional.
@@ -376,6 +454,107 @@ namespace Drift.Environment
             GameManager.Instance?.LeaveVRSpace();
         }
 
+        private void SubscribeInviteService()
+        {
+            var service = BoothInviteService.Instance;
+            if (service == null)
+            {
+                var go = new GameObject("BoothInviteService");
+                service = go.AddComponent<BoothInviteService>();
+            }
+
+            service.OnPrivacyUpdateReceived += HandleRemotePrivacyUpdate;
+            service.OnHostControlReceived += HandleRemoteHostControl;
+        }
+
+        private void UnsubscribeInviteService()
+        {
+            var service = BoothInviteService.Instance;
+            if (service == null)
+            {
+                return;
+            }
+
+            service.OnPrivacyUpdateReceived -= HandleRemotePrivacyUpdate;
+            service.OnHostControlReceived -= HandleRemoteHostControl;
+        }
+
+        private void HandleRemotePrivacyUpdate(BoothPrivacyUpdateMessage message)
+        {
+            if (message == null || !MatchesCurrentBooth(message.booth_id))
+            {
+                return;
+            }
+
+            _inviteOnly = message.invite_only;
+            _roomLocked = message.room_locked;
+            _companionVoiceAllowed = message.companion_voice_allowed;
+            _maxGuestCount = Mathf.Clamp(message.max_guest_count, 2, 12);
+            OnPrivacyStateChanged?.Invoke();
+        }
+
+        private void HandleRemoteHostControl(BoothHostControlMessage message)
+        {
+            if (message == null || !MatchesCurrentBooth(message.booth_id))
+            {
+                return;
+            }
+
+            if (string.Equals(message.action, "end_party", StringComparison.OrdinalIgnoreCase))
+            {
+                EmergencyExit();
+            }
+        }
+
+        private bool MatchesCurrentBooth(string boothId)
+        {
+            if (string.IsNullOrWhiteSpace(boothId) || string.IsNullOrWhiteSpace(BoothId))
+            {
+                return false;
+            }
+
+            return string.Equals(BoothId, boothId, StringComparison.Ordinal);
+        }
+
+        private async Task BroadcastHostControl(string action, string targetUserId, string note)
+        {
+            var service = BoothInviteService.Instance;
+            if (service == null || string.IsNullOrWhiteSpace(BoothId))
+            {
+                return;
+            }
+
+            await service.BroadcastHostControl(new BoothHostControlMessage
+            {
+                booth_id = BoothId,
+                host_user_id = GameManager.Instance?.UserId,
+                action = action,
+                target_user_id = targetUserId,
+                note = note,
+                sent_at_unix_ms = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+            });
+        }
+
+        private async void BroadcastPrivacyState()
+        {
+            var service = BoothInviteService.Instance;
+            if (service == null || string.IsNullOrWhiteSpace(BoothId))
+            {
+                return;
+            }
+
+            await service.BroadcastPrivacyUpdate(new BoothPrivacyUpdateMessage
+            {
+                booth_id = BoothId,
+                host_user_id = GameManager.Instance?.UserId,
+                invite_only = _inviteOnly,
+                room_locked = _roomLocked,
+                companion_voice_allowed = _companionVoiceAllowed,
+                max_guest_count = _maxGuestCount,
+                updated_at_unix_ms = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+            });
+        }
+
         /// <summary>
         /// Gets the partner's current position if available.
         /// </summary>
@@ -405,6 +584,11 @@ namespace Drift.Environment
 
         private void InitializeAmbiance()
         {
+            if (_boothLights == null)
+            {
+                return;
+            }
+
             // Set default lighting
             foreach (var light in _boothLights)
             {
@@ -442,6 +626,11 @@ namespace Drift.Environment
                 ? new Color(1f, 0.2f, 0.4f) // Deeper pink/red
                 : _defaultLightColor;
 
+            if (_boothLights == null)
+            {
+                return;
+            }
+
             foreach (var light in _boothLights)
             {
                 if (light != null)
@@ -453,6 +642,11 @@ namespace Drift.Environment
 
         private void UpdateLighting()
         {
+            if (_boothLights == null)
+            {
+                return;
+            }
+
             foreach (var light in _boothLights)
             {
                 if (light != null)
@@ -502,6 +696,11 @@ namespace Drift.Environment
 
         private void SetLightColor(Color color)
         {
+            if (_boothLights == null)
+            {
+                return;
+            }
+
             foreach (var light in _boothLights)
             {
                 if (light != null)

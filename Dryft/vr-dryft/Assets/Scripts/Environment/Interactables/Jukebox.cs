@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using Drift.Environment;
 
 namespace Drift.Environment.Interactables
 {
@@ -11,6 +12,7 @@ namespace Drift.Environment.Interactables
         [Header("Jukebox UI")]
         [SerializeField] private Canvas _jukeboxCanvas;
         [SerializeField] private Text _trackNameText;
+        [SerializeField] private TextMesh _worldTrackText;
         [SerializeField] private Slider _volumeSlider;
         [SerializeField] private Image _progressBar;
         [SerializeField] private Image _albumArt;
@@ -27,6 +29,7 @@ namespace Drift.Environment.Interactables
 
         private bool _isUIOpen;
         private Vector3 _originalVinylScale;
+        private int _selectedTrackIndex;
 
         protected override void Start()
         {
@@ -47,6 +50,7 @@ namespace Drift.Environment.Interactables
             {
                 AudioManager.Instance.OnTrackChanged += HandleTrackChanged;
                 AudioManager.Instance.OnBeatDetected += HandleBeatDetected;
+                _selectedTrackIndex = Mathf.Max(0, AudioManager.Instance.GetCurrentTrackIndex());
             }
 
             // Setup volume slider
@@ -136,9 +140,23 @@ namespace Drift.Environment.Interactables
 
         private void UpdateTrackDisplay()
         {
-            if (_trackNameText != null && AudioManager.Instance != null)
+            if (AudioManager.Instance == null)
             {
-                _trackNameText.text = AudioManager.Instance.GetCurrentTrackName();
+                return;
+            }
+
+            _selectedTrackIndex = Mathf.Max(0, AudioManager.Instance.GetCurrentTrackIndex());
+            string currentName = AudioManager.Instance.GetCurrentTrackName();
+            string display = $"{currentName}";
+
+            if (_trackNameText != null)
+            {
+                _trackNameText.text = display;
+            }
+
+            if (_worldTrackText != null)
+            {
+                _worldTrackText.text = display;
             }
         }
 
@@ -185,8 +203,15 @@ namespace Drift.Environment.Interactables
         /// </summary>
         public void OnNextTrackPressed()
         {
-            AudioManager.Instance?.PlayNextTrack();
-            AudioManager.Instance?.PlayUIClick();
+            if (AudioManager.Instance == null) return;
+
+            int trackCount = AudioManager.Instance.GetTrackCount();
+            if (trackCount == 0) return;
+
+            _selectedTrackIndex = (_selectedTrackIndex + 1) % trackCount;
+            AudioManager.Instance.PlayTrackAt(_selectedTrackIndex);
+            AudioManager.Instance.PlayUIClick();
+            UpdateTrackDisplay();
         }
 
         /// <summary>
@@ -194,8 +219,15 @@ namespace Drift.Environment.Interactables
         /// </summary>
         public void OnPreviousTrackPressed()
         {
-            AudioManager.Instance?.PlayPreviousTrack();
-            AudioManager.Instance?.PlayUIClick();
+            if (AudioManager.Instance == null) return;
+
+            int trackCount = AudioManager.Instance.GetTrackCount();
+            if (trackCount == 0) return;
+
+            _selectedTrackIndex = (_selectedTrackIndex - 1 + trackCount) % trackCount;
+            AudioManager.Instance.PlayTrackAt(_selectedTrackIndex);
+            AudioManager.Instance.PlayUIClick();
+            UpdateTrackDisplay();
         }
 
         /// <summary>
@@ -204,6 +236,22 @@ namespace Drift.Environment.Interactables
         public void OnPlayPausePressed()
         {
             AudioManager.Instance?.ToggleMusic();
+            AudioManager.Instance?.PlayUIClick();
+        }
+
+        /// <summary>
+        /// World button: ask the bartender to pick and queue a track.
+        /// </summary>
+        public void OnRequestFromBartenderPressed()
+        {
+            var bartender = FindFirstObjectByType<BartenderServicePoint>();
+            if (bartender == null)
+            {
+                AudioManager.Instance?.PlayNotification();
+                return;
+            }
+
+            bartender.RequestSongFromJukebox(this);
             AudioManager.Instance?.PlayUIClick();
         }
 
@@ -226,6 +274,14 @@ namespace Drift.Environment.Interactables
                 _jukeboxCanvas.gameObject.SetActive(false);
             }
             AudioManager.Instance?.PlayUIClick();
+        }
+
+        /// <summary>
+        /// Forces display text refresh when another system changes tracks.
+        /// </summary>
+        public void RefreshTrackDisplayFromExternal()
+        {
+            UpdateTrackDisplay();
         }
     }
 }

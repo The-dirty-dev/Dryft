@@ -86,9 +86,10 @@ namespace Drift.API
                     request
                 );
 
-                if (response != null && response.success)
+                var data = response?.Data;
+                if (response != null && response.Success && data != null && data.success)
                 {
-                    _currentQueueId = response.queue_id;
+                    _currentQueueId = data.queue_id;
                     IsInQueue = true;
                     IsPolling = true;
                     _pollTimer = _pollInterval;
@@ -100,7 +101,7 @@ namespace Drift.API
                 }
                 else
                 {
-                    string error = response?.error ?? "Unknown error";
+                    string error = data?.error ?? response?.Error ?? "Unknown error";
                     OnMatchmakingError?.Invoke(error);
                     Debug.LogError($"[MatchmakingService] Failed to join queue: {error}");
                     return false;
@@ -139,7 +140,7 @@ namespace Drift.API
                 OnQueueLeft?.Invoke();
                 Debug.Log("[MatchmakingService] Left queue");
 
-                return response?.success ?? true;
+                return response?.Data?.success ?? response?.Success ?? true;
             }
             catch (Exception ex)
             {
@@ -165,7 +166,8 @@ namespace Drift.API
                     new { match_id = matchId }
                 );
 
-                if (response != null && response.success)
+                var data = response?.Data;
+                if (response != null && response.Success && data != null && data.success)
                 {
                     IsInQueue = false;
                     IsPolling = false;
@@ -173,7 +175,7 @@ namespace Drift.API
                     return true;
                 }
 
-                OnMatchmakingError?.Invoke(response?.error ?? "Failed to accept match");
+                OnMatchmakingError?.Invoke(data?.error ?? response?.Error ?? "Failed to accept match");
                 return false;
             }
             catch (Exception ex)
@@ -195,16 +197,17 @@ namespace Drift.API
                     "/v1/matchmaking/decline",
                     new { match_id = matchId }
                 );
+                var data = response?.Data;
 
                 // Return to queue after declining
-                if (response?.return_to_queue == true)
+                if (data?.return_to_queue == true)
                 {
                     // Already in queue
                     IsPolling = true;
                 }
 
                 Debug.Log($"[MatchmakingService] Match declined: {matchId}");
-                return response?.success ?? true;
+                return data?.success ?? response?.Success ?? true;
             }
             catch (Exception ex)
             {
@@ -225,8 +228,9 @@ namespace Drift.API
                 var response = await ApiClient.Instance.GetAsync<MatchStatusResponse>(
                     $"/v1/matchmaking/status?queue_id={_currentQueueId}"
                 );
+                var data = response?.Data;
 
-                if (response == null)
+                if (response == null || !response.Success || data == null)
                 {
                     HandlePollError("No response from server");
                     return;
@@ -234,13 +238,13 @@ namespace Drift.API
 
                 _retryCount = 0; // Reset on success
 
-                switch (response.status)
+                switch (data.status)
                 {
                     case "waiting":
                         // Still in queue
-                        if (response.queue_position > 0)
+                        if (data.queue_position > 0)
                         {
-                            OnQueuePositionUpdate?.Invoke(response.queue_position);
+                            OnQueuePositionUpdate?.Invoke(data.queue_position);
                         }
                         break;
 
@@ -250,15 +254,15 @@ namespace Drift.API
 
                         var match = new MatchResult
                         {
-                            MatchId = response.match_id,
-                            BoothId = response.booth_id,
+                            MatchId = data.match_id,
+                            BoothId = data.booth_id,
                             Partner = new PartnerInfo
                             {
-                                UserId = response.partner.user_id,
-                                DisplayName = response.partner.display_name,
-                                AvatarId = response.partner.avatar_id
+                                UserId = data.partner?.user_id,
+                                DisplayName = data.partner?.display_name,
+                                AvatarId = data.partner?.avatar_id
                             },
-                            ExpiresIn = response.expires_in
+                            ExpiresIn = data.expires_in
                         };
 
                         OnMatchFound?.Invoke(match);
@@ -308,7 +312,7 @@ namespace Drift.API
                 var response = await ApiClient.Instance.GetAsync<WaitTimeResponse>(
                     "/v1/matchmaking/wait-time"
                 );
-                return response?.estimated_seconds ?? -1;
+                return response?.Data?.estimated_seconds ?? -1;
             }
             catch
             {

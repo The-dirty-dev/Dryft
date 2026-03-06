@@ -86,7 +86,7 @@ namespace Drift.Editor
             string apkPath = Path.Combine(buildPath, $"{APK_NAME}_{timestamp}{suffix}.apk");
 
             // Configure build settings
-            PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.Android, "com.drift.vr");
+            PlayerSettings.SetApplicationIdentifier(UnityEditor.Build.NamedBuildTarget.Android, "com.drift.vr");
             PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel29;
             PlayerSettings.Android.targetSdkVersion = AndroidSdkVersions.AndroidApiLevel32;
             PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;

@@ -87,6 +87,12 @@ const (
 	EventTypeSafetyUnblock    EventType = "safety_unblock"     // User unblocked
 	EventTypeSafetyReport     EventType = "safety_report"      // User reported
 	EventTypeSafetyWarning    EventType = "safety_warning"     // Warning from moderation
+
+	// VR booth signaling events
+	EventTypeBoothInvite         EventType = "booth_invite"
+	EventTypeBoothInviteResponse EventType = "booth_invite_response"
+	EventTypeBoothPrivacyUpdate  EventType = "booth_privacy_update"
+	EventTypeBoothHostControl    EventType = "booth_host_control"
 )
 
 // Envelope wraps all WebSocket messages
@@ -493,4 +499,39 @@ type SafetyWarningPayload struct {
 	Reason   string    `json:"reason"`
 	Message  string    `json:"message"`
 	ExpiresAt *int64   `json:"expires_at,omitempty"`
+}
+
+// --- Booth Signaling Payloads ---
+
+type BoothInvitePayload struct {
+	BoothID   string `json:"booth_id"`
+	InviterID string `json:"inviter_id"`
+	InviteeID string `json:"invitee_id"`
+}
+
+type BoothInviteResponsePayload struct {
+	BoothID   string `json:"booth_id"`
+	InviterID string `json:"inviter_id"`
+	InviteeID string `json:"invitee_id"`
+	Accepted  bool   `json:"accepted"`
+}
+
+type BoothPrivacyUpdatePayload struct {
+	BoothID               string `json:"booth_id"`
+	InviteOnly            bool   `json:"invite_only"`
+	RoomLocked            bool   `json:"room_locked"`
+	CompanionVoiceAllowed bool   `json:"companion_voice_allowed"`
+	MaxGuestCount         int    `json:"max_guest_count"`
+	HostID                string `json:"host_id,omitempty"`
+}
+
+type BoothHostControlPayload struct {
+	BoothID string `json:"booth_id"`
+	HostID  string `json:"host_id"`
+	Action  string `json:"action"` // "lock_room", "unlock_room", "toggle_invite_only", "toggle_companion_voice", "end_party"
+}
+
+type BoothDisconnectPayload struct {
+	BoothID string `json:"booth_id"`
+	Reason  string `json:"reason"`
 }

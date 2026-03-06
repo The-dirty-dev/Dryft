@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
-using UnityEngine.Networking;
 using Drift.API;
 using Drift.Haptics;
 using Drift.Player;
@@ -42,6 +41,7 @@ namespace Drift.Core
 
         // Properties
         public bool HasActiveSession => _currentSession != null;
+        public string SessionId => _currentSession?.session?.id;
         public string SessionCode => _currentSession?.session?.session_code;
         public IReadOnlyList<SessionUser> Companions => _currentSession?.participants ?? new List<SessionUser>();
 
@@ -94,15 +94,22 @@ namespace Drift.Core
             {
                 var response = await ApiClient.Instance.PostAsync<CreateSessionResponse>(
                     "/v1/sessions",
-                    JsonUtility.ToJson(request)
+                    request
                 );
 
-                if (response != null)
+                if (response != null && response.Success && response.Data != null)
                 {
+                    var createdSession = response.Data;
+
                     // Get full session info
-                    var sessionInfo = await ApiClient.Instance.GetAsync<SessionInfo>(
-                        $"/v1/sessions/{response.session_id}"
+                    var sessionInfoResponse = await ApiClient.Instance.GetAsync<SessionInfo>(
+                        $"/v1/sessions/{createdSession.session_id}"
                     );
+                    var sessionInfo = sessionInfoResponse?.Data;
+                    if (sessionInfo == null)
+                    {
+                        return null;
+                    }
 
                     _currentSession = sessionInfo;
 
@@ -112,10 +119,10 @@ namespace Drift.Core
                     // Subscribe to WebSocket events
                     SubscribeToWebSocketEvents();
 
-                    Log($"Session created with code: {response.session_code}");
+                    Log($"Session created with code: {createdSession.session_code}");
                     OnSessionCreated?.Invoke(sessionInfo);
 
-                    return response.session_code;
+                    return createdSession.session_code;
                 }
             }
             catch (Exception ex)
@@ -242,14 +249,14 @@ namespace Drift.Core
         {
             while (_currentSession != null)
             {
-                BroadcastVRState();
+                _ = BroadcastVRState();
                 yield return new WaitForSeconds(_stateBroadcastInterval);
             }
         }
 
-        private void BroadcastVRState()
+        public bool BroadcastVRState()
         {
-            if (_currentSession == null) return;
+            if (_currentSession == null) return false;
 
             var player = PlayerController.Instance;
             var haptic = HapticController.Instance;
@@ -257,7 +264,7 @@ namespace Drift.Core
             var state = new VRStatePayload
             {
                 session_id = _currentSession.session.id,
-                user_id = GameManager.Instance?.UserId.ToString() ?? "",
+                user_id = GameManager.Instance?.UserId ?? "",
                 current_activity = GetCurrentActivity(),
                 current_room = GetCurrentRoom(),
                 haptic_device_connected = haptic?.IsConnected ?? false,
@@ -279,7 +286,34 @@ namespace Drift.Core
             if (ws != null && ws.IsConnected)
             {
                 _ = ws.Send("session_state", state);
+                return true;
             }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Legacy compatibility overload used by older session flow.
+        /// </summary>
+        public bool BroadcastVRState(VRStateData state)
+        {
+            if (_currentSession == null) return false;
+
+            var ws = CompanionWebSocket.Instance;
+            if (ws == null || !ws.IsConnected) return false;
+
+            _ = ws.Send("session_state", new
+            {
+                session_id = _currentSession.session.id,
+                user_id = GameManager.Instance?.UserId ?? "",
+                current_activity = state?.state ?? "idle",
+                current_room = state?.current_room ?? GetCurrentRoom(),
+                partner_name = state?.partner_name ?? "",
+                is_interacting = state?.is_interacting ?? false,
+                haptic_intensity = state?.haptic_intensity ?? _currentHapticIntensity
+            });
+
+            return true;
         }
 
         private string GetCurrentActivity()
@@ -326,15 +360,20 @@ namespace Drift.Core
         private void SubscribeToWebSocketEvents()
         {
             var ws = CompanionWebSocket.Instance;
-            if (ws == null) return;
+            if (ws == null)
+            {
+                var wsObject = new GameObject("CompanionWebSocket");
+                ws = wsObject.AddComponent<CompanionWebSocket>();
+            }
 
             ws.OnMessageReceived += HandleWebSocketMessage;
             ws.OnDisconnected += HandleWebSocketDisconnected;
 
             // Connect if not already connected
-            if (!ws.IsConnected && !string.IsNullOrEmpty(GameManager.Instance?.AuthToken))
+            var authToken = GameManager.Instance?.GetAccessToken();
+            if (!ws.IsConnected && !string.IsNullOrEmpty(authToken))
             {
-                _ = ws.Connect(GameManager.Instance.AuthToken);
+                _ = ws.Connect(authToken);
             }
         }
 
@@ -407,6 +446,7 @@ namespace Drift.Core
         {
             if (_currentSession == null) return;
 
+            _currentSession.participants ??= new List<SessionUser>();
             _currentSession.participants.Add(user);
             Log($"Companion joined: {user.display_name}");
             OnCompanionJoined?.Invoke(user);

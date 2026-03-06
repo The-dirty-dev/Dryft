@@ -12,7 +12,7 @@ namespace Drift.Editor
         private Vector2 scrollPos;
         private bool xrChecked;
         private bool oculusChecked;
-        private bool normeoreChecked;
+        private bool normcoreChecked;
         private bool scenesChecked;
 
         [MenuItem("Drift/Setup Guide", priority = 0)]
@@ -46,8 +46,8 @@ namespace Drift.Editor
             // Check Oculus XR Plugin
             oculusChecked = IsPackageInstalled("com.unity.xr.oculus");
 
-            // Check if Normcore is available (via scoped registry)
-            normeoreChecked = Directory.Exists("Packages/io.normcore.normcore");
+            // Check if Normcore package is installed.
+            normcoreChecked = IsPackageInstalled("com.normalvr.normcore");
 
             // Check if scenes exist
             scenesChecked = Directory.Exists("Assets/Scenes") &&
@@ -96,8 +96,8 @@ namespace Drift.Editor
             // Step 4: Normcore
             DrawStep("4. Normcore (Multiplayer)",
                 "Required for networked VR. Install from Package Manager using the Normcore registry.",
-                normeoreChecked,
-                normeoreChecked ? "Installed" : "Install from Package Manager");
+                normcoreChecked,
+                normcoreChecked ? "Installed" : "Install from Package Manager");
 
             // Step 5: Configure XR
             GUILayout.Space(10);

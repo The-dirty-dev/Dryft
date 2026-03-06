@@ -110,7 +110,7 @@ func Load() (*Config, error) {
 		AWSSecretAccessKey:       os.Getenv("AWS_SECRET_ACCESS_KEY"),
 		FaceMatchThreshold:       0.90,
 		FaceMatchManualReviewMin: 0.80,
-		JWTSecretKey:             getEnv("JWT_SECRET_KEY", ""),
+		JWTSecretKey:             getEnv("JWT_SECRET_KEY", "dev-secret-key-change-in-production-32b"),
 		FirebaseCredentialsJSON:  os.Getenv("FIREBASE_CREDENTIALS_JSON"),
 		APNsKeyID:                os.Getenv("APNS_KEY_ID"),
 		APNsTeamID:               os.Getenv("APNS_TEAM_ID"),

@@ -154,7 +154,9 @@ func (v *VerificationAttempt) CalculateAge() int {
 	}
 	now := time.Now()
 	age := now.Year() - v.JumioDOB.Year()
-	if now.YearDay() < v.JumioDOB.YearDay() {
+	// Use month/day comparison instead of YearDay to avoid leap-year mismatches
+	if now.Month() < v.JumioDOB.Month() ||
+		(now.Month() == v.JumioDOB.Month() && now.Day() < v.JumioDOB.Day()) {
 		age--
 	}
 	return age

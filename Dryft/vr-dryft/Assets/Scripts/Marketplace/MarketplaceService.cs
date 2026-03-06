@@ -75,6 +75,14 @@ namespace Drift.Marketplace
         }
 
         /// <summary>
+        /// Legacy compatibility alias for fetching a single item.
+        /// </summary>
+        public async Task<ApiResponse<StoreItem>> GetItemDetailsAsync(string itemId)
+        {
+            return await GetItemAsync(itemId);
+        }
+
+        /// <summary>
         /// Gets featured items.
         /// </summary>
         public async Task<ApiResponse<StoreItemsResponse>> GetFeaturedItemsAsync(int limit = 10)
@@ -131,6 +139,24 @@ namespace Drift.Marketplace
         {
             var request = new PurchaseRequest { item_id = itemId };
             return await _api.PostAsync<PurchaseResult>("/v1/store/purchase", request);
+        }
+
+        /// <summary>
+        /// Notifies the companion/mobile client that checkout should continue there.
+        /// </summary>
+        public async Task<bool> NotifyCompanionForCheckout(string clientSecret, string itemId)
+        {
+            var response = await _api.PostAsync<object>(
+                "/v1/store/checkout/notify",
+                new
+                {
+                    client_secret = clientSecret,
+                    item_id = itemId,
+                    source = "vr"
+                }
+            );
+
+            return response != null && response.Success;
         }
 
         /// <summary>

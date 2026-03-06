@@ -29,6 +29,9 @@ type Hub struct {
 	// User presence tracking
 	presence map[uuid.UUID]*PresenceInfo
 
+	// Booth participant tracking: boothID -> set of user IDs
+	boothParticipants map[string]map[uuid.UUID]bool
+
 	// Channels for client registration/unregistration
 	register   chan *Client
 	unregister chan *Client
@@ -69,13 +72,14 @@ type ConversationMessage struct {
 // NewHub creates a new Hub instance
 func NewHub() *Hub {
 	return &Hub{
-		clients:       make(map[uuid.UUID]map[*Client]bool),
-		conversations: make(map[uuid.UUID]map[*Client]bool),
-		presence:      make(map[uuid.UUID]*PresenceInfo),
-		register:      make(chan *Client),
-		unregister:    make(chan *Client),
-		userBroadcast: make(chan *UserMessage, 256),
-		convBroadcast: make(chan *ConversationMessage, 256),
+		clients:           make(map[uuid.UUID]map[*Client]bool),
+		conversations:     make(map[uuid.UUID]map[*Client]bool),
+		presence:          make(map[uuid.UUID]*PresenceInfo),
+		boothParticipants: make(map[string]map[uuid.UUID]bool),
+		register:          make(chan *Client),
+		unregister:        make(chan *Client),
+		userBroadcast:     make(chan *UserMessage, 256),
+		convBroadcast:     make(chan *ConversationMessage, 256),
 	}
 }
 
@@ -352,6 +356,59 @@ func (h *Hub) GetOnlineUsers(userIDs []uuid.UUID) map[uuid.UUID]bool {
 		if info, ok := h.presence[id]; ok && info.IsOnline {
 			result[id] = true
 		}
+	}
+	return result
+}
+
+// AddBoothParticipant tracks that a user is currently in a booth.
+func (h *Hub) AddBoothParticipant(boothID string, userID uuid.UUID) {
+	if boothID == "" || userID == uuid.Nil {
+		return
+	}
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	if h.boothParticipants[boothID] == nil {
+		h.boothParticipants[boothID] = make(map[uuid.UUID]bool)
+	}
+	h.boothParticipants[boothID][userID] = true
+}
+
+// RemoveBoothParticipant removes a user from a booth participant set.
+func (h *Hub) RemoveBoothParticipant(boothID string, userID uuid.UUID) {
+	if boothID == "" || userID == uuid.Nil {
+		return
+	}
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	if participants, ok := h.boothParticipants[boothID]; ok {
+		delete(participants, userID)
+		if len(participants) == 0 {
+			delete(h.boothParticipants, boothID)
+		}
+	}
+}
+
+// ClearBoothParticipants removes all participants for a booth.
+func (h *Hub) ClearBoothParticipants(boothID string) {
+	if boothID == "" {
+		return
+	}
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	delete(h.boothParticipants, boothID)
+}
+
+// GetBoothParticipants returns the current participant user IDs for a booth.
+func (h *Hub) GetBoothParticipants(boothID string) []uuid.UUID {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	participants := h.boothParticipants[boothID]
+	result := make([]uuid.UUID, 0, len(participants))
+	for userID := range participants {
+		result = append(result, userID)
 	}
 	return result
 }

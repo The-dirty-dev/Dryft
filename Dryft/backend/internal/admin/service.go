@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,6 +18,8 @@ var (
 	ErrVerificationNotFound = errors.New("verification not found")
 	ErrReportNotFound       = errors.New("report not found")
 	ErrNotAdmin             = errors.New("admin access required")
+	ErrReasonRequired       = errors.New("reason is required")
+	ErrInvalidStatusFilter  = errors.New("invalid verification status filter")
 )
 
 // Service handles admin operations
@@ -29,31 +32,58 @@ func NewService(db *database.DB) *Service {
 	return &Service{db: db}
 }
 
+func requireAdmin(adminID uuid.UUID) error {
+	if adminID == uuid.Nil {
+		return ErrNotAdmin
+	}
+	return nil
+}
+
+func normalizeVerificationStatus(status string) (string, error) {
+	normalized := strings.TrimSpace(strings.ToLower(status))
+	if normalized == "" || normalized == "all" {
+		return "", nil
+	}
+
+	switch normalized {
+	case "pending":
+		return "PENDING", nil
+	case "manual_review":
+		return "MANUAL_REVIEW", nil
+	case "verified":
+		return "VERIFIED", nil
+	case "rejected":
+		return "REJECTED", nil
+	default:
+		return "", ErrInvalidStatusFilter
+	}
+}
+
 // VerificationReview represents a verification pending manual review
 type VerificationReview struct {
-	ID                 uuid.UUID  `json:"id"`
-	UserID             uuid.UUID  `json:"user_id"`
-	UserEmail          string     `json:"user_email"`
-	UserName           *string    `json:"user_name"`
-	UserAvatar         *string    `json:"user_avatar,omitempty"`
-	ProfilePhotoURL    *string    `json:"profile_photo_url,omitempty"`
-	IDSelfieURL        *string    `json:"id_selfie_url,omitempty"`
-	StripeVerified     bool       `json:"stripe_verified"`
-	StripeVerifiedAt   *time.Time `json:"stripe_verified_at,omitempty"`
-	JumioScanRef       *string    `json:"jumio_scan_ref,omitempty"`
-	JumioStatus        string     `json:"jumio_status"`
-	JumioVerifiedAt    *time.Time `json:"jumio_verified_at,omitempty"`
-	JumioDOB           *time.Time `json:"jumio_dob,omitempty"`
-	JumioDocumentType  *string    `json:"jumio_document_type,omitempty"`
-	JumioCountry       *string    `json:"jumio_country,omitempty"`
-	FaceMatchScore     *float64   `json:"face_match_score,omitempty"`
-	FaceMatchPassed    *bool      `json:"face_match_passed,omitempty"`
-	OverallStatus      string     `json:"overall_status"`
-	RejectionReason    *string    `json:"rejection_reason,omitempty"`
-	ReviewedBy         *uuid.UUID `json:"reviewed_by,omitempty"`
-	ReviewedAt         *time.Time `json:"reviewed_at,omitempty"`
-	CreatedAt          time.Time  `json:"created_at"`
-	UpdatedAt          time.Time  `json:"updated_at"`
+	ID                uuid.UUID  `json:"id"`
+	UserID            uuid.UUID  `json:"user_id"`
+	UserEmail         string     `json:"user_email"`
+	UserName          *string    `json:"user_name"`
+	UserAvatar        *string    `json:"user_avatar,omitempty"`
+	ProfilePhotoURL   *string    `json:"profile_photo_url,omitempty"`
+	IDSelfieURL       *string    `json:"id_selfie_url,omitempty"`
+	StripeVerified    bool       `json:"stripe_verified"`
+	StripeVerifiedAt  *time.Time `json:"stripe_verified_at,omitempty"`
+	JumioScanRef      *string    `json:"jumio_scan_ref,omitempty"`
+	JumioStatus       string     `json:"jumio_status"`
+	JumioVerifiedAt   *time.Time `json:"jumio_verified_at,omitempty"`
+	JumioDOB          *time.Time `json:"jumio_dob,omitempty"`
+	JumioDocumentType *string    `json:"jumio_document_type,omitempty"`
+	JumioCountry      *string    `json:"jumio_country,omitempty"`
+	FaceMatchScore    *float64   `json:"face_match_score,omitempty"`
+	FaceMatchPassed   *bool      `json:"face_match_passed,omitempty"`
+	OverallStatus     string     `json:"overall_status"`
+	RejectionReason   *string    `json:"rejection_reason,omitempty"`
+	ReviewedBy        *uuid.UUID `json:"reviewed_by,omitempty"`
+	ReviewedAt        *time.Time `json:"reviewed_at,omitempty"`
+	CreatedAt         time.Time  `json:"created_at"`
+	UpdatedAt         time.Time  `json:"updated_at"`
 }
 
 // GetVerifications returns verifications with optional status filter
@@ -67,19 +97,11 @@ func (s *Service) GetVerifications(ctx context.Context, status string, limit, of
 	var args []interface{}
 	argIdx := 1
 
-	if status != "" && status != "all" {
-		// Map frontend status values to database values
-		dbStatus := status
-		switch status {
-		case "pending":
-			dbStatus = "PENDING"
-		case "manual_review":
-			dbStatus = "MANUAL_REVIEW"
-		case "verified":
-			dbStatus = "VERIFIED"
-		case "rejected":
-			dbStatus = "REJECTED"
-		}
+	dbStatus, err := normalizeVerificationStatus(status)
+	if err != nil {
+		return nil, 0, err
+	}
+	if dbStatus != "" {
 		whereClause = fmt.Sprintf("WHERE v.overall_status = $%d", argIdx)
 		args = append(args, dbStatus)
 		argIdx++
@@ -88,7 +110,7 @@ func (s *Service) GetVerifications(ctx context.Context, status string, limit, of
 	// Get total count
 	var total int
 	countQuery := "SELECT COUNT(*) FROM verification_attempts v " + whereClause
-	err := s.db.Pool.QueryRow(ctx, countQuery, args...).Scan(&total)
+	err = s.db.Pool.QueryRow(ctx, countQuery, args...).Scan(&total)
 	if err != nil {
 		return nil, 0, fmt.Errorf("count verifications: %w", err)
 	}
@@ -180,6 +202,13 @@ func (s *Service) GetVerification(ctx context.Context, verificationID uuid.UUID)
 
 // ApproveVerification approves a manual review verification
 func (s *Service) ApproveVerification(ctx context.Context, adminID, verificationID uuid.UUID, notes string) error {
+	if err := requireAdmin(adminID); err != nil {
+		return err
+	}
+	if verificationID == uuid.Nil {
+		return ErrVerificationNotFound
+	}
+
 	tx, err := s.db.Pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin transaction: %w", err)
@@ -234,6 +263,16 @@ func (s *Service) ApproveVerification(ctx context.Context, adminID, verification
 
 // RejectVerification rejects a manual review verification
 func (s *Service) RejectVerification(ctx context.Context, adminID, verificationID uuid.UUID, reason, notes string) error {
+	if err := requireAdmin(adminID); err != nil {
+		return err
+	}
+	if verificationID == uuid.Nil {
+		return ErrVerificationNotFound
+	}
+	if strings.TrimSpace(reason) == "" {
+		return ErrReasonRequired
+	}
+
 	tx, err := s.db.Pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin transaction: %w", err)
@@ -268,19 +307,19 @@ func (s *Service) RejectVerification(ctx context.Context, adminID, verificationI
 
 // UserReport represents a user report
 type UserReport struct {
-	ID             uuid.UUID  `json:"id"`
-	ReporterID     uuid.UUID  `json:"reporter_id"`
-	ReporterEmail  string     `json:"reporter_email"`
-	ReportedID     uuid.UUID  `json:"reported_id"`
-	ReportedEmail  string     `json:"reported_email"`
-	ReportedName   *string    `json:"reported_name"`
-	Reason         string     `json:"reason"`
-	Description    *string    `json:"description"`
-	Status         string     `json:"status"` // pending, reviewed, action_taken, dismissed
-	ReviewedBy     *uuid.UUID `json:"reviewed_by,omitempty"`
-	ReviewedAt     *time.Time `json:"reviewed_at,omitempty"`
-	ActionTaken    *string    `json:"action_taken,omitempty"`
-	CreatedAt      time.Time  `json:"created_at"`
+	ID            uuid.UUID  `json:"id"`
+	ReporterID    uuid.UUID  `json:"reporter_id"`
+	ReporterEmail string     `json:"reporter_email"`
+	ReportedID    uuid.UUID  `json:"reported_id"`
+	ReportedEmail string     `json:"reported_email"`
+	ReportedName  *string    `json:"reported_name"`
+	Reason        string     `json:"reason"`
+	Description   *string    `json:"description"`
+	Status        string     `json:"status"` // pending, reviewed, action_taken, dismissed
+	ReviewedBy    *uuid.UUID `json:"reviewed_by,omitempty"`
+	ReviewedAt    *time.Time `json:"reviewed_at,omitempty"`
+	ActionTaken   *string    `json:"action_taken,omitempty"`
+	CreatedAt     time.Time  `json:"created_at"`
 }
 
 // GetPendingReports returns reports pending review
@@ -335,6 +374,13 @@ func (s *Service) GetPendingReports(ctx context.Context, limit, offset int) ([]U
 
 // ReviewReport processes a user report
 func (s *Service) ReviewReport(ctx context.Context, adminID, reportID uuid.UUID, action, notes string) error {
+	if err := requireAdmin(adminID); err != nil {
+		return err
+	}
+	if reportID == uuid.Nil {
+		return ErrReportNotFound
+	}
+
 	tx, err := s.db.Pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin transaction: %w", err)
@@ -369,20 +415,20 @@ func (s *Service) ReviewReport(ctx context.Context, adminID, reportID uuid.UUID,
 
 // UserOverview provides admin view of a user
 type UserOverview struct {
-	ID            uuid.UUID  `json:"id"`
-	Email         string     `json:"email"`
-	DisplayName   *string    `json:"display_name"`
-	ProfilePhoto  *string    `json:"profile_photo"`
-	Verified      bool       `json:"verified"`
-	VerifiedAt    *time.Time `json:"verified_at"`
-	IsBanned      bool       `json:"is_banned"`
-	BannedAt      *time.Time `json:"banned_at"`
-	BanReason     *string    `json:"ban_reason"`
-	ReportCount   int        `json:"report_count"`
-	MatchCount    int        `json:"match_count"`
-	MessageCount  int        `json:"message_count"`
-	CreatedAt     time.Time  `json:"created_at"`
-	LastActiveAt  *time.Time `json:"last_active_at"`
+	ID           uuid.UUID  `json:"id"`
+	Email        string     `json:"email"`
+	DisplayName  *string    `json:"display_name"`
+	ProfilePhoto *string    `json:"profile_photo"`
+	Verified     bool       `json:"verified"`
+	VerifiedAt   *time.Time `json:"verified_at"`
+	IsBanned     bool       `json:"is_banned"`
+	BannedAt     *time.Time `json:"banned_at"`
+	BanReason    *string    `json:"ban_reason"`
+	ReportCount  int        `json:"report_count"`
+	MatchCount   int        `json:"match_count"`
+	MessageCount int        `json:"message_count"`
+	CreatedAt    time.Time  `json:"created_at"`
+	LastActiveAt *time.Time `json:"last_active_at"`
 }
 
 // GetUser returns admin view of a user
@@ -418,6 +464,16 @@ func (s *Service) GetUser(ctx context.Context, userID uuid.UUID) (*UserOverview,
 
 // BanUser bans a user
 func (s *Service) BanUser(ctx context.Context, adminID, userID uuid.UUID, reason, notes string) error {
+	if err := requireAdmin(adminID); err != nil {
+		return err
+	}
+	if userID == uuid.Nil {
+		return ErrUserNotFound
+	}
+	if strings.TrimSpace(reason) == "" {
+		return ErrReasonRequired
+	}
+
 	tx, err := s.db.Pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin transaction: %w", err)
@@ -452,6 +508,13 @@ func (s *Service) BanUser(ctx context.Context, adminID, userID uuid.UUID, reason
 
 // UnbanUser unbans a user
 func (s *Service) UnbanUser(ctx context.Context, adminID, userID uuid.UUID, notes string) error {
+	if err := requireAdmin(adminID); err != nil {
+		return err
+	}
+	if userID == uuid.Nil {
+		return ErrUserNotFound
+	}
+
 	tx, err := s.db.Pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin transaction: %w", err)
@@ -486,16 +549,16 @@ func (s *Service) UnbanUser(ctx context.Context, adminID, userID uuid.UUID, note
 
 // DashboardStats contains admin dashboard statistics
 type DashboardStats struct {
-	TotalUsers            int   `json:"total_users"`
-	VerifiedUsers         int   `json:"verified_users"`
-	PendingVerifications  int   `json:"pending_verifications"`
-	PendingReports        int   `json:"pending_reports"`
-	TotalMatches          int   `json:"total_matches"`
-	TotalMessages         int   `json:"total_messages"`
-	ActiveUsersToday      int   `json:"active_users_today"`
-	NewUsersToday         int   `json:"new_users_today"`
-	TotalRevenue          int64 `json:"total_revenue"` // In cents
-	RevenueToday          int64 `json:"revenue_today"`
+	TotalUsers           int   `json:"total_users"`
+	VerifiedUsers        int   `json:"verified_users"`
+	PendingVerifications int   `json:"pending_verifications"`
+	PendingReports       int   `json:"pending_reports"`
+	TotalMatches         int   `json:"total_matches"`
+	TotalMessages        int   `json:"total_messages"`
+	ActiveUsersToday     int   `json:"active_users_today"`
+	NewUsersToday        int   `json:"new_users_today"`
+	TotalRevenue         int64 `json:"total_revenue"` // In cents
+	RevenueToday         int64 `json:"revenue_today"`
 }
 
 // GetDashboardStats returns admin dashboard statistics

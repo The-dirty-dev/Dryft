@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,6 +20,9 @@ var (
 	ErrMessageNotFound      = errors.New("message not found")
 	ErrEmptyMessage         = errors.New("message content cannot be empty")
 	ErrMatchUnmatched       = errors.New("cannot send message to unmatched user")
+	ErrInvalidUserID        = errors.New("invalid user id")
+	ErrInvalidConversation  = errors.New("invalid conversation id")
+	ErrInvalidMessageType   = errors.New("invalid message type")
 )
 
 // ChatNotifier interface for sending chat notifications
@@ -47,6 +51,10 @@ func (s *Service) DB() *database.DB {
 
 // GetConversations returns all conversations for a user
 func (s *Service) GetConversations(ctx context.Context, userID uuid.UUID, limit, offset int) ([]models.ConversationPreview, error) {
+	if userID == uuid.Nil {
+		return nil, ErrInvalidUserID
+	}
+
 	if limit <= 0 {
 		limit = 20
 	}
@@ -137,6 +145,13 @@ func (s *Service) GetConversations(ctx context.Context, userID uuid.UUID, limit,
 
 // GetConversation returns a specific conversation
 func (s *Service) GetConversation(ctx context.Context, userID, conversationID uuid.UUID) (*models.ConversationPreview, error) {
+	if userID == uuid.Nil {
+		return nil, ErrInvalidUserID
+	}
+	if conversationID == uuid.Nil {
+		return nil, ErrInvalidConversation
+	}
+
 	var c models.ConversationPreview
 	var displayName, bio, profilePhoto *string
 
@@ -183,6 +198,13 @@ func (s *Service) GetConversation(ctx context.Context, userID, conversationID uu
 
 // GetMessages returns messages in a conversation
 func (s *Service) GetMessages(ctx context.Context, userID, conversationID uuid.UUID, limit, offset int) ([]models.Message, error) {
+	if userID == uuid.Nil {
+		return nil, ErrInvalidUserID
+	}
+	if conversationID == uuid.Nil {
+		return nil, ErrInvalidConversation
+	}
+
 	if limit <= 0 {
 		limit = 50
 	}
@@ -231,7 +253,16 @@ func (s *Service) GetMessages(ctx context.Context, userID, conversationID uuid.U
 
 // SendMessage sends a message in a conversation
 func (s *Service) SendMessage(ctx context.Context, userID, conversationID uuid.UUID, msgType models.MessageType, content string) (*models.Message, error) {
-	if content == "" {
+	if userID == uuid.Nil {
+		return nil, ErrInvalidUserID
+	}
+	if conversationID == uuid.Nil {
+		return nil, ErrInvalidConversation
+	}
+	if !isValidMessageType(msgType) {
+		return nil, ErrInvalidMessageType
+	}
+	if strings.TrimSpace(content) == "" {
 		return nil, ErrEmptyMessage
 	}
 
@@ -323,6 +354,13 @@ func (s *Service) sendMessageNotification(ctx context.Context, senderID, convers
 
 // MarkAsRead marks messages as read
 func (s *Service) MarkAsRead(ctx context.Context, userID, conversationID uuid.UUID) error {
+	if userID == uuid.Nil {
+		return ErrInvalidUserID
+	}
+	if conversationID == uuid.Nil {
+		return ErrInvalidConversation
+	}
+
 	// Verify user is in conversation
 	var inConversation bool
 	err := s.db.Pool.QueryRow(ctx,
@@ -354,6 +392,13 @@ func (s *Service) MarkAsRead(ctx context.Context, userID, conversationID uuid.UU
 
 // GetConversationByMatch returns a conversation for a match
 func (s *Service) GetConversationByMatch(ctx context.Context, userID, matchID uuid.UUID) (*models.ConversationPreview, error) {
+	if userID == uuid.Nil {
+		return nil, ErrInvalidUserID
+	}
+	if matchID == uuid.Nil {
+		return nil, ErrConversationNotFound
+	}
+
 	var conversationID uuid.UUID
 	err := s.db.Pool.QueryRow(ctx, `
 		SELECT c.id
@@ -393,4 +438,13 @@ func (s *Service) getLastMessage(ctx context.Context, conversationID uuid.UUID) 
 		return nil, err
 	}
 	return &m, nil
+}
+
+func isValidMessageType(msgType models.MessageType) bool {
+	switch msgType {
+	case models.MessageTypeText, models.MessageTypeImage, models.MessageTypeGif:
+		return true
+	default:
+		return false
+	}
 }

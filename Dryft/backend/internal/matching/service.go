@@ -14,11 +14,14 @@ import (
 )
 
 var (
-	ErrAlreadySwiped   = errors.New("already swiped on this user")
-	ErrCannotSwipeSelf = errors.New("cannot swipe on yourself")
-	ErrMatchNotFound   = errors.New("match not found")
-	ErrNotInMatch      = errors.New("you are not part of this match")
+	ErrAlreadySwiped    = errors.New("already swiped on this user")
+	ErrCannotSwipeSelf  = errors.New("cannot swipe on yourself")
+	ErrMatchNotFound    = errors.New("match not found")
+	ErrNotInMatch       = errors.New("you are not part of this match")
 	ErrAlreadyUnmatched = errors.New("already unmatched")
+	ErrInvalidUserID    = errors.New("invalid user id")
+	ErrInvalidMatchID   = errors.New("invalid match id")
+	ErrInvalidDirection = errors.New("invalid swipe direction")
 )
 
 // MatchNotifier interface for sending match notifications
@@ -51,8 +54,14 @@ type SwipeResult struct {
 
 // Swipe records a user's swipe on another user
 func (s *Service) Swipe(ctx context.Context, swiperID, swipedID uuid.UUID, direction models.SwipeDirection) (*SwipeResult, error) {
+	if swiperID == uuid.Nil || swipedID == uuid.Nil {
+		return nil, ErrInvalidUserID
+	}
 	if swiperID == swipedID {
 		return nil, ErrCannotSwipeSelf
+	}
+	if direction != models.SwipeLike && direction != models.SwipePass {
+		return nil, ErrInvalidDirection
 	}
 
 	result := &SwipeResult{Swiped: true}
@@ -178,6 +187,10 @@ func (s *Service) getUserNames(ctx context.Context, userA, userB uuid.UUID) (str
 
 // GetMatches returns all active matches for a user
 func (s *Service) GetMatches(ctx context.Context, userID uuid.UUID, limit, offset int) ([]models.MatchWithUser, error) {
+	if userID == uuid.Nil {
+		return nil, ErrInvalidUserID
+	}
+
 	if limit <= 0 {
 		limit = 20
 	}
@@ -231,6 +244,13 @@ func (s *Service) GetMatches(ctx context.Context, userID uuid.UUID, limit, offse
 
 // Unmatch removes a match between two users
 func (s *Service) Unmatch(ctx context.Context, userID, matchID uuid.UUID) error {
+	if userID == uuid.Nil {
+		return ErrInvalidUserID
+	}
+	if matchID == uuid.Nil {
+		return ErrInvalidMatchID
+	}
+
 	// First, get the match details for notification
 	var userA, userB uuid.UUID
 	var conversationID uuid.UUID
@@ -293,6 +313,10 @@ func (s *Service) Unmatch(ctx context.Context, userID, matchID uuid.UUID) error 
 
 // GetDiscoverProfiles returns profiles for the discovery feed
 func (s *Service) GetDiscoverProfiles(ctx context.Context, userID uuid.UUID, limit int) ([]models.DiscoverProfile, error) {
+	if userID == uuid.Nil {
+		return nil, ErrInvalidUserID
+	}
+
 	if limit <= 0 {
 		limit = 10
 	}

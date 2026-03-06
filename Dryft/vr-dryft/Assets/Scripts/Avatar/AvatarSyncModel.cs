@@ -1,6 +1,8 @@
 using UnityEngine;
 using Normal.Realtime;
 using Normal.Realtime.Serialization;
+using Drift.Player;
+using Drift.Marketplace;
 
 namespace Drift.Avatar
 {

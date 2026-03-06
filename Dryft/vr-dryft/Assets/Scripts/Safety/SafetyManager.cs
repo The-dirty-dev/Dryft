@@ -472,7 +472,7 @@ namespace Drift.Safety
                     "/v1/safety/block",
                     new { user_id = userId, reason = reason }
                 );
-                return response?.success ?? false;
+                return response?.Data?.success ?? false;
             }
             catch (Exception ex)
             {
@@ -488,7 +488,7 @@ namespace Drift.Safety
                 var response = await ApiClient.Instance.DeleteAsync<BlockResponse>(
                     $"/v1/safety/block/{userId}"
                 );
-                return response?.success ?? false;
+                return response?.Data?.success ?? false;
             }
             catch (Exception ex)
             {
@@ -504,7 +504,7 @@ namespace Drift.Safety
                 var response = await ApiClient.Instance.GetAsync<BlockedUsersResponse>(
                     "/v1/safety/blocked"
                 );
-                return response?.users ?? new List<BlockedUserInfo>();
+                return response?.Data?.users ?? new List<BlockedUserInfo>();
             }
             catch (Exception ex)
             {
@@ -521,7 +521,11 @@ namespace Drift.Safety
                     "/v1/safety/report",
                     report
                 );
-                return response ?? new ReportResult { success = false, error = "No response" };
+                return response?.Data ?? new ReportResult
+                {
+                    success = false,
+                    error = response?.Error ?? "No response"
+                };
             }
             catch (Exception ex)
             {

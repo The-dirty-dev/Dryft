@@ -254,19 +254,24 @@ namespace Drift.API
                     "/v1/notifications/send",
                     request
                 );
+                var result = response?.Data;
 
                 if (response != null)
                 {
-                    if (response.success)
+                    if (response.Success && result != null && result.success)
                     {
-                        OnNotificationSent?.Invoke(response);
+                        OnNotificationSent?.Invoke(result);
                         Debug.Log($"[NotificationService] Notification sent: {request.notification_type}");
                     }
                     else
                     {
-                        OnNotificationError?.Invoke(response.error ?? "Unknown error");
+                        OnNotificationError?.Invoke(result?.error ?? response.Error ?? "Unknown error");
                     }
-                    return response;
+                    return result ?? new NotificationResult
+                    {
+                        success = response.Success,
+                        error = response.Error
+                    };
                 }
 
                 return new NotificationResult { success = false, error = "No response" };

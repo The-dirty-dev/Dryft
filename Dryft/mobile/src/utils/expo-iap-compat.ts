@@ -1,5 +1,6 @@
-// Compatibility shim for deprecated expo-in-app-purchases
-// TODO: Migrate subscriptionStore.ts to use services/purchases.ts (react-native-purchases)
+// Compatibility shim for deprecated expo-in-app-purchases.
+// @deprecated subscriptionStore and all new purchase flows use services/purchases.ts (react-native-purchases).
+// Keep this shim until all legacy imports are removed.
 
 export enum IAPResponseCode {
   OK = 0,

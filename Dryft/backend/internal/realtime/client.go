@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -30,6 +32,14 @@ const (
 	sendBufferSize = 256
 )
 
+var boothHostActions = map[string]struct{}{
+	"lock_room":              {},
+	"unlock_room":            {},
+	"toggle_invite_only":     {},
+	"toggle_companion_voice": {},
+	"end_party":              {},
+}
+
 // Client represents a single WebSocket connection
 type Client struct {
 	hub  *Hub
@@ -52,6 +62,9 @@ type Client struct {
 	// Call notifier for push notifications
 	callNotifier CallNotifier
 
+	// Request-scoped logger (includes request_id when available).
+	logger *slog.Logger
+
 	// Typing state
 	typingConversation *uuid.UUID
 	typingTimer        *time.Timer
@@ -69,6 +82,7 @@ func NewClient(hub *Hub, conn *websocket.Conn, userID uuid.UUID, email string, v
 		send:          make(chan *Envelope, sendBufferSize),
 		chatService:   chatService,
 		callNotifier:  callNotifier,
+		logger:        slog.Default().With("component", "realtime_client", "user_id", userID.String()),
 	}
 }
 
@@ -170,6 +184,18 @@ func (c *Client) handleMessage(envelope *Envelope) {
 		EventTypeCallOffer, EventTypeCallAnswer, EventTypeCallCandidate,
 		EventTypeCallMute, EventTypeCallUnmute, EventTypeCallVideoOff, EventTypeCallVideoOn:
 		c.handleCallSignal(envelope.Type, envelope.Payload)
+
+	case EventTypeBoothInvite:
+		c.handleBoothInvite(envelope.Payload)
+
+	case EventTypeBoothInviteResponse:
+		c.handleBoothInviteResponse(envelope.Payload)
+
+	case EventTypeBoothPrivacyUpdate:
+		c.handleBoothPrivacyUpdate(envelope.Payload)
+
+	case EventTypeBoothHostControl:
+		c.handleBoothHostControl(envelope.Payload)
 
 	default:
 		c.sendError("unknown_event", "Unknown event type")
@@ -358,6 +384,13 @@ func (c *Client) sendError(code, message string) {
 	c.send <- envelope
 }
 
+func (c *Client) requestLogger() *slog.Logger {
+	if c.logger != nil {
+		return c.logger
+	}
+	return slog.Default().With("component", "realtime_client", "user_id", c.UserID.String())
+}
+
 // handleCallRequest handles initiating a call to another user
 func (c *Client) handleCallRequest(payload json.RawMessage) {
 	var req CallSignalPayload
@@ -397,7 +430,7 @@ func (c *Client) handleCallRequest(payload json.RawMessage) {
 		go c.callNotifier.NotifyIncomingCall(ctx, req.TargetUserID, callerName, callerPhoto, req.CallID, req.MatchID, req.VideoEnabled)
 	}
 
-	log.Printf("[Client] Call request: from=%s to=%s call_id=%s", c.UserID, req.TargetUserID, req.CallID)
+	c.requestLogger().Info("call request relayed", "from_user_id", c.UserID, "to_user_id", req.TargetUserID, "call_id", req.CallID)
 }
 
 // handleCallSignal relays call signaling messages to the target user
@@ -432,5 +465,235 @@ func (c *Client) handleCallSignal(eventType EventType, payload json.RawMessage) 
 	envelope, _ := NewEnvelope(eventType, outPayload)
 	c.hub.SendToUser(signal.TargetUserID, envelope)
 
-	log.Printf("[Client] Call signal: type=%s from=%s to=%s call_id=%s", eventType, c.UserID, signal.TargetUserID, signal.CallID)
+	c.requestLogger().Info("call signal relayed", "type", eventType, "from_user_id", c.UserID, "to_user_id", signal.TargetUserID, "call_id", signal.CallID)
+}
+
+func (c *Client) handleBoothInvite(payload json.RawMessage) {
+	if c.UserID == uuid.Nil {
+		c.sendError("unauthorized", "Authentication required")
+		return
+	}
+
+	var invite BoothInvitePayload
+	if err := json.Unmarshal(payload, &invite); err != nil {
+		c.sendError("invalid_payload", "Invalid booth invite payload")
+		return
+	}
+
+	invite.BoothID = strings.TrimSpace(invite.BoothID)
+	if invite.BoothID == "" {
+		c.sendError("invalid_payload", "booth_id is required")
+		return
+	}
+
+	if invite.InviterID != "" {
+		inviterID, err := uuid.Parse(invite.InviterID)
+		if err != nil || inviterID == uuid.Nil {
+			c.sendError("invalid_payload", "inviter_id must be a valid user id")
+			return
+		}
+		if inviterID != c.UserID {
+			c.sendError("forbidden", "inviter_id must match authenticated user")
+			return
+		}
+	}
+
+	inviteeID, err := uuid.Parse(strings.TrimSpace(invite.InviteeID))
+	if err != nil || inviteeID == uuid.Nil {
+		c.sendError("invalid_payload", "invitee_id must be a valid user id")
+		return
+	}
+
+	invite.InviterID = c.UserID.String()
+	envelope, _ := NewEnvelope(EventTypeBoothInvite, invite)
+	c.hub.SendToUser(inviteeID, envelope)
+
+	c.requestLogger().Info("booth invite relayed", "booth_id", invite.BoothID, "inviter_id", c.UserID, "invitee_id", inviteeID)
+}
+
+func (c *Client) handleBoothInviteResponse(payload json.RawMessage) {
+	if c.UserID == uuid.Nil {
+		c.sendError("unauthorized", "Authentication required")
+		return
+	}
+
+	var response BoothInviteResponsePayload
+	if err := json.Unmarshal(payload, &response); err != nil {
+		c.sendError("invalid_payload", "Invalid booth invite response payload")
+		return
+	}
+
+	response.BoothID = strings.TrimSpace(response.BoothID)
+	if response.BoothID == "" {
+		c.sendError("invalid_payload", "booth_id is required")
+		return
+	}
+
+	inviterID, err := uuid.Parse(strings.TrimSpace(response.InviterID))
+	if err != nil || inviterID == uuid.Nil {
+		c.sendError("invalid_payload", "inviter_id must be a valid user id")
+		return
+	}
+
+	inviteeID, err := uuid.Parse(strings.TrimSpace(response.InviteeID))
+	if err != nil || inviteeID == uuid.Nil {
+		c.sendError("invalid_payload", "invitee_id must be a valid user id")
+		return
+	}
+	if inviteeID != c.UserID {
+		c.sendError("forbidden", "invitee_id must match authenticated user")
+		return
+	}
+
+	response.InviteeID = c.UserID.String()
+	envelope, _ := NewEnvelope(EventTypeBoothInviteResponse, response)
+	c.hub.SendToUser(inviterID, envelope)
+
+	if response.Accepted {
+		c.hub.AddBoothParticipant(response.BoothID, inviterID)
+		c.hub.AddBoothParticipant(response.BoothID, inviteeID)
+	}
+
+	c.requestLogger().Info(
+		"booth invite response relayed",
+		"booth_id", response.BoothID,
+		"inviter_id", inviterID,
+		"invitee_id", inviteeID,
+		"accepted", response.Accepted,
+	)
+}
+
+func (c *Client) handleBoothPrivacyUpdate(payload json.RawMessage) {
+	if c.UserID == uuid.Nil {
+		c.sendError("unauthorized", "Authentication required")
+		return
+	}
+
+	var raw struct {
+		BoothPrivacyUpdatePayload
+		HostUserID string `json:"host_user_id"`
+	}
+	if err := json.Unmarshal(payload, &raw); err != nil {
+		c.sendError("invalid_payload", "Invalid booth privacy update payload")
+		return
+	}
+
+	update := raw.BoothPrivacyUpdatePayload
+	update.BoothID = strings.TrimSpace(update.BoothID)
+	if update.BoothID == "" {
+		c.sendError("invalid_payload", "booth_id is required")
+		return
+	}
+	if update.MaxGuestCount < 0 {
+		c.sendError("invalid_payload", "max_guest_count must be >= 0")
+		return
+	}
+
+	hostIDRaw := strings.TrimSpace(update.HostID)
+	if hostIDRaw == "" {
+		hostIDRaw = strings.TrimSpace(raw.HostUserID)
+	}
+	hostID, err := uuid.Parse(hostIDRaw)
+	if err != nil || hostID == uuid.Nil {
+		c.sendError("invalid_payload", "host_id must be a valid user id")
+		return
+	}
+	if hostID != c.UserID {
+		c.sendError("forbidden", "only booth host can update privacy")
+		return
+	}
+
+	update.HostID = hostID.String()
+	c.hub.AddBoothParticipant(update.BoothID, hostID)
+	envelope, _ := NewEnvelope(EventTypeBoothPrivacyUpdate, update)
+
+	participants := c.hub.GetBoothParticipants(update.BoothID)
+	if len(participants) == 0 {
+		participants = []uuid.UUID{hostID}
+	}
+	for _, userID := range participants {
+		c.hub.SendToUser(userID, envelope)
+	}
+
+	c.requestLogger().Info(
+		"booth privacy update broadcast",
+		"booth_id", update.BoothID,
+		"host_id", hostID,
+		"participants", len(participants),
+		"invite_only", update.InviteOnly,
+		"room_locked", update.RoomLocked,
+		"companion_voice_allowed", update.CompanionVoiceAllowed,
+		"max_guest_count", update.MaxGuestCount,
+	)
+}
+
+func (c *Client) handleBoothHostControl(payload json.RawMessage) {
+	if c.UserID == uuid.Nil {
+		c.sendError("unauthorized", "Authentication required")
+		return
+	}
+
+	var control BoothHostControlPayload
+	if err := json.Unmarshal(payload, &control); err != nil {
+		c.sendError("invalid_payload", "Invalid booth host control payload")
+		return
+	}
+
+	control.BoothID = strings.TrimSpace(control.BoothID)
+	control.Action = strings.TrimSpace(control.Action)
+	if control.BoothID == "" {
+		c.sendError("invalid_payload", "booth_id is required")
+		return
+	}
+	if control.Action == "" {
+		c.sendError("invalid_payload", "action is required")
+		return
+	}
+
+	if _, ok := boothHostActions[control.Action]; !ok {
+		c.sendError("invalid_payload", "invalid host control action")
+		return
+	}
+
+	hostID, err := uuid.Parse(strings.TrimSpace(control.HostID))
+	if err != nil || hostID == uuid.Nil {
+		c.sendError("invalid_payload", "host_id must be a valid user id")
+		return
+	}
+	if hostID != c.UserID {
+		c.sendError("forbidden", "only booth host can run host controls")
+		return
+	}
+
+	control.HostID = hostID.String()
+	c.hub.AddBoothParticipant(control.BoothID, hostID)
+
+	participants := c.hub.GetBoothParticipants(control.BoothID)
+	if len(participants) == 0 {
+		participants = []uuid.UUID{hostID}
+	}
+
+	envelope, _ := NewEnvelope(EventTypeBoothHostControl, control)
+	for _, userID := range participants {
+		c.hub.SendToUser(userID, envelope)
+	}
+
+	if control.Action == "end_party" {
+		disconnectEnvelope, _ := NewEnvelope(EventTypeSessionEnded, BoothDisconnectPayload{
+			BoothID: control.BoothID,
+			Reason:  "end_party",
+		})
+		for _, userID := range participants {
+			c.hub.SendToUser(userID, disconnectEnvelope)
+		}
+		c.hub.ClearBoothParticipants(control.BoothID)
+	}
+
+	c.requestLogger().Info(
+		"booth host control broadcast",
+		"booth_id", control.BoothID,
+		"host_id", hostID,
+		"action", control.Action,
+		"participants", len(participants),
+	)
 }

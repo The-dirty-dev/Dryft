@@ -2,10 +2,11 @@
     "name": "Drift",
     "rootNamespace": "Drift",
     "references": [
-        "Oculus.VR",
-        "Oculus.Interaction",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.RenderPipelines.Universal.Runtime",
+        "Unity.TextMeshPro",
         "Normal.Realtime",
-        "Unity.TextMeshPro"
+        "Normal.Realtime.Shared"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

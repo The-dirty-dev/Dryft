@@ -24,7 +24,7 @@ namespace Drift.Networking
         private string _avatarId;
 
         // User status
-        [RealtimeProperty(3, true)]
+        [RealtimeProperty(3, true, true)]
         private int _status; // PlayerStatus enum
 
         // Currently equipped items (serialized as JSON or IDs)
@@ -38,7 +38,7 @@ namespace Drift.Networking
         private string _equippedEffects; // Comma-separated effect IDs
 
         // Voice state
-        [RealtimeProperty(7, true)]
+        [RealtimeProperty(7, true, true)]
         private bool _isMuted;
 
         [RealtimeProperty(8, true)]
@@ -55,6 +55,10 @@ namespace Drift.Networking
         // Profile photo URL (for UI display)
         [RealtimeProperty(11, true, true)]
         private string _profilePhotoUrl;
+
+        // Stable user ID for invitation and moderation targeting
+        [RealtimeProperty(12, true, true)]
+        private string _userId;
     }
 
     /// <summary>

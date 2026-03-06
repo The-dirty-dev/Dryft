@@ -3,6 +3,7 @@ using Normal.Realtime;
 using Drift.Core;
 using Drift.Environment;
 using Drift.Marketplace;
+using Drift.API;
 
 namespace Drift.Networking
 {
@@ -109,6 +110,7 @@ namespace Drift.Networking
             if (GameManager.Instance != null)
             {
                 model.displayName = GameManager.Instance.UserDisplayName ?? "Player";
+                model.userId = GameManager.Instance.UserId ?? string.Empty;
             }
 
             // Set from InventoryManager
@@ -117,12 +119,17 @@ namespace Drift.Networking
                 var equipped = InventoryManager.Instance.GetEquippedItems();
                 foreach (var item in equipped)
                 {
-                    switch (item.item_type)
+                    if (item.item == null)
                     {
-                        case "avatar":
+                        continue;
+                    }
+
+                    switch (item.item.ItemType)
+                    {
+                        case ItemType.Avatar:
                             model.equippedAvatar = item.item_id;
                             break;
-                        case "outfit":
+                        case ItemType.Outfit:
                             model.equippedOutfit = item.item_id;
                             break;
                     }
@@ -262,6 +269,14 @@ namespace Drift.Networking
         public string GetDisplayName()
         {
             return model?.displayName ?? "Player";
+        }
+
+        /// <summary>
+        /// Gets the stable user ID for this player.
+        /// </summary>
+        public string GetUserId()
+        {
+            return model?.userId ?? string.Empty;
         }
 
         /// <summary>

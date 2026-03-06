@@ -2,6 +2,62 @@ import '@testing-library/jest-dom/vitest';
 import { afterEach, beforeEach, vi } from 'vitest';
 import React from 'react';
 
+type StorageLike = Pick<
+  Storage,
+  'getItem' | 'setItem' | 'removeItem' | 'clear' | 'key' | 'length'
+>;
+
+function createMemoryStorage(): StorageLike {
+  const map = new Map<string, string>();
+  return {
+    get length() {
+      return map.size;
+    },
+    key(index: number) {
+      return Array.from(map.keys())[index] ?? null;
+    },
+    getItem(key: string) {
+      return map.has(key) ? map.get(key)! : null;
+    },
+    setItem(key: string, value: string) {
+      map.set(key, String(value));
+    },
+    removeItem(key: string) {
+      map.delete(key);
+    },
+    clear() {
+      map.clear();
+    },
+  };
+}
+
+function ensureStorage(name: 'localStorage' | 'sessionStorage') {
+  const current = (globalThis as any)[name];
+  const valid =
+    current &&
+    typeof current.getItem === 'function' &&
+    typeof current.setItem === 'function' &&
+    typeof current.removeItem === 'function' &&
+    typeof current.clear === 'function';
+
+  if (!valid) {
+    Object.defineProperty(globalThis, name, {
+      configurable: true,
+      value: createMemoryStorage(),
+    });
+  }
+}
+
+ensureStorage('localStorage');
+ensureStorage('sessionStorage');
+
+if (typeof HTMLElement !== 'undefined' && !HTMLElement.prototype.scrollIntoView) {
+  Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+    configurable: true,
+    value: vi.fn(),
+  });
+}
+
 type RouterMock = {
   push: ReturnType<typeof vi.fn>;
   replace: ReturnType<typeof vi.fn>;
@@ -17,6 +73,7 @@ const mockRouter: RouterMock = {
 (globalThis as { __mockRouter?: RouterMock }).__mockRouter = mockRouter;
 (globalThis as { __mockSearchParams?: URLSearchParams }).__mockSearchParams =
   new URLSearchParams();
+(globalThis as { __mockParams?: Record<string, string> }).__mockParams = {};
 
 vi.mock('next/navigation', () => ({
   useRouter: () => mockRouter,
@@ -24,6 +81,7 @@ vi.mock('next/navigation', () => ({
     (globalThis as { __mockSearchParams?: URLSearchParams }).__mockSearchParams ??
     new URLSearchParams(),
   usePathname: () => '/',
+  useParams: () => (globalThis as { __mockParams?: Record<string, string> }).__mockParams ?? {},
 }));
 
 vi.mock('next/link', () => ({
@@ -74,6 +132,7 @@ beforeEach(() => {
 
   (globalThis as { __mockSearchParams?: URLSearchParams }).__mockSearchParams =
     new URLSearchParams();
+  (globalThis as { __mockParams?: Record<string, string> }).__mockParams = {};
 
   if (typeof localStorage !== 'undefined') {
     localStorage.clear();
